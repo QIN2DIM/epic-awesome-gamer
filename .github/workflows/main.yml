@@ -20,9 +20,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements.txt 
+          api update && apt install -y chromium-browser
 
       - name: Run main
         run: |
           echo -e "EMAIL: ${{secrets.EPIC_EMAIL}}\nPASSWORD: ${{secrets.EPIC_PASSWORD}}" > src/config.yaml
-          python src/main.py
+          cd src && python main.py
+          python main.py install
+          python main.py get
