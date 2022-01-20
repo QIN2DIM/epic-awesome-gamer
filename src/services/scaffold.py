@@ -6,6 +6,9 @@
 from gevent import monkey
 
 monkey.patch_all()
+
+from services.bricklayer.exceptions import SurpriseExit
+
 from apis.scaffold import get, challenge, install
 
 
@@ -101,7 +104,14 @@ class Scaffold:
 
         :return:
         """
+        """
+        [🌀] 优雅离场
+        _______________
+        脑洞大开的作者想挑战一下 Python 自带的垃圾回收机制，
+        决定以一种极其垂直的方式结束系统任务。
+        """
         challenge.run()
+        raise SurpriseExit("优雅离场")
 
     @staticmethod
     def deploy():

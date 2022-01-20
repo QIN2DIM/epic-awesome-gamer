@@ -1,7 +1,7 @@
 selenium>=4.1.0
 gevent>=21.12.0
 fire>=0.4.0
-opencv-python>=4.5.3.56
+opencv-python==4.5.3.56
 numpy>=1.22.1
 requests>=2.27.1
 loguru>=0.5.3
@@ -13,3 +13,5 @@ bs4>=0.0.1
 beautifulsoup4>=4.10.0
 lxml>=4.7.1
 apscheduler>=3.8.1
+webdriver_manager
+undetected_chromedriver
