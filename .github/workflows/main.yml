@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt 
-          api update && apt install -y chromium-browser
+          apt update && apt install -y chromium-browser
 
       - name: Run main
         run: |
