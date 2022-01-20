@@ -1,0 +1,28 @@
+name: main
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+  push:
+    branches: [main]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run main
+        run: |
+          echo -e "EMAIL: ${{secrets.EPIC_EMAIL}}\nPASSWORD: ${{secrets.EPIC_PASSWORD}}" > src/config.yaml
+          python src/main.py
