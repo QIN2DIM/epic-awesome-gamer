@@ -16,6 +16,7 @@ import pytz
 import yaml
 from cloudscraper import create_scraper
 from loguru import logger
+from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 
 colorama.init(autoreset=True)
@@ -237,19 +238,26 @@ class InitLog:
         return logger
 
 
+def _set_ctx():
+    options = ChromeOptions()
+    options.add_argument("user-agent='{}'".format(ToolBox.fake_user_agent()))
+    options.add_argument("--log-level=3")
+    options.add_argument("--lang=zh-CN")
+    return options
+
+
 def get_ctx(silence: bool = None):
     silence = True if silence is None else silence
 
-    from selenium.webdriver import Chrome, ChromeOptions
+    from selenium.webdriver import Chrome
     from selenium.webdriver.chrome.service import Service
 
-    options = ChromeOptions()
+    options = _set_ctx()
     if silence is True:
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-software-rasterizer")
-    options.add_argument("user-agent='{}'".format(ToolBox.fake_user_agent()))
-    options.add_argument("--log-level=3")
+
     # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
     service = Service(ChromeDriverManager(log_level=0).install())
     return Chrome(options=options, service=service)
@@ -259,4 +267,4 @@ def get_challenge_ctx(silence: bool = None):
     silence = True if silence is None else silence
     from undetected_chromedriver import Chrome
 
-    return Chrome(headless=silence, use_subprocess=True)
+    return Chrome(options=_set_ctx(), headless=silence, use_subprocess=True)
