@@ -13,3 +13,4 @@ bs4>=0.0.1
 beautifulsoup4>=4.10.0
 lxml>=4.7.1
 apscheduler>=3.8.1
+undetected-chromedriver
