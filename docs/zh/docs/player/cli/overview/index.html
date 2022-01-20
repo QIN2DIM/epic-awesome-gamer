@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="V2RSS 脚手架指令 # 基础指令 # scaffold ping # 测试 Redis 数据库连接。 scaffold build # 在 Ubuntu 中构建基础运行环境。 订阅管理 # scaffold pool # 订阅池的命令行管理工具。功能包括：剔除 alive_pool 中的失">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="Overview" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/overview/" />
+
+<title>Overview | Epic AwesomeGamer</title>
+<link rel="manifest" href="/epic-awesome-gamer/manifest.json">
+<link rel="icon" href="/epic-awesome-gamer/favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="/epic-awesome-gamer/book.min.31cccedbc2b6812eb37d0d37cdf4cb30cb89bd41421d3d51da624e11baccfe92.css" integrity="sha256-MczO28K2gS6zfQ03zfTLMMuJvUFCHT1R2mJOEbrM/pI=" crossorigin="anonymous">
+  <script defer src="/epic-awesome-gamer/flexsearch.min.js"></script>
+  <script defer src="/epic-awesome-gamer/zh.search.min.a15fd101d60a5e675e4c679fb6cee2a03a5cec8ad6aaf5a007d80e995b60c1f7.js" integrity="sha256-oV/RAdYKXmdeTGefts7ioDpc7IrWqvWgB9gOmVtgwfc=" crossorigin="anonymous"></script>
+
+  <script defer src="/epic-awesome-gamer/sw.min.fce957f404884887d3e2471bff9b46e9879d096ba64fd4ac8f550d0dd48d105a.js" integrity="sha256-/OlX9ASISIfT4kcb/5tG6YedCWumT9Ssj1UNDdSNEFo=" crossorigin="anonymous"></script>
+<link rel="alternate" type="application/rss+xml" href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/overview/index.xml" title="Epic AwesomeGamer" />
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/epic-awesome-gamer/zh/"><span>Epic AwesomeGamer</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="搜索" aria-label="搜索" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+  
+
+
+
+  
+    
+  
+
+
+
+<ul class="book-languages">
+  <li>
+    <input type="checkbox" id="languages" class="toggle" />
+    <label for="languages" class="flex justify-between">
+      <a role="button" class="flex align-center">
+        <img src="/epic-awesome-gamer/svg/translate.svg" class="book-icon" alt="Languages" />
+        简体中文
+      </a>
+    </label>
+
+    <ul>
+      
+      <li>
+        <a href="https://blog.echosec.top/epic-awesome-gamer/">
+          English
+        </a>
+      </li>
+      
+    </ul>
+  </li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <ul>
+    
+      
+        <li class="book-section-flat" >
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-b900152bb5efd8f491d123b5f73aa30d" class="toggle"  />
+    <label for="section-b900152bb5efd8f491d123b5f73aa30d" class="flex justify-between">
+      <a role="button" class="">使用指南</a>
+    </label>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li class="book-section-flat" >
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-27d250f93b10a45d08befdb5dd2f0f3b" class="toggle" checked />
+    <label for="section-27d250f93b10a45d08befdb5dd2f0f3b" class="flex justify-between">
+      <a role="button" class="">开发指南</a>
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-a467ca43dbcdaf2ffbd8aeecc80a9440" class="toggle"  />
+    <label for="section-a467ca43dbcdaf2ffbd8aeecc80a9440" class="flex justify-between">
+      <a role="button" class="">开始使用</a>
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/overview/" class="">环境复现</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/quick-start/" class="">快速上手</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/install-v2rss/" class="">源码下载</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/basic-usage/" class="">基本用法</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/directory-structure/" class="">目录结构</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/configuration/" class="">项目配置</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-02591bebd5ca01427869ded3401321a8" class="toggle" checked />
+    <label for="section-02591bebd5ca01427869ded3401321a8" class="flex justify-between">
+      <a role="button" class="">脚手架指令</a>
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/overview/" class=" active">Overview</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/ping/" class="">Scaffold Ping</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/deploy/" class="">Scaffold Deploy</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-723140cbe530ea3669e1696982bbe922" class="toggle"  />
+    <label for="section-723140cbe530ea3669e1696982bbe922" class="flex justify-between">
+      <a role="button" class="">托管 &amp; 部署</a>
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <span>V2rss Deploy</span>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <span>Host on GitHub</span>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://blog.echosec.top" target="_blank" rel="noopener">
+        Blog
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/QIN2DIM/epic-awesome-gamer/" target="_blank" rel="noopener">
+        GitHub
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/QIN2DIM/epic-awesome-gamer/issues" target="_blank" rel="noopener">
+        Discussions
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://t.me/joinchat/HlB9SQJubb5VmNU5" target="_blank" rel="noopener">
+        TG Studio
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var a=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(b){localStorage.setItem("menu.scrollTop",a.scrollTop)}),a.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/epic-awesome-gamer/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Overview</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+<link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="v2rss-脚手架指令">
+  V2RSS 脚手架指令
+  <a class="anchor" href="#v2rss-%e8%84%9a%e6%89%8b%e6%9e%b6%e6%8c%87%e4%bb%a4">#</a>
+</h1>
+<h2 id="基础指令">
+  基础指令
+  <a class="anchor" href="#%e5%9f%ba%e7%a1%80%e6%8c%87%e4%bb%a4">#</a>
+</h2>
+<!-- weight:5~99-->
+<div class="book-columns flex flex-wrap">
+
+  <div class="flex-even markdown-inner">
+    <!-- begin columns block -->
+<h3 id="scaffold-pingdocsplayercliping">
+  
+  <a href="/epic-awesome-gamer/zh/docs/player/cli/ping/">scaffold ping</a>
+  <a class="anchor" href="#scaffold-pingdocsplayercliping">#</a>
+</h3>
+<!-- weight:5-->
+<p>测试 Redis 数据库连接。
+  </div>
+
+  <div class="flex-even markdown-inner">
+    <!-- magic separator, between columns -->
+<h3 id="scaffold-builddocsplayerclibuild">
+  
+  <a href="/docs/player/cli/build">scaffold build</a>
+  <a class="anchor" href="#scaffold-builddocsplayerclibuild">#</a>
+</h3>
+<!-- weight:10-->
+<p>在 Ubuntu 中构建基础运行环境。
+  </div>
+
+</div>
+
+<h2 id="订阅管理">
+  订阅管理
+  <a class="anchor" href="#%e8%ae%a2%e9%98%85%e7%ae%a1%e7%90%86">#</a>
+</h2>
+<!-- weight:100~200-->
+<div class="book-columns flex flex-wrap">
+
+  <div class="flex-even markdown-inner">
+    <!-- begin columns block -->
+<h3 id="scaffold-pooldocsplayerclipool">
+  
+  <a href="/docs/player/cli/pool">scaffold pool</a>
+  <a class="anchor" href="#scaffold-pooldocsplayerclipool">#</a>
+</h3>
+<!-- weight:100-->
+<p>订阅池的命令行管理工具。功能包括：剔除 <code>alive_pool</code> 中的失效订阅或过期订阅，输出订阅池状态等。
+  </div>
+
+  <div class="flex-even markdown-inner">
+    <!-- magic separator, between columns -->
+  </div>
+
+</div>
+
+<h2 id="系统任务">
+  系统任务
+  <a class="anchor" href="#%e7%b3%bb%e7%bb%9f%e4%bb%bb%e5%8a%a1">#</a>
+</h2>
+<!-- weight:300~400-->
+<div class="book-columns flex flex-wrap">
+
+  <div class="flex-even markdown-inner">
+    <h3 id="scaffold-deploydocsplayerclideploy">
+  
+  <a href="/epic-awesome-gamer/zh/docs/player/cli/deploy/">scaffold deploy</a>
+  <a class="anchor" href="#scaffold-deploydocsplayerclideploy">#</a>
+</h3>
+<!-- weight:300-->
+<p>部署定时任务节点。
+  </div>
+
+  <div class="flex-even markdown-inner">
+    <h3 id="scaffold-synergydocsplayerclisnergy">
+  
+  <a href="/docs/player/cli/snergy">scaffold synergy</a>
+  <a class="anchor" href="#scaffold-synergydocsplayerclisnergy">#</a>
+</h3>
+<!-- weight:310-->
+<p>部署协同工作节点。
+  </div>
+
+</div>
+
+<div class="book-columns flex flex-wrap">
+
+  <div class="flex-even markdown-inner">
+    <!-- begin columns block -->
+<h3 id="scaffold-serverdocsplayercliserver">
+  
+  <a href="/docs/player/cli/server">scaffold server</a>
+  <a class="anchor" href="#scaffold-serverdocsplayercliserver">#</a>
+</h3>
+<!-- weight:320-->
+<p>部署 <code>PRODUCTION</code> 接口服务器。
+  </div>
+
+  <div class="flex-even markdown-inner">
+    <!-- magic separator, between columns -->
+<h3 id="scaffold-entropydocsplayerclientropy">
+  
+  <a href="/docs/player/cli/entropy">scaffold entropy</a>
+  <a class="anchor" href="#scaffold-entropydocsplayerclientropy">#</a>
+</h3>
+<!-- weight:330-->
+<p>采集队列的命令行管理工具。功能包括：更新待办任务、更新采集队列容量，检查待办任务心跳，输出采集队列摘要信息。
+  </div>
+
+</div>
+
+<h2 id="高级指令">
+  高级指令
+  <a class="anchor" href="#%e9%ab%98%e7%ba%a7%e6%8c%87%e4%bb%a4">#</a>
+</h2>
+<!-- weight:500~600-->
+<div class="book-columns flex flex-wrap">
+
+  <div class="flex-even markdown-inner">
+    <!-- begin columns block -->
+<h3 id="scaffold-miningdocsplayerclimining">
+  
+  <a href="/docs/player/cli/mining">scaffold mining</a>
+  <a class="anchor" href="#scaffold-miningdocsplayerclimining">#</a>
+</h3>
+<!-- weight:500-->
+<p>采集、清洗、分类、存储暴露在公网上的 SSPanel-Uim 站点。
+  </div>
+
+  <div class="flex-even markdown-inner">
+    <!-- magic separator, between columns -->
+<h3 id="scaffold-spawndocsplayerclispawn">
+  
+  <a href="/docs/player/cli/spawn">scaffold spawn</a>
+  <a class="anchor" href="#scaffold-spawndocsplayerclispawn">#</a>
+</h3>
+<!-- weight:510-->
+<p>释放所有本机采集实例，基于 gevent 并发执行。
+  </div>
+
+</div>
+
+<h2 id="实验功能">
+  实验功能
+  <a class="anchor" href="#%e5%ae%9e%e9%aa%8c%e5%8a%9f%e8%83%bd">#</a>
+</h2>
+<!-- weight:1000+-->
+<div class="book-columns flex flex-wrap">
+
+  <div class="flex-even markdown-inner">
+    <!-- begin columns block -->
+<h3 id="scaffold-ashdocsplayercliash">
+  
+  <a href="/docs/player/cli/ash">scaffold ash</a>
+  <a class="anchor" href="#scaffold-ashdocsplayercliash">#</a>
+</h3>
+<!-- weight:1000-->
+<p>通过设定的 <code>threshold</code> 审查订阅池，清洗出各类订阅中的优质节点，重新排列组合生成可被 Clash 吸收的规则的 <code>config.yaml</code> ；自动打开 Clash 导入配置文件。
+  </div>
+
+  <div class="flex-even markdown-inner">
+    <!-- magic separator, between columns -->
+  </div>
+
+</div>
+
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+  <div>
+    <a class="flex align-center" href="https://github.com/qin2dim/v2rss-docs/tree/main/content.zh/docs/player/cli/overview/_index.md" target="_blank" rel="noopener">
+      <img src="/epic-awesome-gamer/svg/edit.svg" class="book-icon" alt="Edit" />
+      <span>编辑本页</span>
+    </a>
+  </div>
+
+
+</div>
+
+
+
+  <script>(function(){function a(c){const a=window.getSelection(),b=document.createRange();b.selectNodeContents(c),a.removeAllRanges(),a.addRange(b)}document.querySelectorAll("pre code").forEach(b=>{b.addEventListener("click",function(c){a(b.parentElement),navigator.clipboard&&navigator.clipboard.writeText(b.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

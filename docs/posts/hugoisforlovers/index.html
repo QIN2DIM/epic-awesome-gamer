@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Step 1. Install Hugo#Go to Hugo releases and download the appropriate version for your OS and architecture.
+Save it somewhere specific as we will be using it in the next step.
+More complete instructions are available at Install Hugo
+Step 2. Build the Docs#Hugo has its own example site which happens to also be the documentation site you are reading right now.
+Follow the following steps:">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="Getting Started with Hugo" />
+<meta property="og:description" content="Step 1. Install Hugo#Go to Hugo releases and download the appropriate version for your OS and architecture.
+Save it somewhere specific as we will be using it in the next step.
+More complete instructions are available at Install Hugo
+Step 2. Build the Docs#Hugo has its own example site which happens to also be the documentation site you are reading right now.
+Follow the following steps:" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.echosec.top/epic-awesome-gamer/posts/hugoisforlovers/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2014-04-02T00:00:00+00:00" />
+<meta property="article:modified_time" content="2014-04-02T00:00:00+00:00" />
+
+<title>Getting Started with Hugo | Epic AwesomeGamer</title>
+<link rel="manifest" href="/epic-awesome-gamer/manifest.json">
+<link rel="icon" href="/epic-awesome-gamer/favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="/epic-awesome-gamer/book.min.31cccedbc2b6812eb37d0d37cdf4cb30cb89bd41421d3d51da624e11baccfe92.css" integrity="sha256-MczO28K2gS6zfQ03zfTLMMuJvUFCHT1R2mJOEbrM/pI=" crossorigin="anonymous">
+  <script defer src="/epic-awesome-gamer/flexsearch.min.js"></script>
+  <script defer src="/epic-awesome-gamer/en.search.min.29376e9f40a2395f81355c89199d51cebfa619adc77d7a286e33659b38c14e2e.js" integrity="sha256-KTdun0CiOV&#43;BNVyJGZ1Rzr&#43;mGa3HfXoobjNlmzjBTi4=" crossorigin="anonymous"></script>
+
+  <script defer src="/epic-awesome-gamer/sw.min.fce957f404884887d3e2471bff9b46e9879d096ba64fd4ac8f550d0dd48d105a.js" integrity="sha256-/OlX9ASISIfT4kcb/5tG6YedCWumT9Ssj1UNDdSNEFo=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/epic-awesome-gamer/"><span>Epic AwesomeGamer</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+  
+
+
+
+  
+    
+  
+
+
+
+<ul class="book-languages">
+  <li>
+    <input type="checkbox" id="languages" class="toggle" />
+    <label for="languages" class="flex justify-between">
+      <a role="button" class="flex align-center">
+        <img src="/epic-awesome-gamer/svg/translate.svg" class="book-icon" alt="Languages" />
+        English
+      </a>
+    </label>
+
+    <ul>
+      
+      <li>
+        <a href="https://blog.echosec.top/epic-awesome-gamer/zh/">
+          简体中文
+        </a>
+      </li>
+      
+    </ul>
+  </li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://blog.echosec.top" target="_blank" rel="noopener">
+        Blog
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/QIN2DIM/epic-awesome-gamer/" target="_blank" rel="noopener">
+        GitHub
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/QIN2DIM/epic-awesome-gamer/issues" target="_blank" rel="noopener">
+        Discussions
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://t.me/joinchat/HlB9SQJubb5VmNU5" target="_blank" rel="noopener">
+        TG Studio
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var a=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(b){localStorage.setItem("menu.scrollTop",a.scrollTop)}),a.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/epic-awesome-gamer/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Getting Started with Hugo</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+<link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+  
+ 
+      </header>
+
+      
+      
+<article class="markdown">
+  <h1>
+    <a href="/epic-awesome-gamer/posts/hugoisforlovers/">Getting Started with Hugo</a>
+  </h1>
+  
+  <h5>April 2, 2014</h5>
+
+
+
+  
+  <div>
+    
+      <a href="/epic-awesome-gamer/categories/Development/">Development</a>, 
+      <a href="/epic-awesome-gamer/categories/golang/">golang</a>
+  </div>
+  
+
+  
+  <div>
+    
+      <a href="/epic-awesome-gamer/tags/go/">go</a>, 
+      <a href="/epic-awesome-gamer/tags/golang/">golang</a>, 
+      <a href="/epic-awesome-gamer/tags/hugo/">hugo</a>, 
+      <a href="/epic-awesome-gamer/tags/development/">development</a>
+  </div>
+  
+
+
+
+<h2 id="step-1-install-hugo">
+  Step 1. Install Hugo
+  <a class="anchor" href="#step-1-install-hugo">#</a>
+</h2>
+<p>Go to 
+  <a href="https://github.com/spf13/hugo/releases">Hugo releases</a> and download the
+appropriate version for your OS and architecture.</p>
+<p>Save it somewhere specific as we will be using it in the next step.</p>
+<p>More complete instructions are available at 
+  <a href="https://gohugo.io/getting-started/installing/">Install Hugo</a></p>
+<h2 id="step-2-build-the-docs">
+  Step 2. Build the Docs
+  <a class="anchor" href="#step-2-build-the-docs">#</a>
+</h2>
+<p>Hugo has its own example site which happens to also be the documentation site
+you are reading right now.</p>
+<p>Follow the following steps:</p>
+<ol>
+<li>Clone the 
+  <a href="http://github.com/spf13/hugo">Hugo repository</a></li>
+<li>Go into the repo</li>
+<li>Run hugo in server mode and build the docs</li>
+<li>Open your browser to http://localhost:1313</li>
+</ol>
+<p>Corresponding pseudo commands:</p>
+<pre><code>git clone https://github.com/spf13/hugo
+cd hugo
+/path/to/where/you/installed/hugo server --source=./docs
+&gt; 29 pages created
+&gt; 0 tags index created
+&gt; in 27 ms
+&gt; Web Server is available at http://localhost:1313
+&gt; Press ctrl+c to stop
+</code></pre>
+<p>Once you&rsquo;ve gotten here, follow along the rest of this page on your local build.</p>
+<h2 id="step-3-change-the-docs-site">
+  Step 3. Change the docs site
+  <a class="anchor" href="#step-3-change-the-docs-site">#</a>
+</h2>
+<p>Stop the Hugo process by hitting Ctrl+C.</p>
+<p>Now we are going to run hugo again, but this time with hugo in watch mode.</p>
+<pre><code>/path/to/hugo/from/step/1/hugo server --source=./docs --watch
+&gt; 29 pages created
+&gt; 0 tags index created
+&gt; in 27 ms
+&gt; Web Server is available at http://localhost:1313
+&gt; Watching for changes in /Users/spf13/Code/hugo/docs/content
+&gt; Press ctrl+c to stop
+</code></pre>
+<p>Open your 
+  <a href="http://vim.spf13.com">favorite editor</a> and change one of the source
+content pages. How about changing this very file to <em>fix the typo</em>. How about changing this very file to <em>fix the typo</em>.</p>
+<p>Content files are found in <code>docs/content/</code>. Unless otherwise specified, files
+are located at the same relative location as the url, in our case
+<code>docs/content/overview/quickstart.md</code>.</p>
+<p>Change and save this file.. Notice what happened in your terminal.</p>
+<pre><code>&gt; Change detected, rebuilding site
+
+&gt; 29 pages created
+&gt; 0 tags index created
+&gt; in 26 ms
+</code></pre>
+<p>Refresh the browser and observe that the typo is now fixed.</p>
+<p>Notice how quick that was. Try to refresh the site before it&rsquo;s finished building. I double dare you.
+Having nearly instant feedback enables you to have your creativity flow without waiting for long builds.</p>
+<h2 id="step-4-have-fun">
+  Step 4. Have fun
+  <a class="anchor" href="#step-4-have-fun">#</a>
+</h2>
+<p>The best way to learn something is to play with it.</p>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+  <div>
+    <a class="flex align-center" href="https://github.com/qin2dim/v2rss-docs/tree/main/content/posts/hugoisforlovers.md" target="_blank" rel="noopener">
+      <img src="/epic-awesome-gamer/svg/edit.svg" class="book-icon" alt="Edit" />
+      <span>Edit this page</span>
+    </a>
+  </div>
+
+
+</div>
+
+
+
+  <script>(function(){function a(c){const a=window.getSelection(),b=document.createRange();b.selectNodeContents(c),a.removeAllRanges(),a.addRange(b)}document.querySelectorAll("pre code").forEach(b=>{b.addEventListener("click",function(c){a(b.parentElement),navigator.clipboard&&navigator.clipboard.writeText(b.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

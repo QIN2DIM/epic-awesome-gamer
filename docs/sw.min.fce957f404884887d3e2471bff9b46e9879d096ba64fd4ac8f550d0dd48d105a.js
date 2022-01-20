@@ -1,0 +1,1 @@
+navigator.serviceWorker&&navigator.serviceWorker.register("/epic-awesome-gamer/sw.js",{scope:"/epic-awesome-gamer/"})
