@@ -10,7 +10,7 @@
 	<br>
 	<br>
 </div>
-![scaffold-get-demo-output](https://img-pool.oss-cn-shenzhen.aliyuncs.com/scaffold-get-demo-output.gif)
+![scaffold-get-demo-output-small](/docs/scaffold-get-demo-output-small.gif)
 
 ## 项目简介 👋
 
