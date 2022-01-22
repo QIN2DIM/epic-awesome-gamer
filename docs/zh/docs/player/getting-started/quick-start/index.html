@@ -1,598 +1,524 @@
 <!DOCTYPE html>
-<html lang="zh" dir="ltr">
+<html dir="ltr" lang="zh">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="快速上手 # 快速部署一个可以采集订阅的 V2RSS 后端服务。 🚧 施工中&hellip; Linux(Ubuntu) Fork 项目，拉取源码 进入工作目录 拉取必要依赖 根据你的情况选择 pip/pip3 ，或使用">
-<meta name="theme-color" content="#FFFFFF">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="快速上手" />
-<meta property="og:description" content="" />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/quick-start/" />
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="快速上手 # 快速部署一个可以采集订阅的 V2RSS 后端服务。 🚧 施工中&hellip; Linux(Ubuntu) Fork 项目，拉取源码 进入工作目录 拉取必要依赖 根据你的情况选择 pip/pip3 ，或使用"
+          name="description">
+    <meta content="#FFFFFF" name="theme-color">
+    <meta content="light dark" name="color-scheme">
+    <meta content="快速上手" property="og:title"/>
+    <meta content="" property="og:description"/>
+    <meta content="website" property="og:type"/>
+    <meta content="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/quick-start/"
+          property="og:url"/>
 
-<title>快速上手 | Epic AwesomeGamer</title>
-<link rel="manifest" href="/epic-awesome-gamer/manifest.json">
-<link rel="icon" href="/epic-awesome-gamer/favicon.png" type="image/x-icon">
-<link rel="stylesheet" href="/epic-awesome-gamer/book.min.31cccedbc2b6812eb37d0d37cdf4cb30cb89bd41421d3d51da624e11baccfe92.css" integrity="sha256-MczO28K2gS6zfQ03zfTLMMuJvUFCHT1R2mJOEbrM/pI=" crossorigin="anonymous">
-  <script defer src="/epic-awesome-gamer/flexsearch.min.js"></script>
-  <script defer src="/epic-awesome-gamer/zh.search.min.a15fd101d60a5e675e4c679fb6cee2a03a5cec8ad6aaf5a007d80e995b60c1f7.js" integrity="sha256-oV/RAdYKXmdeTGefts7ioDpc7IrWqvWgB9gOmVtgwfc=" crossorigin="anonymous"></script>
+    <title>快速上手 | Epic AwesomeGamer</title>
+    <link href="/epic-awesome-gamer/manifest.json" rel="manifest">
+    <link href="/epic-awesome-gamer/favicon.png" rel="icon" type="image/x-icon">
+    <link crossorigin="anonymous"
+          href="/epic-awesome-gamer/book.min.31cccedbc2b6812eb37d0d37cdf4cb30cb89bd41421d3d51da624e11baccfe92.css"
+          integrity="sha256-MczO28K2gS6zfQ03zfTLMMuJvUFCHT1R2mJOEbrM/pI=" rel="stylesheet">
+    <script defer src="/epic-awesome-gamer/flexsearch.min.js"></script>
+    <script crossorigin="anonymous"
+            defer
+            integrity="sha256-oV/RAdYKXmdeTGefts7ioDpc7IrWqvWgB9gOmVtgwfc=" src="/epic-awesome-gamer/zh.search.min.a15fd101d60a5e675e4c679fb6cee2a03a5cec8ad6aaf5a007d80e995b60c1f7.js"></script>
 
-  <script defer src="/epic-awesome-gamer/sw.min.fce957f404884887d3e2471bff9b46e9879d096ba64fd4ac8f550d0dd48d105a.js" integrity="sha256-/OlX9ASISIfT4kcb/5tG6YedCWumT9Ssj1UNDdSNEFo=" crossorigin="anonymous"></script>
-<link rel="alternate" type="application/rss+xml" href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/quick-start/index.xml" title="Epic AwesomeGamer" />
-<!--
-Made with Book Theme
-https://github.com/alex-shpak/hugo-book
--->
-  
+    <script crossorigin="anonymous" defer
+            integrity="sha256-/OlX9ASISIfT4kcb/5tG6YedCWumT9Ssj1UNDdSNEFo=" src="/epic-awesome-gamer/sw.min.fce957f404884887d3e2471bff9b46e9879d096ba64fd4ac8f550d0dd48d105a.js"></script>
+    <link href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/quick-start/index.xml" rel="alternate"
+          title="Epic AwesomeGamer"
+          type="application/rss+xml"/>
+    <!--
+    Made with Book Theme
+    https://github.com/alex-shpak/hugo-book
+    -->
+
 </head>
 <body dir="ltr">
-  <input type="checkbox" class="hidden toggle" id="menu-control" />
-  <input type="checkbox" class="hidden toggle" id="toc-control" />
-  <main class="container flex">
+<input class="hidden toggle" id="menu-control" type="checkbox"/>
+<input class="hidden toggle" id="toc-control" type="checkbox"/>
+<main class="container flex">
     <aside class="book-menu">
-      <div class="book-menu-content">
-        
-  <nav>
-<h2 class="book-brand">
-  <a class="flex align-center" href="/epic-awesome-gamer/zh/"><span>Epic AwesomeGamer</span>
-  </a>
-</h2>
+        <div class="book-menu-content">
 
+            <nav>
+                <h2 class="book-brand">
+                    <a class="flex align-center" href="/epic-awesome-gamer/zh/"><span>Epic AwesomeGamer</span>
+                    </a>
+                </h2>
 
-<div class="book-search">
-  <input type="text" id="book-search-input" placeholder="搜索" aria-label="搜索" maxlength="64" data-hotkeys="s/" />
-  <div class="book-search-spinner hidden"></div>
-  <ul id="book-search-results"></ul>
-</div>
 
+                <div class="book-search">
+                    <input aria-label="搜索" data-hotkeys="s/" id="book-search-input" maxlength="64" placeholder="搜索"
+                           type="text"/>
+                    <div class="book-search-spinner hidden"></div>
+                    <ul id="book-search-results"></ul>
+                </div>
 
 
-  
+                <ul class="book-languages">
+                    <li>
+                        <input class="toggle" id="languages" type="checkbox"/>
+                        <label class="flex justify-between" for="languages">
+                            <a class="flex align-center" role="button">
+                                <img alt="Languages" class="book-icon" src="/epic-awesome-gamer/svg/translate.svg"/>
+                                简体中文
+                            </a>
+                        </label>
 
+                        <ul>
 
+                            <li>
+                                <a href="https://blog.echosec.top/epic-awesome-gamer/">
+                                    English
+                                </a>
+                            </li>
 
-  
-    
-  
+                        </ul>
+                    </li>
+                </ul>
 
 
+                <ul>
 
-<ul class="book-languages">
-  <li>
-    <input type="checkbox" id="languages" class="toggle" />
-    <label for="languages" class="flex justify-between">
-      <a role="button" class="flex align-center">
-        <img src="/epic-awesome-gamer/svg/translate.svg" class="book-icon" alt="Languages" />
-        简体中文
-      </a>
-    </label>
 
-    <ul>
-      
-      <li>
-        <a href="https://blog.echosec.top/epic-awesome-gamer/">
-          English
-        </a>
-      </li>
-      
-    </ul>
-  </li>
-</ul>
+                    <li class="book-section-flat">
 
 
+                        <input class="toggle" id="section-b900152bb5efd8f491d123b5f73aa30d" type="checkbox"/>
+                        <label class="flex justify-between" for="section-b900152bb5efd8f491d123b5f73aa30d">
+                            <a class="" role="button">使用指南</a>
+                        </label>
 
 
+                        <ul>
 
+                        </ul>
 
+                    </li>
 
 
+                    <li class="book-section-flat">
 
-
-
-  
-
-
-
-  
-  <ul>
-    
-      
-        <li class="book-section-flat" >
-          
-  
-  
-
-  
-    <input type="checkbox" id="section-b900152bb5efd8f491d123b5f73aa30d" class="toggle"  />
-    <label for="section-b900152bb5efd8f491d123b5f73aa30d" class="flex justify-between">
-      <a role="button" class="">使用指南</a>
-    </label>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li class="book-section-flat" >
-          
-  
-  
-
-  
-    <input type="checkbox" id="section-27d250f93b10a45d08befdb5dd2f0f3b" class="toggle" checked />
-    <label for="section-27d250f93b10a45d08befdb5dd2f0f3b" class="flex justify-between">
-      <a role="button" class="">开发指南</a>
-    </label>
-  
-
-          
-  <ul>
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <input type="checkbox" id="section-a467ca43dbcdaf2ffbd8aeecc80a9440" class="toggle" checked />
-    <label for="section-a467ca43dbcdaf2ffbd8aeecc80a9440" class="flex justify-between">
-      <a role="button" class="">开始使用</a>
-    </label>
-  
-
-          
-  <ul>
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/overview/" class="">环境复现</a>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/quick-start/" class=" active">快速上手</a>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/install-v2rss/" class="">源码下载</a>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/basic-usage/" class="">基本用法</a>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/directory-structure/" class="">目录结构</a>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/configuration/" class="">项目配置</a>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <input type="checkbox" id="section-02591bebd5ca01427869ded3401321a8" class="toggle"  />
-    <label for="section-02591bebd5ca01427869ded3401321a8" class="flex justify-between">
-      <a role="button" class="">脚手架指令</a>
-    </label>
-  
-
-          
-  <ul>
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/overview/" class="">Overview</a>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/ping/" class="">Scaffold Ping</a>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/deploy/" class="">Scaffold Deploy</a>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <input type="checkbox" id="section-723140cbe530ea3669e1696982bbe922" class="toggle"  />
-    <label for="section-723140cbe530ea3669e1696982bbe922" class="flex justify-between">
-      <a role="button" class="">托管 &amp; 部署</a>
-    </label>
-  
-
-          
-  <ul>
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <span>V2rss Deploy</span>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <span>Host on GitHub</span>
-  
-
-          
-  <ul>
-    
-  </ul>
-
-        </li>
-      
-    
-  </ul>
-
-        </li>
-      
-    
-  </ul>
-
-        </li>
-      
-    
-  </ul>
-
-
-
-
-
-
-
-
-
-
-
-  
-<ul>
-  
-  <li>
-    <a href="https://blog.echosec.top" target="_blank" rel="noopener">
-        Blog
-      </a>
-  </li>
-  
-  <li>
-    <a href="https://github.com/QIN2DIM/epic-awesome-gamer/" target="_blank" rel="noopener">
-        GitHub
-      </a>
-  </li>
-  
-  <li>
-    <a href="https://github.com/QIN2DIM/epic-awesome-gamer/issues" target="_blank" rel="noopener">
-        Discussions
-      </a>
-  </li>
-  
-  <li>
-    <a href="https://t.me/joinchat/HlB9SQJubb5VmNU5" target="_blank" rel="noopener">
-        TG Studio
-      </a>
-  </li>
-  
-</ul>
-
-
-
-
-
-
-</nav>
-
-
-
-
-  <script>(function(){var a=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(b){localStorage.setItem("menu.scrollTop",a.scrollTop)}),a.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
-
-
- 
-      </div>
+
+                        <input checked class="toggle" id="section-27d250f93b10a45d08befdb5dd2f0f3b" type="checkbox"/>
+                        <label class="flex justify-between" for="section-27d250f93b10a45d08befdb5dd2f0f3b">
+                            <a class="" role="button">开发指南</a>
+                        </label>
+
+
+                        <ul>
+
+
+                            <li>
+
+
+                                <input checked class="toggle" id="section-a467ca43dbcdaf2ffbd8aeecc80a9440"
+                                       type="checkbox"/>
+                                <label class="flex justify-between" for="section-a467ca43dbcdaf2ffbd8aeecc80a9440">
+                                    <a class="" role="button">开始使用</a>
+                                </label>
+
+
+                                <ul>
+
+
+                                    <li>
+
+
+                                        <a class=""
+                                           href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/overview/">环境复现</a>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                    <li>
+
+
+                                        <a class=" active"
+                                           href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/quick-start/">快速上手</a>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                    <li>
+
+
+                                        <a class=""
+                                           href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/install-v2rss/">源码下载</a>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                    <li>
+
+
+                                        <a class=""
+                                           href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/basic-usage/">基本用法</a>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                    <li>
+
+
+                                        <a class=""
+                                           href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/directory-structure/">目录结构</a>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                    <li>
+
+
+                                        <a class=""
+                                           href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/configuration/">项目配置</a>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                </ul>
+
+                            </li>
+
+
+                            <li>
+
+
+                                <input class="toggle" id="section-02591bebd5ca01427869ded3401321a8" type="checkbox"/>
+                                <label class="flex justify-between" for="section-02591bebd5ca01427869ded3401321a8">
+                                    <a class="" role="button">脚手架指令</a>
+                                </label>
+
+
+                                <ul>
+
+
+                                    <li>
+
+
+                                        <a class=""
+                                           href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/overview/">Overview</a>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                    <li>
+
+
+                                        <a class=""
+                                           href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/ping/">Scaffold Ping</a>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                    <li>
+
+
+                                        <a class=""
+                                           href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/deploy/">Scaffold Deploy</a>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                </ul>
+
+                            </li>
+
+
+                            <li>
+
+
+                                <input class="toggle" id="section-723140cbe530ea3669e1696982bbe922" type="checkbox"/>
+                                <label class="flex justify-between" for="section-723140cbe530ea3669e1696982bbe922">
+                                    <a class="" role="button">托管 &amp; 部署</a>
+                                </label>
+
+
+                                <ul>
+
+
+                                    <li>
+
+
+                                        <span>V2rss Deploy</span>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                    <li>
+
+
+                                        <span>Host on GitHub</span>
+
+
+                                        <ul>
+
+                                        </ul>
+
+                                    </li>
+
+
+                                </ul>
+
+                            </li>
+
+
+                        </ul>
+
+                    </li>
+
+
+                </ul>
+
+
+                <ul>
+
+                    <li>
+                        <a href="https://blog.echosec.top" rel="noopener" target="_blank">
+                            Blog
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="https://github.com/QIN2DIM/epic-awesome-gamer/" rel="noopener" target="_blank">
+                            GitHub
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="https://github.com/QIN2DIM/epic-awesome-gamer/issues" rel="noopener" target="_blank">
+                            Discussions
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="https://t.me/joinchat/HlB9SQJubb5VmNU5" rel="noopener" target="_blank">
+                            TG Studio
+                        </a>
+                    </li>
+
+                </ul>
+
+
+            </nav>
+
+
+            <script>
+                (function(){var a=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(b){localStorage.setItem("menu.scrollTop",a.scrollTop)}),a.scrollTop=localStorage.getItem("menu.scrollTop")})()
+            </script>
+
+
+        </div>
     </aside>
 
     <div class="book-page">
-      <header class="book-header">
-        
-  <div class="flex align-center justify-between">
-  <label for="menu-control">
-    <img src="/epic-awesome-gamer/svg/menu.svg" class="book-icon" alt="Menu" />
-  </label>
+        <header class="book-header">
 
-  <strong>快速上手</strong>
+            <div class="flex align-center justify-between">
+                <label for="menu-control">
+                    <img alt="Menu" class="book-icon" src="/epic-awesome-gamer/svg/menu.svg"/>
+                </label>
 
-  <label for="toc-control">
-    
-  </label>
-</div>
-<link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css">
+                <strong>快速上手</strong>
 
-  
- 
-      </header>
+                <label for="toc-control">
 
-      
-      
-  <article class="markdown"><h1 id="快速上手">
-  快速上手
-  <a class="anchor" href="#%e5%bf%ab%e9%80%9f%e4%b8%8a%e6%89%8b">#</a>
-</h1>
-<p>快速部署一个可以采集订阅的 V2RSS 后端服务。</p>
-<blockquote class="book-hint danger">
-  🚧 施工中&hellip;
-</blockquote>
+                </label>
+            </div>
+            <link href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
 
 
+        </header>
 
 
+        <article class="markdown"><h1 id="快速上手">
+            快速上手
+            <a class="anchor" href="#%e5%bf%ab%e9%80%9f%e4%b8%8a%e6%89%8b">#</a>
+        </h1>
+            <p>快速部署一个可以采集订阅的 V2RSS 后端服务。</p>
+            <blockquote class="book-hint danger">
+                🚧 施工中&hellip;
+            </blockquote>
 
-<div class="book-tabs"><input type="radio" class="toggle" name="tabs-%!s(&lt;nil&gt;)" id="tabs-%!s(&lt;nil&gt;)-0" checked="checked" />
-  <label for="tabs-%!s(&lt;nil&gt;)-0">Linux(Ubuntu)</label>
-  <div class="book-tabs-content markdown-inner"><ol>
-<li>
-<p><strong>Fork 项目，拉取源码</strong></p>
-</li>
-<li>
-<p><strong>进入工作目录</strong></p>
-</li>
-<li>
-<p><strong>拉取必要依赖</strong></p>
-<p>根据你的情况选择 <code>pip/pip3</code> ，或使用 <code>pyenv/conda</code> 。</p>
-</li>
-</ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">pip install -r ./requirements.txt
-</code></pre></div><ol start="4">
-<li><strong>初始化组织结构以及配置文件</strong></li>
-</ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">cd src <span style="color:#f92672">&amp;&amp;</span> python3 main.py
-</code></pre></div><ol start="5">
-<li>
-<p><strong>构建基础运行环境</strong></p>
-<p>脚本构建的具体内容可参考 
-  <a href="/docs/player/cli/install">install</a> 脚手架指令</p>
-</li>
-</ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">python3 main.py intall
-</code></pre></div><ol start="6">
-<li>
-<p><strong>修改配置文件</strong></p>
-</li>
-<li>
-<p><strong>测试连接</strong></p>
-<p>若返回 <code>欢迎使用</code> 字样说明配置文件编写以及节点配置都没问题，可以正常运行项目了。</p>
-</li>
-</ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">python3 main.py ping 
-</code></pre></div><ol start="8">
-<li><strong>试运行 <code>GET</code> 指令</strong></li>
-</ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">python3 main.py get
-</code></pre></div><ol start="9">
-<li><strong>部署系统服务</strong></li>
-</ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># 部署系统定时任务</span>
+
+            <div class="book-tabs"><input checked="checked" class="toggle" id="tabs-%!s(&lt;nil&gt;)-0"
+                                          name="tabs-%!s(&lt;nil&gt;)" type="radio"/>
+                <label for="tabs-%!s(&lt;nil&gt;)-0">Linux(Ubuntu)</label>
+                <div class="book-tabs-content markdown-inner">
+                    <ol>
+                        <li>
+                            <p><strong>Fork 项目，拉取源码</strong></p>
+                        </li>
+                        <li>
+                            <p><strong>进入工作目录</strong></p>
+                        </li>
+                        <li>
+                            <p><strong>拉取必要依赖</strong></p>
+                            <p>根据你的情况选择 <code>pip/pip3</code> ，或使用 <code>pyenv/conda</code> 。</p>
+                        </li>
+                    </ol>
+                    <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"
+                                                tabindex="0"><code
+                            class="language-bash" data-lang="bash">pip install -r ./requirements.txt
+</code></pre>
+                    </div>
+                    <ol start="4">
+                        <li><strong>初始化组织结构以及配置文件</strong></li>
+                    </ol>
+                    <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"
+                                                tabindex="0"><code
+                            class="language-bash" data-lang="bash">cd src <span style="color:#f92672">&amp;&amp;</span> python3 main.py
+</code></pre>
+                    </div>
+                    <ol start="5">
+                        <li>
+                            <p><strong>构建基础运行环境</strong></p>
+                            <p>脚本构建的具体内容可参考
+                                <a href="/docs/player/cli/install">install</a> 脚手架指令</p>
+                        </li>
+                    </ol>
+                    <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"
+                                                tabindex="0"><code
+                            class="language-bash" data-lang="bash">python3 main.py intall
+</code></pre>
+                    </div>
+                    <ol start="6">
+                        <li>
+                            <p><strong>修改配置文件</strong></p>
+                        </li>
+                        <li>
+                            <p><strong>测试连接</strong></p>
+                            <p>若返回 <code>欢迎使用</code> 字样说明配置文件编写以及节点配置都没问题，可以正常运行项目了。</p>
+                        </li>
+                    </ol>
+                    <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"
+                                                tabindex="0"><code
+                            class="language-bash" data-lang="bash">python3 main.py ping
+</code></pre>
+                    </div>
+                    <ol start="8">
+                        <li><strong>试运行 <code>GET</code> 指令</strong></li>
+                    </ol>
+                    <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"
+                                                tabindex="0"><code
+                            class="language-bash" data-lang="bash">python3 main.py get
+</code></pre>
+                    </div>
+                    <ol start="9">
+                        <li><strong>部署系统服务</strong></li>
+                    </ol>
+                    <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"
+                                                tabindex="0"><code
+                            class="language-bash" data-lang="bash"><span style="color:#75715e"># 部署系统定时任务</span>
 
 <span style="color:#75715e"># 部署协同工作节点</span>
 
 <span style="color:#75715e"># 部署 PRODUCTION 接口服务器</span>
 
-</code></pre></div></div><input type="radio" class="toggle" name="tabs-%!s(&lt;nil&gt;)" id="tabs-%!s(&lt;nil&gt;)-1"  />
-  <label for="tabs-%!s(&lt;nil&gt;)-1">Windows</label>
-  <div class="book-tabs-content markdown-inner"></div><input type="radio" class="toggle" name="tabs-%!s(&lt;nil&gt;)" id="tabs-%!s(&lt;nil&gt;)-2"  />
-  <label for="tabs-%!s(&lt;nil&gt;)-2">MacOS</label>
-  <div class="book-tabs-content markdown-inner"></div></div>
+</code></pre>
+                    </div>
+                </div>
+                <input class="toggle" id="tabs-%!s(&lt;nil&gt;)-1" name="tabs-%!s(&lt;nil&gt;)" type="radio"/>
+                <label for="tabs-%!s(&lt;nil&gt;)-1">Windows</label>
+                <div class="book-tabs-content markdown-inner"></div>
+                <input class="toggle" id="tabs-%!s(&lt;nil&gt;)-2" name="tabs-%!s(&lt;nil&gt;)" type="radio"/>
+                <label for="tabs-%!s(&lt;nil&gt;)-2">MacOS</label>
+                <div class="book-tabs-content markdown-inner"></div>
+            </div>
 
-</article>
- 
-      
-
-      <footer class="book-footer">
-        
-  <div class="flex flex-wrap justify-between">
-
+        </article>
 
 
+        <footer class="book-footer">
 
-  <div>
-    <a class="flex align-center" href="https://github.com/qin2dim/v2rss-docs/tree/main/content.zh/docs/player/getting-started/quick-start/_index.md" target="_blank" rel="noopener">
-      <img src="/epic-awesome-gamer/svg/edit.svg" class="book-icon" alt="Edit" />
-      <span>编辑本页</span>
-    </a>
-  </div>
+            <div class="flex flex-wrap justify-between">
 
 
-</div>
+                <div>
+                    <a class="flex align-center"
+                       href="https://github.com/qin2dim/v2rss-docs/tree/main/content.zh/docs/player/getting-started/quick-start/_index.md"
+                       rel="noopener" target="_blank">
+                        <img alt="Edit" class="book-icon" src="/epic-awesome-gamer/svg/edit.svg"/>
+                        <span>编辑本页</span>
+                    </a>
+                </div>
 
 
+            </div>
 
-  <script>(function(){function a(c){const a=window.getSelection(),b=document.createRange();b.selectNodeContents(c),a.removeAllRanges(),a.addRange(b)}document.querySelectorAll("pre code").forEach(b=>{b.addEventListener("click",function(c){a(b.parentElement),navigator.clipboard&&navigator.clipboard.writeText(b.parentElement.textContent)})})})()</script>
+
+            <script>
+                (function(){function a(c){const a=window.getSelection(),b=document.createRange();b.selectNodeContents(c),a.removeAllRanges(),a.addRange(b)}document.querySelectorAll("pre code").forEach(b=>{b.addEventListener("click",function(c){a(b.parentElement),navigator.clipboard&&navigator.clipboard.writeText(b.parentElement.textContent)})})})()
+            </script>
 
 
- 
-        
-      </footer>
+        </footer>
 
-      
-  
-  <div class="book-comments">
 
-</div>
-  
- 
+        <div class="book-comments">
 
-      <label for="menu-control" class="hidden book-menu-overlay"></label>
+        </div>
+
+
+        <label class="hidden book-menu-overlay" for="menu-control"></label>
     </div>
 
-    
-  </main>
 
-  
+</main>
+
+
 </body>
 </html>
 

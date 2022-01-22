@@ -13,12 +13,12 @@ beautifulsoup4>=4.10.0
 lxml>=4.7.1
 apscheduler>=3.8.1
 
-# 目标检测模块强依赖版本
+# 目标检测模块的依赖版本
 opencv-python==4.5.3.56
 
-# 提升驱动稳定性与隐蔽性的必要依赖
-webdriver_manager
-undetected_chromedriver
+# 挑战者驱动的必要依赖
+webdriver_manager==3.5.2
+undetected_chromedriver==3.1.3
 
-# 国内网络使用代理，跳过 `tls in tls` 认证
-urllib3==1.25.11
+# 按需手动安装 国内网络使用代理，跳过 `tls in tls` 认证
+# urllib3==1.25.11

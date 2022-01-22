@@ -8,8 +8,11 @@ import numpy as np
 import requests
 from loguru import logger
 from selenium.common.exceptions import (
-    NoSuchElementException, ElementNotVisibleException,
-    ElementClickInterceptedException, WebDriverException, TimeoutException
+    NoSuchElementException,
+    ElementNotVisibleException,
+    ElementClickInterceptedException,
+    WebDriverException,
+    TimeoutException
 )
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -17,206 +20,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
 from .exceptions import LabelNotFoundException, ChallengeReset
-
-
-class ArmorCaptcha:
-    def __init__(self, dir_workspace: str = None, debug=False):
-
-        self.action_name = "ArmorCaptcha"
-        self.debug = debug
-
-        # 存储挑战图片的目录
-        self.runtime_workspace = ""
-
-        # 徒增功耗
-        self.label_alias = {
-            "自行车": "bicycle",
-            "火车": "train",
-            "卡车": "truck",
-            "公交车": "bus",
-            "飞机": "airplane",
-            "ー条船": "boat",
-            "汽车": "car",
-            "摩托车": "motorcycle",
-            "雨伞": "umbrella",
-        }
-
-        # 样本标签映射 {挑战图片1: locator1, ...}
-        self.alias2locator = {}
-        # 填充下载链接映射 {挑战图片1: url1, ...}
-        self.alias2url = {}
-        # 填充挑战图片的缓存地址 {挑战图片1: "/images/挑战图片1.png", ...}
-        self.alias2path = {}
-        # 图像标签
-        self.label = ""
-        # 运行缓存
-        self.dir_workspace = dir_workspace if dir_workspace else "."
-
-        self._headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62",
-        }
-
-    def log(self, message: str = "", **params):
-        motive = "Challenge"
-        flag_ = ">> {} [{}]".format(motive, self.action_name)
-        if message != "":
-            flag_ += " {}".format(message)
-        if params:
-            flag_ += " - "
-            flag_ += " ".join([f"{i[0]}={i[1]}" for i in params.items()])
-        if self.debug:
-            return logger.debug(flag_)
-
-    @staticmethod
-    def _unused_download_armor(api: Chrome):
-        """
-        弃用。
-
-        :param api:
-        :return:
-        """
-        api.get("https://greasyfork.org/zh-CN/scripts/425854-hcaptcha-solver-automatically-solves-hcaptcha-in-browser")
-
-        download_link = WebDriverWait(api, 10, poll_frequency=0.5, ignored_exceptions=NoSuchElementException).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "install-link"))
-        ).get_attribute("href")
-
-        _handle_num = len(api.window_handles)
-
-        # 自动开启一个新的 tab
-        api.get(download_link)
-
-        while len(api.window_handles) == _handle_num:
-            pass
-
-        api.switch_to.window(api.window_handles[-1])
-
-        WebDriverWait(api, 30, poll_frequency=0.5, ignored_exceptions=NoSuchElementException).until(
-            EC.element_to_be_clickable((By.NAME, "安装"))
-        ).click()
-
-        # 回到主任务标签
-        api.switch_to.window(api.window_handles[0])
-
-    def _init_workspace(self):
-        _prefix = "{}{}".format(
-            int(time.time()),
-            f'_{self.label}' if self.label else ''
-        )
-        _workspace = os.path.join(self.dir_workspace, _prefix)
-        if not os.path.exists(_workspace):
-            os.mkdir(_workspace)
-        return _workspace
-
-    def tactical_retreat(self):
-        """
-        # 模型泛化不足，快逃。
-
-        :return:
-        """
-        if self.label in ["摩托车", ] or not self.label_alias.get(self.label):
-            self.log(message="模型泛化较差，逃逸", label=self.label)
-            return True
-
-    def mark_samples(self, api: Chrome):
-        self.log(message="获取挑战图片链接及元素定位器")
-
-        # 等待图片加载完成
-        WebDriverWait(api, 10, ignored_exceptions=ElementNotVisibleException).until(
-            EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
-        )
-        time.sleep(1)
-
-        # DOM 定位元素
-        samples = api.find_elements(By.XPATH, "//div[@class='task-image']")
-        for sample in samples:
-            alias = sample.get_attribute("aria-label")
-            # TODO 加入超时判定
-            while True:
-                try:
-                    image_style = sample.find_element(By.CLASS_NAME, "image").get_attribute("style")
-                    url = re.split(r'[(")]', image_style)[2]
-                    self.alias2url.update({alias: url})
-                    break
-                except IndexError:
-                    continue
-            self.alias2locator.update({alias: sample})
-
-    def get_label(self, api: Chrome):
-        label_obj = WebDriverWait(api, 30, ignored_exceptions=ElementNotVisibleException).until(
-            EC.presence_of_element_located((By.XPATH, "//div[@class='prompt-text']"))
-        )
-        try:
-            _label = re.split(r"[包含 的]", label_obj.text)[2]
-        except (AttributeError, IndexError):
-            raise LabelNotFoundException("获取到异常的标签对象。")
-        else:
-            self.label = _label
-            self.log(
-                message="获取挑战标签",
-                label=f"{self.label}({self.label_alias.get(self.label, 'none')})"
-            )
-
-    def download_images(self):
-        _workspace = self._init_workspace()
-        for alias, url in self.alias2url.items():
-            path_challenge_img = os.path.join(_workspace, f"{alias}.png")
-            urllib.request.urlretrieve(url, path_challenge_img)
-
-    def image_classifier(self):
-        raise NotImplementedError
-
-    def challenge(self, api: Chrome, correct_samples: list, ):
-        # 点击认为是的拼图元素
-        for sample in correct_samples:
-            self.alias2locator[sample].click()
-        # 提交答案
-        WebDriverWait(api, 35, ignored_exceptions=ElementClickInterceptedException).until(
-            EC.element_to_be_clickable((By.XPATH, "//div[@class='button-submit button']"))
-        ).click()
-
-        self.log(message="提交挑战")
-
-    def _challenge_success(self, api: Chrome, init: bool = True):
-        _challenge_ok = 1
-
-        # index == 0
-        # 经过一轮识别点击后，出现三种结果
-        # - 通过验证（极少）
-        # - 第二轮（极大）
-        #   通过短时间内可否继续点击拼图来断言是否陷入第二轮测试
-        # - 直接 Error（极小）
-        #   根据当前DOM树是否刷新出警告信息判断
-        flag = api.current_url
-        if init:
-            try:
-                WebDriverWait(api, 2, ignored_exceptions=WebDriverException).until(
-                    EC.element_to_be_clickable((By.XPATH, "//div[@class='task-image']"))
-                )
-            except TimeoutException:
-                pass
-            else:
-                self.log("挑战继续")
-                return False
-
-        try:
-            challenge_reset = WebDriverWait(api, 5, ignored_exceptions=WebDriverException).until(
-                EC.presence_of_element_located((By.XPATH, "//div[@class='MuiAlert-message']"))
-            )
-        except TimeoutException:
-            try:
-                WebDriverWait(api, 8).until(EC.url_changes(flag))
-            except TimeoutException:
-                self.log("断言超时，挑战继续")
-                return False
-            else:
-                self.log("挑战成功")
-                return True
-        else:
-            self.log("挑战失败，需要重置挑战")
-            challenge_reset.click()
-            raise ChallengeReset
 
 
 class YOLO:
@@ -316,3 +119,230 @@ class YOLO:
             conf.append(confidences[i])
 
         return bbox, label, conf
+
+
+class ArmorCaptcha:
+    def __init__(self, dir_workspace: str = None, debug=False):
+
+        self.action_name = "ArmorCaptcha"
+        self.debug = debug
+
+        # 存储挑战图片的目录
+        self.runtime_workspace = ""
+
+        # 博大精深！
+        self.label_alias = {
+            "自行车": "bicycle",
+            "火车": "train",
+            "卡车": "truck",
+            "公交车": "bus",
+            "飞机": "airplane",
+            "ー条船": "boat",
+            "汽车": "car",
+            "摩托车": "motorcycle",
+            "雨伞": "umbrella",
+        }
+
+        # 样本标签映射 {挑战图片1: locator1, ...}
+        self.alias2locator = {}
+        # 填充下载链接映射 {挑战图片1: url1, ...}
+        self.alias2url = {}
+        # 填充挑战图片的缓存地址 {挑战图片1: "/images/挑战图片1.png", ...}
+        self.alias2path = {}
+        # 存储模型分类结果 {挑战图片1: bool, ...}
+        self.alias2answer = {}
+        # 图像标签
+        self.label = ""
+        # 运行缓存
+        self.dir_workspace = dir_workspace if dir_workspace else "."
+
+        self._headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62",
+        }
+
+    def log(self, message: str = "", **params):
+        motive = "Challenge"
+        flag_ = ">> {} [{}]".format(motive, self.action_name)
+        if message != "":
+            flag_ += " {}".format(message)
+        if params:
+            flag_ += " - "
+            flag_ += " ".join([f"{i[0]}={i[1]}" for i in params.items()])
+        if self.debug:
+            return logger.debug(flag_)
+
+    @staticmethod
+    def _unused_download_armor(api: Chrome):
+        """
+        弃用。
+
+        :param api:
+        :return:
+        """
+        api.get("https://greasyfork.org/zh-CN/scripts/425854-hcaptcha-solver-automatically-solves-hcaptcha-in-browser")
+
+        download_link = WebDriverWait(api, 10, poll_frequency=0.5, ignored_exceptions=NoSuchElementException).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "install-link"))
+        ).get_attribute("href")
+
+        _handle_num = len(api.window_handles)
+
+        # 自动开启一个新的 tab
+        api.get(download_link)
+
+        while len(api.window_handles) == _handle_num:
+            pass
+
+        api.switch_to.window(api.window_handles[-1])
+
+        WebDriverWait(api, 30, poll_frequency=0.5, ignored_exceptions=NoSuchElementException).until(
+            EC.element_to_be_clickable((By.NAME, "安装"))
+        ).click()
+
+        # 回到主任务标签
+        api.switch_to.window(api.window_handles[0])
+
+    def _init_workspace(self):
+        _prefix = "{}{}".format(
+            int(time.time()),
+            f'_{self.label}' if self.label else ''
+        )
+        _workspace = os.path.join(self.dir_workspace, _prefix)
+        if not os.path.exists(_workspace):
+            os.mkdir(_workspace)
+        return _workspace
+
+    def tactical_retreat(self):
+        """
+        # 模型泛化不足，快逃。
+
+        :return:
+        """
+        if self.label in ["摩托车", ] or not self.label_alias.get(self.label):
+            self.log(message="模型泛化较差，逃逸", label=self.label)
+            return True
+
+    def mark_samples(self, api: Chrome):
+        self.log(message="获取挑战图片链接及元素定位器")
+
+        # 等待图片加载完成
+        WebDriverWait(api, 10, ignored_exceptions=ElementNotVisibleException).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
+        )
+        time.sleep(1)
+
+        # DOM 定位元素
+        samples = api.find_elements(By.XPATH, "//div[@class='task-image']")
+        for sample in samples:
+            alias = sample.get_attribute("aria-label")
+            # TODO 加入超时判定
+            while True:
+                try:
+                    image_style = sample.find_element(By.CLASS_NAME, "image").get_attribute("style")
+                    url = re.split(r'[(")]', image_style)[2]
+                    self.alias2url.update({alias: url})
+                    break
+                except IndexError:
+                    continue
+            self.alias2locator.update({alias: sample})
+
+    def get_label(self, api: Chrome):
+        try:
+            label_obj = WebDriverWait(api, 30, ignored_exceptions=ElementNotVisibleException).until(
+                EC.presence_of_element_located((By.XPATH, "//div[@class='prompt-text']"))
+            )
+        except TimeoutException:
+            raise ChallengeReset("人机挑战意外通过")
+        try:
+            _label = re.split(r"[包含 的]", label_obj.text)[2]
+        except (AttributeError, IndexError):
+            raise LabelNotFoundException("获取到异常的标签对象。")
+        else:
+            self.label = _label
+            self.log(
+                message="获取挑战标签",
+                label=f"{self.label}({self.label_alias.get(self.label, 'none')})"
+            )
+
+    def download_images(self):
+        _workspace = self._init_workspace()
+        for alias, url in self.alias2url.items():
+            path_challenge_img = os.path.join(_workspace, f"{alias}.png")
+            urllib.request.urlretrieve(url, path_challenge_img)
+
+    def challenge(self, ctx: Chrome, model: YOLO, confidence=0.39, nms_thresh=0.7):
+        """
+
+        hCaptcha Challenge 难度和规则与 `reCaptcha` 相差较大。
+        这里只要正确率上去就行，也即正确图片覆盖更多，通过率越高（即使因此多点了几个干扰项也无妨），
+        所以这里要将置信度调低。未经针对训练的模型本来就是用来猜的，优雅永不过时！
+
+        :return:
+        """
+        self.log(message="开始挑战")
+
+        # {{< IMAGE CLASSIFICATION >}}
+        for alias, img_filepath in self.alias2path.items():
+            # 读取二进制数据编织成模型可接受的类型
+            with open(img_filepath, "rb") as f:
+                data = f.read()
+
+            # 获取识别结果
+            _, labels, _ = model.detect_common_objects(data, confidence=confidence, nms_thresh=nms_thresh)
+
+            # 模型会根据置信度给出图片中的多个目标，只要命中一个就算通过
+            if self.label_alias[self.label] in labels:
+                # 选中标签元素
+                try:
+                    self.alias2locator[alias].click()
+                except WebDriverException:
+                    pass
+        # {{< Done >}}
+
+        # 提交答案
+        WebDriverWait(ctx, 35, ignored_exceptions=ElementClickInterceptedException).until(
+            EC.element_to_be_clickable((By.XPATH, "//div[@class='button-submit button']"))
+        ).click()
+        self.log(message="提交挑战")
+
+    def _challenge_success(self, api: Chrome, init: bool = True):
+        _challenge_ok = 1
+
+        # index == 0
+        # 经过一轮识别点击后，出现三种结果
+        # - 通过验证（极少）
+        # - 第二轮（极大）
+        #   通过短时间内可否继续点击拼图来断言是否陷入第二轮测试
+        # - 直接 Error（极小）
+        #   根据当前DOM树是否刷新出警告信息判断
+        flag = api.current_url
+        if init:
+            try:
+                time.sleep(1.5)
+                WebDriverWait(api, 2, ignored_exceptions=WebDriverException).until(
+                    EC.element_to_be_clickable((By.XPATH, "//div[@class='task-image']"))
+                )
+            except TimeoutException:
+                pass
+            else:
+                self.log("挑战继续")
+                return False
+
+        try:
+            challenge_reset = WebDriverWait(api, 5, ignored_exceptions=WebDriverException).until(
+                EC.presence_of_element_located((By.XPATH, "//div[@class='MuiAlert-message']"))
+            )
+        except TimeoutException:
+            try:
+                WebDriverWait(api, 8).until(EC.url_changes(flag))
+            except TimeoutException:
+                self.log("断言超时，挑战继续")
+                return False
+            else:
+                self.log("挑战成功")
+                return True
+        else:
+            self.log("挑战失败，需要重置挑战")
+            challenge_reset.click()
+            raise ChallengeReset

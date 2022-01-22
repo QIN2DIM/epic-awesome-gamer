@@ -16,21 +16,19 @@ from services.utils import ToolBox
 ================================================ ʕ•ﻌ•ʔ ================================================
 [√]核心配置 [※]边缘参数
 """
-config_ = ToolBox.check_sample_yaml(
-    path_output=join(dirname(__file__), "config.yaml"),
-    path_sample=join(dirname(__file__), "config-sample.yaml")
-)
+config_ = ToolBox.check_sample_yaml(path_output=join(dirname(__file__), "config.yaml"),
+                                    path_sample=join(dirname(__file__), "config-sample.yaml"))
 
 # --------------------------------
 # [√]Account
 # --------------------------------
-USER_EMAIL = config_["EMAIL"]
-USER_PASSWORD = config_["PASSWORD"]
+USER_EMAIL: str = config_["EMAIL"]
+USER_PASSWORD: str = config_["PASSWORD"]
 
 # --------------------------------
-# [√]Scheduled task configuration
+# [※]Scheduled task configuration
 # --------------------------------
-SCHEDULER_SETTINGS: Dict[str, Union[int, bool]] = config_["scheduler"]
+SCHEDULER_SETTINGS: Dict[str, Union[int, bool]] = config_.get("scheduler", {})
 
 """
 ================================================== ʕ•ﻌ•ʔ ==================================================
@@ -39,6 +37,8 @@ SCHEDULER_SETTINGS: Dict[str, Union[int, bool]] = config_["scheduler"]
 
                                             Enjoy it -> ♂ main.py
 """
+__version__ = "0.1.1.dev"
+
 # 时区
 TIME_ZONE_CN = pytz.timezone("Asia/Shanghai")
 TIME_ZONE_NY = pytz.timezone("America/New_York")
