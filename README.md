@@ -10,7 +10,8 @@
 	<br>
 	<br>
 </div>
-![scaffold-get-demo-output-small](/docs/scaffold-get-demo-output-small.gif)
+
+![scaffold-get-demo-output-small](docs/scaffold-get-demo-output-small.gif)
 
 ## 项目简介 👋
 
