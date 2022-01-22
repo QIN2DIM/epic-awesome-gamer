@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="快速上手 # 本文以 Workflows（查看源码） 为例引导玩家基于本机环境熟悉并快速实现脚手架 Get 指令，成为 Epic免费人。 GitHub Actions 引言 # 在 GitHub Actions 上运行">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="快速上手" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.echosec.top/epic-awesome-gamer/zh/docs/user/quick-start/" />
+
+<title>快速上手 | Epic 免费人</title>
+<link rel="manifest" href="/epic-awesome-gamer/manifest.json">
+<link rel="icon" href="/epic-awesome-gamer/favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="/epic-awesome-gamer/book.min.31cccedbc2b6812eb37d0d37cdf4cb30cb89bd41421d3d51da624e11baccfe92.css" integrity="sha256-MczO28K2gS6zfQ03zfTLMMuJvUFCHT1R2mJOEbrM/pI=" crossorigin="anonymous">
+  <script defer src="/epic-awesome-gamer/flexsearch.min.js"></script>
+  <script defer src="/epic-awesome-gamer/zh.search.min.a63ca1af0ed4ca02a8893b847a8e5fac23b666c968c57f0406a9bfae5bbb4301.js" integrity="sha256-pjyhrw7UygKoiTuEeo5frCO2ZsloxX8EBqm/rlu7QwE=" crossorigin="anonymous"></script>
+
+  <script defer src="/epic-awesome-gamer/sw.min.fce957f404884887d3e2471bff9b46e9879d096ba64fd4ac8f550d0dd48d105a.js" integrity="sha256-/OlX9ASISIfT4kcb/5tG6YedCWumT9Ssj1UNDdSNEFo=" crossorigin="anonymous"></script>
+<link rel="alternate" type="application/rss+xml" href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/user/quick-start/index.xml" title="Epic 免费人" />
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/epic-awesome-gamer/zh/"><span>Epic 免费人</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="搜索" aria-label="搜索" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+  
+
+
+
+  
+    
+  
+
+
+
+<ul class="book-languages">
+  <li>
+    <input type="checkbox" id="languages" class="toggle" />
+    <label for="languages" class="flex justify-between">
+      <a role="button" class="flex align-center">
+        <img src="/epic-awesome-gamer/svg/translate.svg" class="book-icon" alt="Languages" />
+        简体中文
+      </a>
+    </label>
+
+    <ul>
+      
+      <li>
+        <a href="https://blog.echosec.top/epic-awesome-gamer/">
+          English
+        </a>
+      </li>
+      
+    </ul>
+  </li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <ul>
+    
+      
+        <li class="book-section-flat" >
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-b900152bb5efd8f491d123b5f73aa30d" class="toggle" checked />
+    <label for="section-b900152bb5efd8f491d123b5f73aa30d" class="flex justify-between">
+      <a role="button" class="">使用指南</a>
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/user/quick-start/" class=" active">快速上手</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li class="book-section-flat" >
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-27d250f93b10a45d08befdb5dd2f0f3b" class="toggle"  />
+    <label for="section-27d250f93b10a45d08befdb5dd2f0f3b" class="flex justify-between">
+      <a role="button" class="">开发指南</a>
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-a467ca43dbcdaf2ffbd8aeecc80a9440" class="toggle"  />
+    <label for="section-a467ca43dbcdaf2ffbd8aeecc80a9440" class="flex justify-between">
+      <a role="button" class="">开始使用</a>
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/install-v2rss/" class="">源码下载</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/basic-usage/" class="">基本用法</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/directory-structure/" class="">目录结构</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/configuration/" class="">项目配置</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <span>Overview</span>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <span>Quick Start</span>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-02591bebd5ca01427869ded3401321a8" class="toggle"  />
+    <label for="section-02591bebd5ca01427869ded3401321a8" class="flex justify-between">
+      <a role="button" class="">脚手架指令</a>
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/overview/" class="">Overview</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/ping/" class="">Scaffold Ping</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/deploy/" class="">Scaffold Deploy</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-723140cbe530ea3669e1696982bbe922" class="toggle"  />
+    <label for="section-723140cbe530ea3669e1696982bbe922" class="flex justify-between">
+      <a role="button" class="">托管 &amp; 部署</a>
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <span>V2rss Deploy</span>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <span>Host on GitHub</span>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://blog.echosec.top" target="_blank" rel="noopener">
+        Blog
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/QIN2DIM/epic-awesome-gamer/" target="_blank" rel="noopener">
+        GitHub
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/QIN2DIM/epic-awesome-gamer/issues" target="_blank" rel="noopener">
+        Discussions
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://t.me/joinchat/HlB9SQJubb5VmNU5" target="_blank" rel="noopener">
+        TG Studio
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var a=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(b){localStorage.setItem("menu.scrollTop",a.scrollTop)}),a.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/epic-awesome-gamer/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>快速上手</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+<link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="快速上手">
+  快速上手
+  <a class="anchor" href="#%e5%bf%ab%e9%80%9f%e4%b8%8a%e6%89%8b">#</a>
+</h1>
+<p>本文以 
+  <a href="Workflows/Ubuntu">Workflows（查看源码）</a> 为例引导玩家基于本机环境熟悉并快速实现脚手架 <code>Get</code> 指令，成为 <code>Epic免费人</code>。</p>
+
+
+
+
+<div class="book-tabs"><input type="radio" class="toggle" name="tabs-quick-start" id="tabs-quick-start-0" checked="checked" />
+  <label for="tabs-quick-start-0">GitHub Actions</label>
+  <div class="book-tabs-content markdown-inner"><h3 id="引言">
+  引言
+  <a class="anchor" href="#%e5%bc%95%e8%a8%80">#</a>
+</h3>
+<p>在 <code>GitHub Actions</code> 上运行 <code>Get</code> 指令是作者认为的本项目最佳实践方案，请在 <code>fork</code> 项目后依次实现下文所述配置。</p>
+<p>当然，如果你本身就对工作流十分了解，以下手工配置的总耗时不会超过30秒（想不起账号密码的话另说233&hellip;）。</p>
+<h3 id="配置环境密钥">
+  配置环境密钥
+  <a class="anchor" href="#%e9%85%8d%e7%bd%ae%e7%8e%af%e5%a2%83%e5%af%86%e9%92%a5">#</a>
+</h3>
+<ul>
+<li>进入自己的项目页面，依次进入 「<strong>Settings</strong>」「<strong>Secrets</strong>」，点击 <kbd>New repository secret</kbd> ，分别创建环境密钥 <code>EPIC_EMAIL</code> 以及 <code>EPIC_PASSWORD</code>。变量名必须大写。脚手架演示指令不作质量担保，所以此处你需要填入正确无误的账号信息。</li>
+<li>密钥创建后的页面截图如下所示：</li>
+</ul>
+<div align="center"><img src="https://img-pool.oss-cn-shenzhen.aliyuncs.com/image-20220122162308138.png" alt="image-20220122162308138" style="zoom:50%;" /></div>
+<h3 id="运行工作流">
+  运行工作流
+  <a class="anchor" href="#%e8%bf%90%e8%a1%8c%e5%b7%a5%e4%bd%9c%e6%b5%81">#</a>
+</h3>
+<ul>
+<li>进入到自己的项目页面，进入「<strong>Actions</strong>」 运行工作流，点击 <kbd>Run Workflow</kbd> 。</li>
+</ul>
+<div align="center"><img src="https://img-pool.oss-cn-shenzhen.aliyuncs.com/Snipaste_2022-01-22_16-27-40.png" alt="Snipaste_2022-01-22_16-27-40" style="zoom: 30%;" /></div>
+<ul>
+<li>等待窗口顶部弹出提示 <code>Workflow run was successfully requested.</code> 后重新进入「<strong>Actions</strong>」页面，可以看到工作流已经启动，可以点进去查看运行过程，等待结束即可。</li>
+</ul>
+<div align="center"><img src="https://img-pool.oss-cn-shenzhen.aliyuncs.com/Snipaste_2022-01-22_16-28-28.png" alt="Snipaste_2022-01-22_16-28-28" style="zoom:50%;" /></div>
+<p>​	<details ><summary>展开 Workflow 运行截图（参考）</summary></p>
+  <div class="markdown-inner">
+    <p>
+  <img src="https://img-pool.oss-cn-shenzhen.aliyuncs.com/Snipaste_2022-01-22_16-29-52.png" alt="Snipaste_2022-01-22_16-29-52" /></p>
+<p>
+  <img src="https://img-pool.oss-cn-shenzhen.aliyuncs.com/image-20220122164605124.png" alt="image-20220122164605124" /></p>
+  </div>
+</details>
+</div><input type="radio" class="toggle" name="tabs-quick-start" id="tabs-quick-start-1"  />
+  <label for="tabs-quick-start-1">Linux(Ubuntu)</label>
+  <div class="book-tabs-content markdown-inner"></div><input type="radio" class="toggle" name="tabs-quick-start" id="tabs-quick-start-2"  />
+  <label for="tabs-quick-start-2">Windows</label>
+  <div class="book-tabs-content markdown-inner"></div><input type="radio" class="toggle" name="tabs-quick-start" id="tabs-quick-start-3"  />
+  <label for="tabs-quick-start-3">MacOS</label>
+  <div class="book-tabs-content markdown-inner"></div></div>
+
+<h2 id="查看游戏库">
+  查看游戏库
+  <a class="anchor" href="#%e6%9f%a5%e7%9c%8b%e6%b8%b8%e6%88%8f%e5%ba%93">#</a>
+</h2>
+<p>以你喜欢的方式查看自己的游戏库。如果能实现下图所示效果，说明你也成为了 <code>Epic免费人</code>！</p>
+<details ><summary>Happy Freebie Claiming</summary>
+  <div class="markdown-inner">
+    <p>
+  <img src="https://img-pool.oss-cn-shenzhen.aliyuncs.com/scaffold-get-demo-output.gif" alt="scaffold-get-demo-output" /></p>
+<p>
+  <img src="https://img-pool.oss-cn-shenzhen.aliyuncs.com/122922274-bb263b00-d363-11eb-8b82-8a3ed6e7e29d.png" alt="122922274-bb263b00-d363-11eb-8b82-8a3ed6e7e29d" /></p>
+
+  </div>
+</details>
+
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+  <div>
+    <a class="flex align-center" href="https://github.com/qin2dim/v2rss-docs/tree/main/content.zh/docs/user/quick-start/_index.md" target="_blank" rel="noopener">
+      <img src="/epic-awesome-gamer/svg/edit.svg" class="book-icon" alt="Edit" />
+      <span>编辑本页</span>
+    </a>
+  </div>
+
+
+</div>
+
+
+
+  <script>(function(){function a(c){const a=window.getSelection(),b=document.createRange();b.selectNodeContents(c),a.removeAllRanges(),a.addRange(b)}document.querySelectorAll("pre code").forEach(b=>{b.addEventListener("click",function(c){a(b.parentElement),navigator.clipboard&&navigator.clipboard.writeText(b.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

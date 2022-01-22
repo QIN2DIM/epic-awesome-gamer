@@ -10,8 +10,7 @@
 	<br>
 	<br>
 </div>
-
-![scaffold-get-demo-output](docs/scaffold-get-demo-output.gif)
+![scaffold-get-demo-output](https://img-pool.oss-cn-shenzhen.aliyuncs.com/scaffold-get-demo-output.gif)
 
 ## 项目简介 👋
 
@@ -19,7 +18,7 @@
 
 ## 快速上手 🛴
 
-- 免费人：详见 [Epic AwesomeGamer 入座指南](https://github.com/QIN2DIM/epic-awesome-gamer)。
+- 免费人：详见 [Epic AwesomeGamer 入座指南](https://blog.echosec.top/epic-awesome-gamer/zh/docs/user/quick-start/)。
 - 开发者：Fork 项目，根据 [技术文档](https://github.com/QIN2DIM/epic-awesome-gamer) 合理配置 `config.yaml` ，使用脚手架调试并部署服务。
 
 ## 网上冲浪 🌊
@@ -33,6 +32,5 @@
 
 > 本项目由海南大学机器人与人工智能协会数据挖掘小组（`A-RAI.DM`）提供维护。
 
-- [**Email**](mailto:HainanU_arai@163.com?subject=CampusDailyAutoSign-ISSUE) **||** [**
-  Home**](https://a-rai.github.io/) **||** [**TG**](https://t.me/joinchat/HlB9SQJubb5VmNU5)
+- [**Email**](mailto:HainanU_arai@163.com?subject=CampusDailyAutoSign-ISSUE) **||** [**Home**](https://a-rai.github.io/) **||** [**TG**](https://t.me/joinchat/HlB9SQJubb5VmNU5)
 

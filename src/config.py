@@ -44,5 +44,6 @@ __version__ = "0.1.1.dev"
 TIME_ZONE_CN = pytz.timezone("Asia/Shanghai")
 TIME_ZONE_NY = pytz.timezone("America/New_York")
 
+# 兼容 `Workflows` 垂直部署
 if not all((USER_EMAIL, USER_PASSWORD)):
     sys.exit()
