@@ -3,15 +3,32 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from gevent import monkey
+import os
+import sys
 
-monkey.patch_all()
 from webdriver_manager.chrome import ChromeDriverManager
 
 from services.settings import DIR_MODEL, logger
 from services.utils import YOLO, CoroutineSpeedup, ToolBox
 
 _HOOK_CDN_PREFIX = "https://curly-shape-d178.qinse.workers.dev/"
+
+
+def _sync_ctx():
+    """
+    下载最新版 google-chrome
+    :return:
+    """
+    # Ubuntu
+    if "linux" not in sys.platform:
+        return
+
+    logger.debug("同步 google-chrome 驱动版本...")
+    os.system("apt-get update && apt-get install -y gcc wget")
+    os.system("wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb >/dev/null")
+    os.system("apt install ./google-chrome-stable_current_amd64.deb -y >/dev/null")
+    os.system("rm -rf ./google-chrome-stable_current_amd64.deb")
+    os.system("clear")
 
 
 def _download_model(*args, **kwargs):
@@ -44,7 +61,7 @@ def _download_driver(*args, **kwargs):
     version = kwargs.get("version", "latest")
 
     logger.debug("适配 ChromeDriver...")
-    ChromeDriverManager(version=version, log_level=0).install()
+    ChromeDriverManager(version=version).install()
 
 
 class PerformanceReleaser(CoroutineSpeedup):
@@ -75,8 +92,9 @@ def run(cdn: bool = False):
         _download_model
     ]
 
+    _sync_ctx()
     booster = PerformanceReleaser(docker=docker, power=99)
-    booster.go(cdn=cdn, )
+    booster.go(cdn=cdn)
 
     logger.success(ToolBox.runtime_report(
         motive="GET",

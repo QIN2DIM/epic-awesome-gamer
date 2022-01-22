@@ -7,8 +7,6 @@ from gevent import monkey
 
 monkey.patch_all()
 
-from services.bricklayer.exceptions import SurpriseExit
-
 from apis.scaffold import get, challenge, install
 
 
@@ -37,7 +35,7 @@ class Scaffold:
         ## Warning
 
         - 本指令仍有较大进步空间（在测试中...）
-            - 若小伙伴使用此指令后并不能一次性将所有依赖拉取完毕，出现缺漏，可以将简要信息提交至 `issues`。
+            - 若小伙伴使用此指令后并不能一次性将所有依赖拉取完毕，出现缺漏，可以将相关信息提交至 `issues`。
             - 若下载速度较慢，可以使用 `cdn` 参数加速下载
         - https://github.com/QIN2DIM/epic-awesome-gamer
 
@@ -47,47 +45,33 @@ class Scaffold:
         install.run(cdn=cdn)
 
     @staticmethod
-    def get(update: bool = None):
+    def get(debug: bool = False):
         """
         获取 Epic Store 所有未在库的免费游戏。一键操作，将免费商城搬空，科技改变生活！
 
-        ## Basic Usage
-
-        Usage: python main.py get
-        _________________________________________________________________
-        or: python main.py get --update       |强制更新免费游戏缓存
-        _________________________________________________________________
-
         ## Local Static CacheFile
 
-        - 考虑到 `get` 是玩家手动执行的指令，而 Epic 更新免费游戏的频率并不高，
-        所以在不指定 `update` 参数的情况下，复用本地静态缓存是比较合理的打开方式。
-
+        - 考虑到 `get` 是玩家手动执行的指令，而 Epic 更新免费游戏的频率并不高，所以复用本地静态缓存是比较合理的打开方式。
         - 此指令会将 Epic 当前的免费游戏的展示链接存储在 `src/database/explorer` 目录下。
-
-        ## Defeat
-
-        当前执行逻辑非常保守，处于多个特殊场景下的游戏无法自动获取，如：
-        “包含成人信息”“当前账号地区或平台无法获取”等
 
         ## Warning
 
         - 本指令仍有较大进步空间（在测试中...）
             - 若小伙伴在首轮中执行中遇到 `QUIT` 异常（几乎必然），可以在执行结束再执行几轮 `get` 指令，直至清空商城；
-                有些异常是仅在性能释放不足时被抛出，在单例执行时几乎不会撞见。
-            - 若出现其他报错，请留意 Exception 信息，并将完整的栈追踪信息提交至 `issues` ，不胜感激！
-        >> https://github.com/QIN2DIM/epic-awesome-gamer
+                - 有些异常是仅在性能释放不足时被抛出，在单例执行时几乎不会撞见。
+                - 因权限无法获取的游戏需要玩家手动操作，如“成人内容”“地区或平台限制”
+        - 若出现其他报错，请留意 Exception 信息，并将完整的栈追踪信息提交至 `issues` ，不胜感激！
+        -  https://github.com/QIN2DIM/epic-awesome-gamer
 
-        :return:
-        :param update:
+        :param debug: 显示栈追踪日志信息
         :return:
         """
-        get.join(update=update)
+        get.join(trace=debug)
 
     @staticmethod
     def challenge():
         """
-        正面硬钢人机验证，为当前账号获取有效的身份令牌。
+        正面硬刚人机验证，为当前账号获取有效的身份令牌。
 
         ## Intro
 
@@ -98,20 +82,22 @@ class Scaffold:
         ## Tips
 
         - 本指令并不会强制激活人机验证。硬刚人机挑战不是目的，获取到有效的身份令牌才是目的，不要徒增功耗。
-        - 也即若当前缓存的身份令牌还未失效，任务跳过。
-        - 如果想强制激活，请手动删除 `src/database/cookies/api_cookies.txt` 文件
+        - 也即，如果当前缓存的身份令牌还未失效，任务跳过。
         - 请无视 `SurpriseExit()` 异常
 
         :return:
         """
+        challenge.run()
+
         """
         [🌀] 优雅离场
         _______________
         脑洞大开的作者想挑战一下 Python 自带的垃圾回收机制，
         决定以一种极其垂直的方式结束系统任务。
         """
-        challenge.run()
-        raise SurpriseExit("优雅离场")
+        import sys
+        sys.exit()
+        # raise SurpriseExit("优雅离场")
 
     @staticmethod
     def deploy():

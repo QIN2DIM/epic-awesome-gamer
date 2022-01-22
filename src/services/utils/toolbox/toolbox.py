@@ -4,6 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os.path
+import random
 import shutil
 import socket
 import sys
@@ -195,9 +196,14 @@ class ToolBox:
 
     @staticmethod
     def fake_user_agent() -> str:
-        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " \
-                     "Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62"
-        return user_agent
+        """Tip:指定UA可能会留下特征"""
+        user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+            " Chrome/97.0.4692.71 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62"
+        ]
+        return random.choice(user_agents)
 
 
 class InitLog:
@@ -238,21 +244,29 @@ class InitLog:
         return logger
 
 
-def _set_ctx():
+def _set_ctx(ua: bool = None):
+    """
+
+    :param ua: 挑战者不需要指定UA，会留下指纹特征。
+    :return:
+    """
     options = ChromeOptions()
-    options.add_argument("user-agent='{}'".format(ToolBox.fake_user_agent()))
+    if ua:
+        options.add_argument('--user-agent="{}"'.format(ToolBox.fake_user_agent()))
     options.add_argument("--log-level=3")
-    options.add_argument("--lang=zh-CN")
+    options.add_argument("--lang=zh-CN")  # 可能仅在 Windows 生效
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("--no-sandbox")
     return options
 
 
 def get_ctx(silence: bool = None):
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver import Chrome
+
     silence = True if silence is None else silence
 
-    from selenium.webdriver import Chrome
-    from selenium.webdriver.chrome.service import Service
-
-    options = _set_ctx()
+    options = _set_ctx(ua=True)
     if silence is True:
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
@@ -260,11 +274,17 @@ def get_ctx(silence: bool = None):
 
     # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
     service = Service(ChromeDriverManager(log_level=0).install())
-    return Chrome(options=options, service=service)
+    return Chrome(options=options, service=service)  # noqa
 
 
 def get_challenge_ctx(silence: bool = None):
-    silence = True if silence is None else silence
     from undetected_chromedriver import Chrome
 
-    return Chrome(options=_set_ctx(), headless=silence, use_subprocess=True)
+    silence = True if silence is None else silence
+
+    # 针对部署环境的优化调节
+    if "linux" in sys.platform:
+        silence = True
+
+    logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "激活挑战者上下文"))
+    return Chrome(options=_set_ctx(), headless=silence)

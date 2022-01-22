@@ -1,0 +1,36 @@
+name: main
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
+
+      - name: Scaffold Install
+        run: |
+          echo -e "EMAIL: ${{secrets.EPIC_EMAIL}}\nPASSWORD: ${{secrets.EPIC_PASSWORD}}" > src/config.yaml
+          cd src && python main.py install
+
+      - name: Scaffold Challenge
+        run: |
+          export LANG=zh_CN.UTF8
+          cd src && python main.py challenge
+
+      # 五分钟左右搬空免费商店
+      - name: Scaffold Get
+        run: |
+          cd src && python main.py get

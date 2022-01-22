@@ -19,8 +19,23 @@ class AwesomeException(Exception):
         return exception_msg
 
 
+class ContextException(AwesomeException):
+    """上下文使用错误"""
+    pass
+
+
+class PaymentException(AwesomeException):
+    """订单操作异常"""
+    pass
+
+
 class CookieExpired(AwesomeException):
     """身份令牌或饼干过期时抛出"""
+    pass
+
+
+class SwitchContext(ContextException):
+    """当使用普通驱动上下文处理人机验证时抛出"""
     pass
 
 
@@ -34,6 +49,6 @@ class UnableToGet(AwesomeException):
     pass
 
 
-class SurpriseExit(AwesomeException):
+class SurpriseExit(KeyboardInterrupt):
     """脑洞大开的作者想挑战一下 Python 自带的垃圾回收机制，决定以一种极其垂直的方式结束系统任务。"""
     pass
