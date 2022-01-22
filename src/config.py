@@ -3,6 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import sys
 from os.path import join, dirname
 from typing import Dict, Union
 
@@ -42,3 +43,6 @@ __version__ = "0.1.1.dev"
 # 时区
 TIME_ZONE_CN = pytz.timezone("Asia/Shanghai")
 TIME_ZONE_NY = pytz.timezone("America/New_York")
+
+if not all((USER_EMAIL, USER_PASSWORD)):
+    sys.exit()
