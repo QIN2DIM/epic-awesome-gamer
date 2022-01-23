@@ -32,8 +32,9 @@ class GameLibManager(AwesomeFreeGirl):
         with open(self.path_free_games, "w", encoding='utf8', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["name", "url"])
-            for name, url in game_objs:
-                writer.writerow((name, url))
+            for game_obj in game_objs:
+                cell = (game_obj["name"], game_obj["url"])
+                writer.writerow(cell)
 
         logger.success(ToolBox.runtime_report(
             motive="SAVE",

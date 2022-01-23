@@ -190,7 +190,7 @@ class ArmorCaptcha:
 
         :return:
         """
-        if self.label in ["摩托车", ] or not self.label_alias.get(self.label):
+        if self.label in ["水上飞机", ] or not self.label_alias.get(self.label):
             self.log(message="模型泛化较差，逃逸", label=self.label)
             return True
 

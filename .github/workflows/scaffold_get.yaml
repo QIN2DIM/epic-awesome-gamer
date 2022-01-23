@@ -1,4 +1,4 @@
-name: main
+name: scaffold_get
 
 on:
   workflow_dispatch:

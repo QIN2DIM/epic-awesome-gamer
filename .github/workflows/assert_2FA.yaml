@@ -1,4 +1,4 @@
-name: main
+name: assert_2FA
 
 on:
   workflow_dispatch:
