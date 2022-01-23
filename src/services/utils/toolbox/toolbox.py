@@ -4,28 +4,23 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os.path
-import random
 import shutil
-import socket
 import sys
-from datetime import datetime, timedelta
-from typing import List
-from urllib.parse import urlparse
+from datetime import datetime
+from typing import List, Union, Dict, Optional
 
 import colorama
-import pytz
 import yaml
-from cloudscraper import create_scraper
 from loguru import logger
 from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 
-colorama.init(autoreset=True)
+colorama.init(autoreset=True if "win" in sys.platform else False)
 
 
 class ToolBox:
     @staticmethod
-    def echo(msg: str, level: int):
+    def echo(msg: str, level: int) -> str:
         """
         控制台彩色输出
         :param msg:
@@ -85,48 +80,7 @@ class ToolBox:
                          "Make sure it is located in the project root directory", 3)
 
     @staticmethod
-    def date_format_now(mode="log", tz="Asia/Shanghai") -> str:
-        """
-        输出格式化日期
-        :param tz: 时区
-        :param mode: with [file log]
-            - file：符合文件标准　yyyy-mm-dd
-            - log：人类可读 yyyy-mm-dd HH:MM:SS
-        :return:
-        """
-        timezone = pytz.timezone(tz)
-        if mode == "file":
-            return str(datetime.now(timezone)).split(" ")[0]
-        if mode == "log":
-            return str(datetime.now(timezone)).split(".")[0]
-
-    @staticmethod
-    def date_format_life_cycle(life_cycle: int, tz="Asia/Shanghai") -> str:
-        """
-
-        :param life_cycle: 生命周期（小时）
-        :param tz: 时区
-        :return:
-        """
-        timezone = pytz.timezone(tz)
-        date_life_cycle = datetime.now(timezone) + timedelta(hours=life_cycle)
-        return str(date_life_cycle).split(".")[0]
-
-    @staticmethod
-    def is_stale_date(end_date: str) -> bool:
-        """
-        判断过期
-
-        :param end_date: 结束时间
-        :return:
-        """
-        end_date = datetime.fromisoformat(end_date)
-        now_date = datetime.fromisoformat(ToolBox.date_format_now())
-
-        return end_date < now_date
-
-    @staticmethod
-    def runtime_report(action_name: str, motive="RUN", message: str = "", **params) -> str:
+    def runtime_report(action_name: str, motive: str = "RUN", message: str = "", **params) -> str:
         flag_ = ">> {} [{}]".format(motive, action_name)
         if message != "":
             flag_ += " {}".format(message)
@@ -136,21 +90,7 @@ class ToolBox:
         return flag_
 
     @staticmethod
-    def reset_url(url: str, path: str = "", get_domain: bool = False) -> str:
-        """
-
-        :param get_domain:
-        :param url: 需要还原的链接
-        :param path: 需要添加的地址路径 `/` 开头
-        :return:
-        """
-        url_obj = urlparse(url)
-        pure_url = f"{url_obj.scheme}://{url_obj.netloc}{path}"
-
-        return pure_url if get_domain is False else url_obj.netloc
-
-    @staticmethod
-    def transfer_cookies(api_cookies: str or List[dict]) -> str or list:
+    def transfer_cookies(api_cookies: Union[List[Dict[str, str]], str]) -> Union[str, List[Dict[str, str]]]:
         """
         将 cookies 转换为可携带的 Request Header
         :param api_cookies: api.get_cookies() or cookie_body
@@ -159,51 +99,6 @@ class ToolBox:
         if type(api_cookies) == str:
             return [{"name": i.split("=")[0], "value": i.split("=")[1]} for i in api_cookies.split("; ")]
         return "; ".join([f"{i['name']}={i['value']}" for i in api_cookies])
-
-    @staticmethod
-    def handle_html(url):
-        headers = {
-            "accept-language": "zh-CN",
-        }
-
-        scraper = create_scraper()
-        response = scraper.get(url, timeout=10, allow_redirects=False, headers=headers)
-
-        return response, response.status_code
-
-    @staticmethod
-    def check_local_network(test_server: tuple = None):
-
-        test_server = ("www.baidu.com", 443) if test_server is None else test_server
-
-        s = socket.socket()
-        s.settimeout(3)
-
-        try:
-            status_code = s.connect_ex(test_server)
-            return True if status_code == 0 else False
-        # 可能原因：本地断网
-        except socket.gaierror:
-            return False
-        # 超时或积极拒绝
-        except (TimeoutError, ConnectionRefusedError):
-            return False
-        # port must be 0-65535.
-        except OverflowError:
-            return ToolBox.check_local_network(test_server=None)
-        finally:
-            s.close()
-
-    @staticmethod
-    def fake_user_agent() -> str:
-        """Tip:指定UA可能会留下特征"""
-        user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-            " Chrome/97.0.4692.71 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62"
-        ]
-        return random.choice(user_agents)
 
 
 class InitLog:
@@ -244,15 +139,8 @@ class InitLog:
         return logger
 
 
-def _set_ctx(ua: bool = None):
-    """
-
-    :param ua: 挑战者不需要指定UA，会留下指纹特征。
-    :return:
-    """
+def _set_ctx() -> ChromeOptions:
     options = ChromeOptions()
-    if ua:
-        options.add_argument('--user-agent="{}"'.format(ToolBox.fake_user_agent()))
     options.add_argument("--log-level=3")
     options.add_argument("--lang=zh-CN")  # 可能仅在 Windows 生效
     options.add_argument('--disable-dev-shm-usage')
@@ -260,13 +148,13 @@ def _set_ctx(ua: bool = None):
     return options
 
 
-def get_ctx(silence: bool = None):
+def get_ctx(silence: Optional[bool] = None):
     from selenium.webdriver.chrome.service import Service
     from selenium.webdriver import Chrome
 
     silence = True if silence is None else silence
 
-    options = _set_ctx(ua=True)
+    options = _set_ctx()
     if silence is True:
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
@@ -277,7 +165,7 @@ def get_ctx(silence: bool = None):
     return Chrome(options=options, service=service)  # noqa
 
 
-def get_challenge_ctx(silence: bool = None):
+def get_challenge_ctx(silence: Optional[bool] = None):
     from undetected_chromedriver import Chrome
 
     silence = True if silence is None else silence

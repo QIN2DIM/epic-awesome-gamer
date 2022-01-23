@@ -21,12 +21,13 @@ def run():
     [🌀] 激活人机挑战
     _______________
     """
-    logger.debug(ToolBox.runtime_report(
-        motive="BUILD",
-        action_name="ChallengeRunner",
+    logger.info(ToolBox.runtime_report(
+        motive="STARTUP",
+        action_name="ScaffoldChallenge",
         message="正在更新身份令牌..."
     ))
-    bricklayer.cookie_manager.refresh_ctx_cookies(verify=True)
+    if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True, silence=False):
+        return
 
     """
     [🌀] 读取新的身份令牌

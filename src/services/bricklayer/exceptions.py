@@ -24,6 +24,16 @@ class ContextException(AwesomeException):
     pass
 
 
+class SwitchContext(ContextException):
+    """当使用普通驱动上下文处理人机验证时抛出"""
+    pass
+
+
+class AuthException(AwesomeException):
+    """身份认证出现问题时抛出，例如遭遇插入到 hcaptcha 之后的 2FA 身份验证"""
+    pass
+
+
 class PaymentException(AwesomeException):
     """订单操作异常"""
     pass
@@ -31,11 +41,6 @@ class PaymentException(AwesomeException):
 
 class CookieExpired(AwesomeException):
     """身份令牌或饼干过期时抛出"""
-    pass
-
-
-class SwitchContext(ContextException):
-    """当使用普通驱动上下文处理人机验证时抛出"""
     pass
 
 

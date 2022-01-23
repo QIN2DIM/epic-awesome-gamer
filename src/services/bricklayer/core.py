@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
-# Time       : 2022/1/17 13:50
+# Time       : 2022/1/17 15:20
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os.path
 import time
 import urllib.request
-from hashlib import sha256
-from typing import List, NoReturn
+from typing import List, Optional, NoReturn
 
-import cloudscraper
-import yaml
 from selenium.common.exceptions import (
     TimeoutException,
     ElementNotVisibleException,
@@ -23,19 +20,30 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
-from config import USER_EMAIL, USER_PASSWORD
-from services.settings import logger, DIR_COOKIES, DIR_CHALLENGE, DIR_MODEL
+from config import (
+    USER_EMAIL,
+    USER_PASSWORD
+)
+from services.settings import (
+    logger,
+    DIR_COOKIES,
+    DIR_CHALLENGE,
+    DIR_MODEL
+)
 from services.utils import (
-    ToolBox, ArmorCaptcha, CoroutineSpeedup, YOLO,
-    get_ctx, get_challenge_ctx, ChallengeReset,
-
+    YOLO,
+    ToolBox,
+    ArmorCaptcha,
+    CoroutineSpeedup,
+    ChallengeReset,
 )
 from .exceptions import (
     AssertTimeout,
     UnableToGet,
     CookieExpired,
     SwitchContext,
-    PaymentException
+    PaymentException,
+    AuthException,
 )
 
 # 显示人机挑战的DEBUG日志
@@ -48,12 +56,13 @@ class ArmorUtils(ArmorCaptcha):
     def __init__(self, debug: bool = ARMOR_DEBUG):
         super(ArmorUtils, self).__init__(dir_workspace=DIR_CHALLENGE, debug=debug)
 
+        # 重定向工作空间
         self.model = YOLO(DIR_MODEL)
 
     @staticmethod
-    def fall_in_captcha_login(ctx: Chrome) -> bool:
+    def fall_in_captcha_login(ctx: Chrome) -> Optional[bool]:
         """
-        判断是否陷入人机验证
+        判断在登录时是否遇到人机挑战
 
         :param ctx:
         :return: True：已进入人机验证页面，False：跳转到个人主页
@@ -79,7 +88,13 @@ class ArmorUtils(ArmorCaptcha):
                 ctx.switch_to.default_content()
 
     @staticmethod
-    def fall_in_captcha_runtime(ctx: Chrome) -> bool:
+    def fall_in_captcha_runtime(ctx: Chrome) -> Optional[bool]:
+        """
+        判断在下单时是否遇到人机挑战
+
+        :param ctx:
+        :return:
+        """
         try:
             WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
                 EC.presence_of_element_located((By.XPATH, "//iframe[@id='talon_frame_checkout_free_prod']"))
@@ -88,7 +103,7 @@ class ArmorUtils(ArmorCaptcha):
         except TimeoutException:
             return False
 
-    def download_images(self):
+    def download_images(self) -> None:
         """
         植入协程框架加速下载。
 
@@ -115,12 +130,78 @@ class ArmorUtils(ArmorCaptcha):
 
         self.runtime_workspace = workspace_
 
-    def anti_hcaptcha(self, ctx: Chrome, door: str = "login"):
+    def challenge_success(self, ctx: Chrome, init: bool = True) -> Optional[bool]:
         """
-        
+        判断挑战是否成功的复杂逻辑
+
+        IF index is True:
+        经过首轮识别点击后，出现四种结果：
+        - 直接通过验证（小概率）
+        - 进入第二轮（正常情况）
+          通过短时间内可否继续点击拼图来断言是否陷入第二轮测试
+        - 要求重试（小概率）
+          特征被识别或网络波动，需要重试
+        - 通过验证，弹出 2FA 双重认证
+          无法处理，任务结束
+
+        :param ctx: 挑战者驱动上下文
+        :param init: 是否为初次挑战
+        :return:
+        """
+
+        def _runtime_assert():
+            flag = ctx.current_url
+            if init:
+                try:
+                    time.sleep(1.5)
+                    WebDriverWait(ctx, 2, ignored_exceptions=WebDriverException).until(
+                        EC.element_to_be_clickable((By.XPATH, "//div[@class='task-image']"))
+                    )
+                except TimeoutException:
+                    pass
+                else:
+                    self.log("挑战继续")
+                    return False
+
+            try:
+                challenge_reset = WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
+                    EC.presence_of_element_located((By.XPATH, "//div[@class='MuiAlert-message']"))
+                )
+            except TimeoutException:
+                try:
+                    WebDriverWait(ctx, 8).until(EC.url_changes(flag))
+                except TimeoutException:
+                    self.log("断言超时，挑战继续")
+                    return False
+                else:
+                    # 如果没有遇到双重认证，说明挑战成功
+                    return True
+            else:
+                self.log("挑战失败，需要重置挑战")
+                challenge_reset.click()
+                raise ChallengeReset
+
+        result = _runtime_assert()
+        if result:
+            if "id/login/mfa" in ctx.current_url:
+                raise AuthException("遭遇意外的 2FA 双重认证，人机挑战已退出。")
+            self.log("挑战成功")
+        return result
+
+    def anti_hcaptcha(self, ctx: Chrome, door: str = "login") -> Optional[bool]:
+        """
+        Handle hcaptcha challenge
+
+        ## Reference
+
+        M. I. Hossen and X. Hei, "A Low-Cost Attack against the hCaptcha System," 2021 IEEE Security
+        and Privacy Workshops (SPW), 2021, pp. 422-431, doi: 10.1109/SPW53761.2021.00061.
+
+        > ps:该篇文章中的部分内容已过时，现在 hcaptcha challenge 远没有作者说的那么容易应付。
+
         :param door:
         :param ctx:
-        :return: 
+        :return:
         """
         iframe_mapping = {
             "login": "talon_frame_login_prod",
@@ -160,7 +241,7 @@ class ArmorUtils(ArmorCaptcha):
 
                 self.challenge(ctx, model=self.model)
 
-                result = self._challenge_success(ctx, not bool(index))
+                result = self.challenge_success(ctx, not bool(index))
 
                 # 仅一轮测试就通过
                 if index == 0 and result:
@@ -168,7 +249,7 @@ class ArmorUtils(ArmorCaptcha):
                 # 断言超时
                 if index == 1 and result is False:
                     ctx.switch_to.default_content()
-                    return
+                    return False
         except ChallengeReset:
             ctx.switch_to.default_content()
             return self.anti_hcaptcha(ctx)
@@ -207,7 +288,7 @@ class AwesomeFreeMan:
         # 注册拦截机
         self._armor = ArmorUtils()
 
-    def _assert_purchase_status(self, ctx: Chrome, page_link: str) -> str:
+    def _assert_purchase_status(self, ctx: Chrome, page_link: str) -> Optional[str]:
         """
         断言当前上下文页面的游戏的在库状态。
 
@@ -268,7 +349,7 @@ class AwesomeFreeMan:
         return self.ASSERT_OBJECT_EXCEPTION
 
     @staticmethod
-    def _assert_surprise_license(ctx: Chrome):
+    def _assert_surprise_license(ctx: Chrome) -> None:
         """
         新用户首次购买游戏需要处理许可协议书
 
@@ -299,7 +380,7 @@ class AwesomeFreeMan:
                     pass
 
     @staticmethod
-    def _assert_fall_in_captcha_runtime(ctx: Chrome) -> bool:
+    def _assert_fall_in_captcha_runtime(ctx: Chrome) -> Optional[bool]:
         try:
             WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
                 EC.presence_of_element_located((By.XPATH, "//iframe[@id='talon_frame_checkout_free_prod']"))
@@ -309,7 +390,7 @@ class AwesomeFreeMan:
             return False
 
     @staticmethod
-    def _assert_surprise_warning(ctx: Chrome) -> bool:
+    def _assert_surprise_warning(ctx: Chrome) -> Optional[bool]:
         """
         处理意外的遮挡消息。
 
@@ -330,7 +411,7 @@ class AwesomeFreeMan:
 
         return False
 
-    def _handle_payment(self, ctx: Chrome):
+    def _handle_payment(self, ctx: Chrome) -> None:
         """
         处理游戏订单
 
@@ -348,7 +429,7 @@ class AwesomeFreeMan:
             )
             if "依旧要购买吗" in warning_layout.text:
                 ctx.switch_to.default_content()
-                return True
+                return
         else:
             ctx.switch_to.frame(payment_frame)
 
@@ -386,7 +467,7 @@ class AwesomeFreeMan:
         # Switch to default iframe.
         ctx.switch_to.default_content()
 
-    def _activate_payment(self, api: Chrome):
+    def _activate_payment(self, api: Chrome) -> Optional[bool]:
         """
         激活游戏订单
 
@@ -408,11 +489,35 @@ class AwesomeFreeMan:
                 except UnableToGet:
                     return False
 
-    def _assert_timeout(self, loop_start: float):
+    def _assert_timeout(self, loop_start: float) -> NoReturn:
         if time.time() - loop_start > self.loop_timeout:
             raise AssertTimeout
 
-    def _get_free_game(self, page_link: str, api_cookies: List[dict], ctx: Chrome):
+    def _login(self, email: str, password: str, ctx: Chrome) -> None:
+        """
+        作为被动方式，登陆账号，刷新 identity token。
+
+        此函数不应被主动调用，应当作为 refresh identity token / Challenge 的辅助函数。
+        :param ctx:
+        :param email:
+        :param password:
+        :return:
+        """
+        ctx.get(self.URL_LOGIN)
+
+        WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
+            EC.presence_of_element_located((By.ID, "email"))
+        ).send_keys(email)
+
+        WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
+            EC.presence_of_element_located((By.ID, "password"))
+        ).send_keys(password)
+
+        WebDriverWait(ctx, 60, ignored_exceptions=ElementClickInterceptedException).until(
+            EC.element_to_be_clickable((By.ID, "sign-in"))
+        ).click()
+
+    def _get_free_game(self, page_link: str, api_cookies: List[dict], ctx: Chrome) -> None:
         """
         获取免费游戏
 
@@ -463,241 +568,3 @@ class AwesomeFreeMan:
             _______________
             """
             self._handle_payment(ctx)
-
-    def _login(self, email: str, password: str, ctx: Chrome):
-        """
-        作为被动方式，登陆账号，刷新 identity token。
-
-        此函数不应被主动调用，应当作为 refresh identity token / Challenge 的辅助函数。
-        :param ctx:
-        :param email:
-        :param password:
-        :return:
-        """
-        ctx.get(self.URL_LOGIN)
-
-        WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
-            EC.presence_of_element_located((By.ID, "email"))
-        ).send_keys(email)
-
-        WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
-            EC.presence_of_element_located((By.ID, "password"))
-        ).send_keys(password)
-
-        WebDriverWait(ctx, 60, ignored_exceptions=ElementClickInterceptedException).until(
-            EC.element_to_be_clickable((By.ID, "sign-in"))
-        ).click()
-
-
-class CookieManager(AwesomeFreeMan):
-    def __init__(self):
-        super(CookieManager, self).__init__()
-
-        self.action_name = "CookieManager"
-
-    def _t(self) -> str:
-        return sha256(self.email[-3::-1].encode("utf-8")).hexdigest() if self.email else ""
-
-    def load_ctx_cookies(self) -> List[dict]:
-        """
-        载入本地缓存的身份令牌。
-
-        :return:
-        """
-        if not os.path.exists(self.path_ctx_cookies):
-            return []
-
-        with open(self.path_ctx_cookies, "r", encoding='utf8') as f:
-            data: dict = yaml.safe_load(f)
-
-        ctx_cookies = data.get(self._t(), []) if type(data) == dict else []
-        if not ctx_cookies:
-            return []
-
-        logger.debug(ToolBox.runtime_report(
-            motive="LOAD",
-            action_name=self.action_name,
-            message="Overload Context Cookie."
-        ))
-
-        return ctx_cookies
-
-    def save_ctx_cookies(self, ctx_cookies: List[dict]) -> NoReturn:
-        """
-        在本地缓存身份令牌。
-
-        :param ctx_cookies:
-        :return:
-        """
-        _data = {}
-
-        if os.path.exists(self.path_ctx_cookies):
-            with open(self.path_ctx_cookies, "r", encoding='utf8') as f:
-                stream: dict = yaml.safe_load(f)
-                _data = _data if type(stream) != dict else stream
-
-        _data.update({self._t(): ctx_cookies})
-
-        with open(self.path_ctx_cookies, "w", encoding="utf8") as f:
-            yaml.dump(_data, f)
-
-        logger.debug(ToolBox.runtime_report(
-            motive="SAVE",
-            action_name=self.action_name,
-            message="Update Context Cookie."
-        ))
-
-    def is_available_cookie(self, ctx_cookies: List[dict] = None) -> bool:
-        """
-        检测 COOKIE 是否有效
-
-        :param ctx_cookies: 若不指定则将工作目录 cookies 视为 ctx_cookies
-        :return:
-        """
-        ctx_cookies = self.load_ctx_cookies() if ctx_cookies is None else ctx_cookies
-        headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
-
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(self.URL_ACCOUNT_PERSONAL, headers=headers, allow_redirects=False)
-        if response.status_code == 200:
-            return True
-        return False
-
-    def refresh_ctx_cookies(self, verify: bool = True, ctx_cookies: List[dict] = None) -> NoReturn:
-        """
-        更新上下文身份信息
-
-        :return:
-        """
-
-        # {{< Check Context Cookie Validity >}}
-        if verify:
-            if self.is_available_cookie(ctx_cookies=ctx_cookies):
-                logger.success(ToolBox.runtime_report(
-                    motive="CHECK",
-                    action_name=self.action_name,
-                    message="The identity token is valid."
-                ))
-                return True
-        # {{< Done >}}
-
-        # {{< Insert Challenger Context >}}
-        ctx = get_challenge_ctx(silence=False)
-        try:
-            for _ in range(8):
-                # Enter the account information and jump to the man-machine challenge page.
-                self._login(self.email, self.password, ctx=ctx)
-
-                # Assert if you are caught in a man-machine challenge.
-                try:
-                    fallen = self._armor.fall_in_captcha_login(ctx=ctx)
-                except AssertTimeout:
-                    pass
-                else:
-                    # Approved.
-                    if not fallen:
-                        break
-
-                    # Winter is coming, so hear me roar!
-                    response = self._armor.anti_hcaptcha(ctx)
-                    if response:
-                        break
-            else:
-                logger.critical(ToolBox.runtime_report(
-                    motive="MISS",
-                    action_name=self.action_name,
-                    message="Identity token update failed."
-                ))
-                return False
-
-            # Store contextual authentication information.
-            self.save_ctx_cookies(ctx_cookies=ctx.get_cookies())
-        finally:
-            if ctx:
-                ctx.close()
-                ctx.quit()
-        # {{< Done >}}
-
-
-class Bricklayer(AwesomeFreeMan):
-    def __init__(self, silence: bool = None):
-        super(Bricklayer, self).__init__()
-        self.silence = True if silence is None else silence
-
-        self.action_name = "AwesomeFreeMan"
-
-        self.cookie_manager = CookieManager()
-
-    def get_free_game(
-            self,
-            page_link: str = None,
-            ctx_cookies: List[dict] = None,
-            refresh: bool = True,
-            ctx: Chrome = None,
-    ):
-        """
-        获取免费游戏
-
-        部署后必须传输有效的 `page_link` 参数。
-        :param ctx:
-        :param page_link: 游戏购买页链接 zh-CN
-        :param refresh: 当 COOKIE 失效时主动刷新 COOKIE
-        :param ctx_cookies:
-        :return:
-        """
-        page_link = self.URL_FREE_GAME_TEST if page_link is None else page_link
-        ctx_cookies = self.cookie_manager.load_ctx_cookies() if ctx_cookies is None else ctx_cookies
-        ctx = get_ctx(silence=self.silence) if ctx is None else ctx
-        """
-        [🚀] 验证 COOKIE
-        _______________
-        请勿在并发环境下 让上下文驱动陷入到不得不更新 COOKIE 的陷阱之中。
-        """
-        if not ctx_cookies or not self.cookie_manager.is_available_cookie(ctx_cookies=ctx_cookies):
-            if refresh:
-                self.cookie_manager.refresh_ctx_cookies(verify=False)
-                ctx_cookies = self.cookie_manager.load_ctx_cookies()
-            else:
-                logger.error(ToolBox.runtime_report(
-                    motive="QUIT",
-                    action_name=self.action_name,
-                    message="Cookie 已过期，任务已退出。"
-                ))
-                return False
-
-        """
-        [🚀] 使用普通级别的上下文获取免费游戏
-        _______________
-        """
-        try:
-            self._get_free_game(page_link=page_link, api_cookies=ctx_cookies, ctx=ctx)
-        except AssertTimeout:
-            logger.debug(ToolBox.runtime_report(
-                motive="QUIT",
-                action_name=self.action_name,
-                message="循环断言超时，任务退出。"
-            ))
-        except SwitchContext as e:
-            logger.warning(ToolBox.runtime_report(
-                motive="SWITCH",
-                action_name=self.action_name,
-                message="尝试切换驱动上下文进行人机挑战",
-                error=e,
-                url=page_link,
-            ))
-            ctx.quit()
-            return self.get_free_game(
-                page_link=page_link,
-                ctx_cookies=ctx_cookies,
-                ctx=get_challenge_ctx(self.silence)
-            )
-        except PaymentException as e:
-            logger.debug(ToolBox.runtime_report(
-                motive="QUIT",
-                action_name=self.action_name,
-                message=e.msg,
-                url=page_link,
-            ))
-        finally:
-            if ctx:
-                ctx.quit()

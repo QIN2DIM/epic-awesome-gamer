@@ -8,7 +8,6 @@ import numpy as np
 import requests
 from loguru import logger
 from selenium.common.exceptions import (
-    NoSuchElementException,
     ElementNotVisibleException,
     ElementClickInterceptedException,
     WebDriverException,
@@ -19,7 +18,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
-from .exceptions import LabelNotFoundException, ChallengeReset
+from .exceptions import (
+    LabelNotFoundException,
+    ChallengeReset
+)
 
 
 class YOLO:
@@ -172,37 +174,6 @@ class ArmorCaptcha:
         if self.debug:
             return logger.debug(flag_)
 
-    @staticmethod
-    def _unused_download_armor(api: Chrome):
-        """
-        弃用。
-
-        :param api:
-        :return:
-        """
-        api.get("https://greasyfork.org/zh-CN/scripts/425854-hcaptcha-solver-automatically-solves-hcaptcha-in-browser")
-
-        download_link = WebDriverWait(api, 10, poll_frequency=0.5, ignored_exceptions=NoSuchElementException).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "install-link"))
-        ).get_attribute("href")
-
-        _handle_num = len(api.window_handles)
-
-        # 自动开启一个新的 tab
-        api.get(download_link)
-
-        while len(api.window_handles) == _handle_num:
-            pass
-
-        api.switch_to.window(api.window_handles[-1])
-
-        WebDriverWait(api, 30, poll_frequency=0.5, ignored_exceptions=NoSuchElementException).until(
-            EC.element_to_be_clickable((By.NAME, "安装"))
-        ).click()
-
-        # 回到主任务标签
-        api.switch_to.window(api.window_handles[0])
-
     def _init_workspace(self):
         _prefix = "{}{}".format(
             int(time.time()),
@@ -223,17 +194,23 @@ class ArmorCaptcha:
             self.log(message="模型泛化较差，逃逸", label=self.label)
             return True
 
-    def mark_samples(self, api: Chrome):
+    def mark_samples(self, ctx: Chrome):
+        """
+        获取每个挑战图片的下载链接以及网页元素位置
+
+        :param ctx:
+        :return:
+        """
         self.log(message="获取挑战图片链接及元素定位器")
 
         # 等待图片加载完成
-        WebDriverWait(api, 10, ignored_exceptions=ElementNotVisibleException).until(
+        WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
             EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
         )
         time.sleep(1)
 
         # DOM 定位元素
-        samples = api.find_elements(By.XPATH, "//div[@class='task-image']")
+        samples = ctx.find_elements(By.XPATH, "//div[@class='task-image']")
         for sample in samples:
             alias = sample.get_attribute("aria-label")
             # TODO 加入超时判定
@@ -247,9 +224,15 @@ class ArmorCaptcha:
                     continue
             self.alias2locator.update({alias: sample})
 
-    def get_label(self, api: Chrome):
+    def get_label(self, ctx: Chrome):
+        """
+        获取人机挑战需要识别的图片类型（标签）
+
+        :param ctx:
+        :return:
+        """
         try:
-            label_obj = WebDriverWait(api, 30, ignored_exceptions=ElementNotVisibleException).until(
+            label_obj = WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@class='prompt-text']"))
             )
         except TimeoutException:
@@ -266,6 +249,21 @@ class ArmorCaptcha:
             )
 
     def download_images(self):
+        """
+        下载挑战图片
+
+        ### hcaptcha 设有挑战时长的限制
+
+          如果一段时间内没有操作页面元素，<iframe> 框体就会消失，之前获取的 Element Locator 将过时。
+          需要借助一些现代化的方法尽可能地缩短 `获取数据集` 的耗时。
+
+        ### 解决方案
+
+        1. 使用基于协程的方法拉取图片到本地，最佳实践（本方法）。拉取效率比遍历下载提升至少 10 倍。
+        2. 截屏切割，有一定的编码难度。直接截取目标区域的九张图片，使用工具函数切割后识别。需要自己编织定位器索引。
+
+        :return:
+        """
         _workspace = self._init_workspace()
         for alias, url in self.alias2url.items():
             path_challenge_img = os.path.join(_workspace, f"{alias}.png")
@@ -273,10 +271,18 @@ class ArmorCaptcha:
 
     def challenge(self, ctx: Chrome, model: YOLO, confidence=0.39, nms_thresh=0.7):
         """
+        图像分类，元素点击，答案提交
 
-        hCaptcha Challenge 难度和规则与 `reCaptcha` 相差较大。
-        这里只要正确率上去就行，也即正确图片覆盖更多，通过率越高（即使因此多点了几个干扰项也无妨），
-        所以这里要将置信度调低。未经针对训练的模型本来就是用来猜的，优雅永不过时！
+        ### 性能瓶颈
+
+        此部分图像分类基于 CPU 运行。如果服务器资源极其紧张，图像分类任务可能无法按时完成。
+        根据实验结论来看，如果运行时内存少于 512MB，且仅有一个逻辑线程的话，基本上是与深度学习无缘了。
+
+        ### 优雅永不过时
+
+        `hCaptcha` 的挑战难度与 `reCaptcha v2` 不在一个级别。
+        这里只要正确率上去就行，也即正确图片覆盖更多，通过率越高（即使因此多点了几个干扰项也无妨）。
+        所以这里要将置信度尽可能地调低（未经针对训练的模型本来就是用来猜的）。
 
         :return:
         """
@@ -298,51 +304,39 @@ class ArmorCaptcha:
                     self.alias2locator[alias].click()
                 except WebDriverException:
                     pass
-        # {{< Done >}}
 
-        # 提交答案
+        # {{< SUBMIT ANSWER >}}
         WebDriverWait(ctx, 35, ignored_exceptions=ElementClickInterceptedException).until(
             EC.element_to_be_clickable((By.XPATH, "//div[@class='button-submit button']"))
         ).click()
+
         self.log(message="提交挑战")
 
-    def _challenge_success(self, api: Chrome, init: bool = True):
-        _challenge_ok = 1
+    def challenge_success(self, ctx: Chrome, init: bool = True):
+        """
+        自定义的人机挑战通过逻辑
 
-        # index == 0
-        # 经过一轮识别点击后，出现三种结果
-        # - 通过验证（极少）
-        # - 第二轮（极大）
-        #   通过短时间内可否继续点击拼图来断言是否陷入第二轮测试
-        # - 直接 Error（极小）
-        #   根据当前DOM树是否刷新出警告信息判断
-        flag = api.current_url
-        if init:
-            try:
-                time.sleep(1.5)
-                WebDriverWait(api, 2, ignored_exceptions=WebDriverException).until(
-                    EC.element_to_be_clickable((By.XPATH, "//div[@class='task-image']"))
-                )
-            except TimeoutException:
-                pass
-            else:
-                self.log("挑战继续")
-                return False
+        :return:
+        """
+        raise ImportError
 
-        try:
-            challenge_reset = WebDriverWait(api, 5, ignored_exceptions=WebDriverException).until(
-                EC.presence_of_element_located((By.XPATH, "//div[@class='MuiAlert-message']"))
-            )
-        except TimeoutException:
-            try:
-                WebDriverWait(api, 8).until(EC.url_changes(flag))
-            except TimeoutException:
-                self.log("断言超时，挑战继续")
-                return False
-            else:
-                self.log("挑战成功")
-                return True
-        else:
-            self.log("挑战失败，需要重置挑战")
-            challenge_reset.click()
-            raise ChallengeReset
+    def anti_captcha(self):
+        """
+        自定义的人机挑战触发逻辑
+
+        具体思路是：
+        1. 进入 hcaptcha iframe
+        2. 获取图像标签
+            需要加入判断，有时候 `hcaptcha` 计算的威胁程度极低，会直接让你过，
+            于是图像标签之类的元素都不会加载在网页上。
+        3. 获取各个挑战图片的下载链接及网页元素位置
+        4. 图片下载，分类
+            需要用一些技术手段缩短这部分操作的耗时。人机挑战有时间限制。
+        5. 对正确的图片进行点击
+        6. 提交答案
+        7. 判断挑战是否成功
+            一般情况下 `hcaptcha` 的验证有两轮，
+            而 `recaptcha vc2` 之类的人机挑战就说不准了，可能程序一晚上都在“循环”。
+        :return:
+        """
+        raise ImportError

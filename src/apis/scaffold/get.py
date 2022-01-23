@@ -3,12 +3,17 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+from typing import Optional
+
 from selenium.common.exceptions import WebDriverException
 
 from services.bricklayer import Bricklayer
 from services.explorer import Explorer
 from services.settings import logger
-from services.utils import CoroutineSpeedup, ToolBox
+from services.utils import (
+    CoroutineSpeedup,
+    ToolBox
+)
 
 SILENCE = True
 
@@ -17,10 +22,10 @@ explorer = Explorer(silence=SILENCE)
 
 
 class SpawnBooster(CoroutineSpeedup):
-    def __init__(self, docker=None, power: int = 4, debug: bool = False):
+    def __init__(self, docker=None, power: int = 4, debug: Optional[bool] = None):
         super(SpawnBooster, self).__init__(docker=docker, power=power)
 
-        self.debug = debug
+        self.debug = False if debug is None else debug
 
     def control_driver(self, context, *args, **kwargs):
         ctx_cookies, url = context
@@ -36,7 +41,7 @@ class SpawnBooster(CoroutineSpeedup):
                 url=url
             ))
             try:
-                bricklayer.get_free_game(ctx_cookies=ctx_cookies, page_link=url, refresh=False)
+                bricklayer.get_free_game(page_link=url, ctx_cookies=ctx_cookies, refresh=False)
             except WebDriverException as e:
                 if self.debug:
                     logger.exception(e)
@@ -56,17 +61,19 @@ def join(trace: bool = False):
     :param trace:
     :return:
     """
-    logger.debug(ToolBox.runtime_report(
-        motive="BUILD",
-        action_name="EpicGamer",
+    logger.info(ToolBox.runtime_report(
+        motive="STARTUP",
+        action_name="ScaffoldGet",
         message="正在为玩家领取免费游戏"
     ))
 
     """
     [🔨] 读取有效的身份令牌
     _______________
+    - 必要时激活人机挑战
     """
-    bricklayer.cookie_manager.refresh_ctx_cookies(verify=True)
+    if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
+        return
     ctx_cookies = bricklayer.cookie_manager.load_ctx_cookies()
 
     """
@@ -75,7 +82,7 @@ def join(trace: bool = False):
     """
     urls = explorer.game_manager.load_game_objs(only_url=True)
     if not urls:
-        urls = explorer.discovery_free_games(ctx_cookies=ctx_cookies, save=True)
+        urls = explorer.discovery_free_games(ctx_cookies=ctx_cookies, cover=True)
 
     """
     [🔨] 启动 Bricklayer，获取免费游戏

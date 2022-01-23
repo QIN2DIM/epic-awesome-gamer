@@ -4,7 +4,11 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
-from os.path import join, dirname, exists
+from os.path import (
+    join,
+    dirname,
+    exists
+)
 
 # ---------------------------------------------------
 # TODO [√]工程根目录定位

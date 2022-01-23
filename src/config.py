@@ -5,7 +5,7 @@
 # Description:
 import sys
 from os.path import join, dirname
-from typing import Dict, Union
+from typing import Dict, Union, Any
 
 import pytz
 
@@ -21,15 +21,20 @@ config_ = ToolBox.check_sample_yaml(path_output=join(dirname(__file__), "config.
                                     path_sample=join(dirname(__file__), "config-sample.yaml"))
 
 # --------------------------------
-# [√]Account
+# [√] 账号信息
 # --------------------------------
 USER_EMAIL: str = config_["EMAIL"]
 USER_PASSWORD: str = config_["PASSWORD"]
 
 # --------------------------------
-# [※]Scheduled task configuration
+# [※] 定任务配置
 # --------------------------------
 SCHEDULER_SETTINGS: Dict[str, Union[int, bool]] = config_.get("scheduler", {})
+
+# --------------------------------
+# [※] 消息推送配置
+# --------------------------------
+MESSAGE_PUSHER_SETTINGS: Dict[str, Any] = config_.get("pusher", {})
 
 """
 ================================================== ʕ•ﻌ•ʔ ==================================================

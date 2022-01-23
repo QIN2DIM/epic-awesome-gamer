@@ -6,8 +6,12 @@
 from gevent import monkey
 
 monkey.patch_all()
-
-from apis.scaffold import get, challenge, install
+from typing import Optional
+from apis.scaffold import (
+    get,
+    challenge,
+    install
+)
 
 
 class Scaffold:
@@ -17,7 +21,7 @@ class Scaffold:
         pass
 
     @staticmethod
-    def install(cdn: bool = False):
+    def install(cdn: Optional[bool] = None):
         """
         下载项目运行所需的配置。
 
@@ -34,10 +38,8 @@ class Scaffold:
 
         ## Warning
 
-        - 本指令仍有较大进步空间（在测试中...）
-            - 若小伙伴使用此指令后并不能一次性将所有依赖拉取完毕，出现缺漏，可以将相关信息提交至 `issues`。
-            - 若下载速度较慢，可以使用 `cdn` 参数加速下载
-        - https://github.com/QIN2DIM/epic-awesome-gamer
+        - 若小伙伴使用此指令后并不能一次性将所有依赖拉取完毕，出现缺漏，可以将相关信息提交至 `issues`。
+        - 若下载速度较慢，可以使用 `cdn` 参数加速下载
 
         :param cdn: CloudFlare CDN
         :return:
@@ -45,7 +47,7 @@ class Scaffold:
         install.run(cdn=cdn)
 
     @staticmethod
-    def get(debug: bool = False):
+    def get(debug: Optional[bool] = None):
         """
         获取 Epic Store 所有未在库的免费游戏。一键操作，将免费商城搬空，科技改变生活！
 
@@ -56,11 +58,8 @@ class Scaffold:
 
         ## Warning
 
-        - 本指令仍有较大进步空间（在测试中...）
-            - 若小伙伴在首轮中执行中遇到 `QUIT` 异常（几乎必然），可以在执行结束再执行几轮 `get` 指令，直至清空商城；
-                - 有些异常是仅在性能释放不足时被抛出，在单例执行时几乎不会撞见。
-                - 因权限无法获取的游戏需要玩家手动操作，如“成人内容”“地区或平台限制”
-        - 若出现其他报错，请留意 Exception 信息，并将完整的栈追踪信息提交至 `issues` ，不胜感激！
+        - 因权限无法获取的游戏需要玩家手动操作，如“成人内容”
+        - 若运行出现意料之外的报错，请运行 debug 模式，留意 Exception 信息，并将完整的栈追踪信息提交至 `issues` ，不胜感激！
         -  https://github.com/QIN2DIM/epic-awesome-gamer
 
         :param debug: 显示栈追踪日志信息
@@ -71,19 +70,17 @@ class Scaffold:
     @staticmethod
     def challenge():
         """
-        正面硬刚人机验证，为当前账号获取有效的身份令牌。
+        正面硬刚人机挑战，为当前账号获取有效的身份令牌。
 
         ## Intro
 
         - 请确保你已在 `config.yaml` 中配置了正确的账号信息。
-        - 本指令可插入在项目 `uminoleon/epicgames-claimer` 的生产环节之中，用于被动更新玩家的身份令牌。
-        - 更新后的 cookie 明文信息将存储到 `/src/database/cookies/user_cookies.txt` 中
+        - 更新后的 cookie 存储在 `/src/database/cookies/user_cookies.txt` 文件中
 
         ## Tips
 
         - 本指令并不会强制激活人机验证。硬刚人机挑战不是目的，获取到有效的身份令牌才是目的，不要徒增功耗。
-        - 也即，如果当前缓存的身份令牌还未失效，任务跳过。
-        - 请无视 `SurpriseExit()` 异常
+        - 也即，如果当前缓存的身份令牌还未失效，挑战跳过。
 
         :return:
         """
