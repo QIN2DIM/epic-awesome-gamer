@@ -33,7 +33,7 @@ jobs:
           cd src && python main.py challenge
 
       # 五分钟左右搬空免费商店
-      - name: Scaffold Get
-        run: |
-          export LANG=zh_CN.UTF8
-          cd src && python main.py get
+#      - name: Scaffold Get
+#        run: |
+#          export LANG=zh_CN.UTF8
+#          cd src && python main.py get
