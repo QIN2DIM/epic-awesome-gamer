@@ -606,7 +606,7 @@ class AwesomeFreeMan:
             [🚀] 断言游戏的在库状态
             _______________
             """
-            # self._assert_surprise_warning_purchase(ctx)
+            self._assert_surprise_warning_purchase(ctx)
             result = self._assert_purchase_status(ctx, page_link)
             if result != self.GAME_FETCH:
                 break
