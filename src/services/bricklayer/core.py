@@ -155,11 +155,9 @@ class ArmorUtils(ArmorCaptcha):
 
         def _continue_action():
             try:
-                time.sleep(1.5)
-                WebDriverWait(ctx, 2, ignored_exceptions=WebDriverException).until(
-                    EC.element_to_be_clickable((By.XPATH, "//div[@class='task-image']"))
-                )
-            except TimeoutException:
+                time.sleep(3)
+                ctx.find_element(By.XPATH, "//div[@class='task-image']")
+            except NoSuchElementException:
                 return True
             else:
                 self.log("挑战继续")

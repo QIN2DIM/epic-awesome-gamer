@@ -304,7 +304,6 @@ class ArmorCaptcha:
                     self.alias2locator[alias].click()
                 except WebDriverException:
                     pass
-
         # {{< SUBMIT ANSWER >}}
         WebDriverWait(ctx, 35, ignored_exceptions=ElementClickInterceptedException).until(
             EC.element_to_be_clickable((By.XPATH, "//div[@class='button-submit button']"))

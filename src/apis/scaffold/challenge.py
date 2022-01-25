@@ -4,7 +4,6 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 from services.bricklayer import Bricklayer
-from services.bricklayer.exceptions import SurpriseExit
 from services.settings import PATH_USR_COOKIES, logger
 from services.utils import ToolBox
 
@@ -43,5 +42,3 @@ def run():
         message="玩家饼干已到货。",
         path=PATH_USR_COOKIES
     ))
-    
-    raise SurpriseExit

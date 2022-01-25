@@ -156,7 +156,7 @@ def _set_ctx() -> ChromeOptions:
     options.add_argument("--log-level=3")
     options.add_argument("--lang=zh-CN")  # 可能仅在 Windows 生效
     options.add_argument('--disable-dev-shm-usage')
-    options.add_argument("--no-sandbox")
+    # options.add_argument("--no-sandbox")
     return options
 
 
