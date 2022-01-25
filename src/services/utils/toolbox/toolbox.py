@@ -164,7 +164,7 @@ def get_ctx(silence: Optional[bool] = None):
     from selenium.webdriver.chrome.service import Service
     from selenium.webdriver import Chrome
 
-    silence = True if silence is None else silence
+    silence = True if silence is None or "linux" in sys.platform else silence
 
     options = _set_ctx()
     if silence is True:

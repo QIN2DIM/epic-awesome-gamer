@@ -36,4 +36,4 @@ jobs:
       - name: Scaffold Get
         run: |
           export LANG=zh_CN.UTF8
-          cd src && python main.py get
+          cd src && python main.py get --debug

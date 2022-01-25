@@ -16,7 +16,7 @@ from services.utils import (
     ToolBox
 )
 
-SILENCE = False
+SILENCE = True
 
 bricklayer = Bricklayer(silence=SILENCE)
 explorer = Explorer(silence=SILENCE)
