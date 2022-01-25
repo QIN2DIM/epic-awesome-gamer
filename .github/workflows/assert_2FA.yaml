@@ -1,3 +1,4 @@
+# 测试 `2FA断言` 是否有效
 name: assert_2FA
 
 on:

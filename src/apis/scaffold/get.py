@@ -27,22 +27,34 @@ class SpawnBooster(CoroutineSpeedup):
 
         self.debug = False if debug is None else debug
 
+        self.action_name = "SpawnBooster"
+
+    def preload(self):
+        _mirror = []
+        if self.docker:
+            for ctx_cookies, url in self.docker:
+                _mirror.append({"ctx_cookies": ctx_cookies, "url": url})
+        self.docker = _mirror
+
     def control_driver(self, context, *args, **kwargs):
-        ctx_cookies, url = context
+        ctx_cookies, url = context.get("ctx_cookies"), context.get("url")
+
+        # 前置状态检测
         response = explorer.game_manager.is_my_game(ctx_cookies=ctx_cookies, page_link=url)
 
         # 启动 Bricklayer，获取免费游戏
-        if response is False:
+        if response.get("status") is False:
             logger.debug(ToolBox.runtime_report(
                 motive="BUILD",
-                action_name="SpawnBooster",
-                message="正在为玩家领取免费游戏",
+                action_name=self.action_name,
+                message="🛒 正在为玩家领取免费游戏",
                 progress=f"[{self.progress()}]",
                 url=url
             ))
             try:
                 bricklayer.get_free_game(page_link=url, ctx_cookies=ctx_cookies, refresh=False)
             except WebDriverException as e:
+                self.done.put_nowait(context)
                 if self.debug:
                     logger.exception(e)
                 logger.error(ToolBox.runtime_report(
@@ -52,6 +64,13 @@ class SpawnBooster(CoroutineSpeedup):
                     progress=f"[{self.progress()}]",
                     url=url
                 ))
+
+    def killer(self):
+        logger.success(ToolBox.runtime_report(
+            motive="OVER",
+            action_name=self.action_name,
+            message="✔ 任务队列已清空"
+        ))
 
 
 def join(trace: bool = False):
@@ -91,4 +110,6 @@ def join(trace: bool = False):
     - 如果在命令行操作系统上运行本指令，执行效率受限于硬件性能。
     """
     docker = [[ctx_cookies, url] for url in urls]
-    SpawnBooster(docker=docker, power=3, debug=trace).go()
+    booster = SpawnBooster(docker=docker, power=3, debug=trace)
+    booster.preload()
+    booster.go()

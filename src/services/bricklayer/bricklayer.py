@@ -233,7 +233,7 @@ class Bricklayer(AwesomeFreeMan):
                 motive="SWITCH",
                 action_name=self.action_name,
                 message="尝试切换驱动上下文进行人机挑战",
-                error=e,
+                error=str(e).strip(),
                 url=page_link,
             ))
             ctx.quit()
@@ -246,7 +246,8 @@ class Bricklayer(AwesomeFreeMan):
             logger.debug(ToolBox.runtime_report(
                 motive="QUIT",
                 action_name=self.action_name,
-                message=e.msg,
+                message="🚧 订单异常",
+                type=f"PaymentException {e}".strip(),
                 url=page_link,
             ))
         except AuthException as e:
