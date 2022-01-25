@@ -475,57 +475,39 @@ class AwesomeFreeMan:
         :param ctx:
         :return:
         """
-
-        # 未弹出订单而直接入库
-        self._assert_payment_auto_submit(ctx)
-
-        # Switch to the [Purchase Container] iframe.
+        # Switch to Payment iframe.
         try:
             payment_frame = WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@id='webPurchaseContainer']//iframe"))
             )
-            ctx.switch_to.frame(payment_frame)
-        # todo 需要更好的方法处理 Cookie lazy loading 的问题
         except TimeoutException:
-            try:
-                warning_layout = ctx.find_element(By.XPATH, "//div[@data-component='WarningLayout']")
-                if "依旧要购买吗" in warning_layout.text:
-                    ctx.switch_to.default_content()
-                    return
-            except NoSuchElementException:
-                pass
+            warning_layout = WebDriverWait(ctx, 10, ignored_exceptions=WebDriverException).until(
+                EC.visibility_of_element_located((By.XPATH, "//div[@data-component='WarningLayout']"))
+            )
+            if "依旧要购买吗" in warning_layout.text:
+                ctx.switch_to.default_content()
+                return
+        else:
+            ctx.switch_to.frame(payment_frame)
 
         # Click the [Accept Agreement] confirmation box.
-        for i in range(3):
-            # 订单激活后，可能已勾选协议
+        for _ in range(4):
             try:
-                WebDriverWait(ctx, 1, ignored_exceptions=ElementClickInterceptedException).until(
+                WebDriverWait(ctx, 10, ignored_exceptions=ElementClickInterceptedException).until(
                     EC.presence_of_element_located((By.XPATH, "//div[@class='payment-check-box']"))
                 ).click()
                 break
             except TimeoutException:  # noqa
                 try:
-                    WebDriverWait(ctx, 3, ignored_exceptions=ElementClickInterceptedException).until(
-                        EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'payment-check-box')]"))
-                    ).click()
-                    break
-                except TimeoutException:
-                    continue
-        else:
-            # 判断游戏锁区
-            self._assert_payment_blocked(ctx)
-
+                    ctx.find_element(By.XPATH, "//div[contains(@class,'payment-check-box')]").click()
+                except NoSuchElementException:
+                    warning_ = ctx.find_element(By.TAG_NAME, "h2").text
+                    raise PaymentException(warning_)
         # Click the [order] button.
-        try:
-            time.sleep(0.5)
-            WebDriverWait(ctx, 20, ignored_exceptions=ElementClickInterceptedException).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'payment-btn')]"))
-            ).click()
-        # 之前某一个断言操作有误，订单界面未能按照预期效果出现，在超时范围内重试一次。
-        except TimeoutException:
-            ctx.refresh()
-            ctx.switch_to.default_content()
-            return
+        time.sleep(0.5)
+        WebDriverWait(ctx, 60, ignored_exceptions=ElementClickInterceptedException).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'payment-btn')]"))
+        ).click()
 
         # 在运行时处理人机挑战是非常困难的事情。
         # 因为绝大多数的人机挑战都会试着识别驱动数据，若咱没使用专门处理人机挑战的驱动上下文，
@@ -536,10 +518,11 @@ class AwesomeFreeMan:
             try:
                 self._armor.anti_hcaptcha(ctx, door="free")
             except ChallengeReset:
-                ctx.refresh()
+                pass
 
         # Switch to default iframe.
         ctx.switch_to.default_content()
+        ctx.refresh()
 
     def _activate_payment(self, api: Chrome) -> Optional[bool]:
         """
@@ -623,7 +606,7 @@ class AwesomeFreeMan:
             [🚀] 断言游戏的在库状态
             _______________
             """
-            self._assert_surprise_warning_purchase(ctx)
+            # self._assert_surprise_warning_purchase(ctx)
             result = self._assert_purchase_status(ctx, page_link)
             if result != self.GAME_FETCH:
                 break

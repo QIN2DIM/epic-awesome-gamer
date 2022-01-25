@@ -94,7 +94,6 @@ class Scaffold:
         """
         import sys
         sys.exit()
-        # raise SurpriseExit("优雅离场")
 
     @staticmethod
     def deploy():

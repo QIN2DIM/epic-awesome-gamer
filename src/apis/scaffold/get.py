@@ -54,7 +54,7 @@ class SpawnBooster(CoroutineSpeedup):
             try:
                 bricklayer.get_free_game(page_link=url, ctx_cookies=ctx_cookies, refresh=False)
             except WebDriverException as e:
-                self.done.put_nowait(context)
+                # self.done.put_nowait(context)
                 if self.debug:
                     logger.exception(e)
                 logger.error(ToolBox.runtime_report(
