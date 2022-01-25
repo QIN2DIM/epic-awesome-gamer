@@ -3,6 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import os
 from typing import Optional
 
 from selenium.common.exceptions import WebDriverException
@@ -22,11 +23,11 @@ explorer = Explorer(silence=SILENCE)
 
 
 class SpawnBooster(CoroutineSpeedup):
-    def __init__(self, docker=None, power: int = 4, debug: Optional[bool] = None):
+    def __init__(self, docker=None, power: int = None, debug: Optional[bool] = None):
         super(SpawnBooster, self).__init__(docker=docker, power=power)
 
         self.debug = False if debug is None else debug
-
+        self.power = min(4, 4 if power is None else power)
         self.action_name = "SpawnBooster"
 
     def preload(self):
@@ -110,6 +111,6 @@ def join(trace: bool = False):
     - 如果在命令行操作系统上运行本指令，执行效率受限于硬件性能。
     """
     docker = [[ctx_cookies, url] for url in urls]
-    booster = SpawnBooster(docker=docker, power=3, debug=trace)
+    booster = SpawnBooster(docker=docker, power=os.cpu_count(), debug=trace)
     booster.preload()
     booster.go()

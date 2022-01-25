@@ -491,6 +491,7 @@ class AwesomeFreeMan:
                 if "依旧要购买吗" in warning_layout.text:
                     ctx.switch_to.default_content()
                     return
+                logger.warning(warning_layout)
             except NoSuchElementException:
                 pass
 
