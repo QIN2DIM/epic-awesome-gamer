@@ -44,6 +44,7 @@ from .exceptions import (
     SwitchContext,
     PaymentException,
     AuthException,
+    PaymentAutoSubmit
 )
 
 # 显示人机挑战的DEBUG日志
@@ -78,7 +79,10 @@ class ArmorUtils(ArmorCaptcha):
                 raise AssertTimeout("任务超时：判断是否陷入人机验证")
 
             try:
-                ctx.switch_to.frame(ctx.find_element(By.XPATH, f"//iframe[@id='talon_frame_login_prod']"))
+                # try:
+                #     ctx.switch_to.frame(ctx.find_element(By.XPATH, f"//iframe[@id='talon_frame_login_prod']"))
+                # except NoSuchElementException:
+                #     pass
                 ctx.switch_to.frame(ctx.find_element(By.XPATH, "//iframe[contains(@title,'content')]"))
                 ctx.find_element(By.XPATH, "//div[@class='prompt-text']")
                 return True
@@ -149,46 +153,51 @@ class ArmorUtils(ArmorCaptcha):
         :return:
         """
 
-        def _runtime_assert():
-            flag = ctx.current_url
-            if init:
-                try:
-                    time.sleep(1.5)
-                    WebDriverWait(ctx, 2, ignored_exceptions=WebDriverException).until(
-                        EC.element_to_be_clickable((By.XPATH, "//div[@class='task-image']"))
-                    )
-                except TimeoutException:
-                    pass
-                else:
-                    self.log("挑战继续")
-                    return False
-
+        def _continue_action():
             try:
-                challenge_reset = WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[@class='MuiAlert-message']"))
+                time.sleep(1.5)
+                WebDriverWait(ctx, 2, ignored_exceptions=WebDriverException).until(
+                    EC.element_to_be_clickable((By.XPATH, "//div[@class='task-image']"))
                 )
             except TimeoutException:
-                try:
-                    WebDriverWait(ctx, 8).until(EC.url_changes(flag))
-                except TimeoutException:
-                    self.log("断言超时，挑战继续")
-                    return False
-                else:
-                    # 如果没有遇到双重认证，说明挑战成功
-                    return True
+                return True
             else:
-                self.log("挑战失败，需要重置挑战")
-                challenge_reset.click()
-                raise ChallengeReset
+                self.log("挑战继续")
+                return False
 
-        result = _runtime_assert()
-        if result:
-            if "id/login/mfa" in ctx.current_url:
-                raise AuthException("遭遇意外的 2FA 双重认证，人机挑战已退出。")
-            self.log("挑战成功")
-        return result
+        flag = ctx.current_url
 
-    def anti_hcaptcha(self, ctx: Chrome, door: str = "login") -> Optional[bool]:
+        # 首轮测试后判断短时间内页内是否存在可点击的拼图元素
+        # hcaptcha 最多两轮验证，一般情况下，账号信息有误仅会执行一轮，然后返回登录窗格提示密码错误
+        # 其次是被识别为自动化控制，这种情况也是仅执行一轮，回到登录窗格提示“返回数据错误”
+        if init and not _continue_action():
+            return False
+
+        try:
+            challenge_reset = WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
+                EC.presence_of_element_located((By.XPATH, "//div[@class='MuiAlert-message']"))
+            )
+        except TimeoutException:
+            # 如果挑战通过，自动跳转至其他页面（也即离开当前网址）
+            try:
+                WebDriverWait(ctx, 8).until(EC.url_changes(flag))
+            # 如果挑战未通过，可能为“账号信息错误”“分数太低”“自动化特征被识别”
+            except TimeoutException:
+                self.log("断言超时，挑战继续")
+                return False
+            # 人机挑战通过，但可能还需处理 `2FA` 问题（超纲了）
+            else:
+                # 如果没有遇到双重认证，人机挑战成功
+                if "id/login/mfa" not in ctx.current_url:
+                    self.log("挑战成功")
+                    return True
+                raise AuthException("人机挑战已退出 error=遭遇意外的 2FA 双重认证")
+        else:
+            self.log("挑战失败，需要重置挑战")
+            challenge_reset.click()
+            raise ChallengeReset
+
+    def anti_hcaptcha(self, ctx: Chrome, door: str = "login") -> Optional[bool]:  # noqa
         """
         Handle hcaptcha challenge
 
@@ -203,7 +212,7 @@ class ArmorUtils(ArmorCaptcha):
         :param ctx:
         :return:
         """
-        iframe_mapping = {
+        iframe_mapping = {  # noqa
             "login": "talon_frame_login_prod",
             "free": "talon_frame_checkout_free_prod"
         }
@@ -211,9 +220,9 @@ class ArmorUtils(ArmorCaptcha):
         [👻] 进入人机挑战关卡
         _______________
         """
-        ctx.switch_to.frame(WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
-            EC.presence_of_element_located((By.XPATH, f"//iframe[@id='{iframe_mapping[door]}']"))
-        ))
+        # ctx.switch_to.frame(WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
+        #     EC.presence_of_element_located((By.XPATH, f"//iframe[@id='{iframe_mapping[door]}']"))
+        # ))
 
         ctx.switch_to.frame(WebDriverWait(ctx, 5, ignored_exceptions=ElementNotVisibleException).until(
             EC.presence_of_element_located((By.XPATH, "//iframe[contains(@title,'content')]"))
@@ -329,12 +338,25 @@ class AwesomeFreeMan:
             return self.GAME_OK
 
         if "获取" in assert_obj.text:
+            deadline = self._assert_the_game(ctx)
+
+            # 挑战者驱动不能并发，如果遇到多个周免游戏，需要顺序处理
+            if deadline and "chrome.webdriver" in str(ctx.__class__):
+                raise SwitchContext("♻ 任务中断，请使用挑战者上下文领取周免游戏。")
+
+            message = "🚀 发现新游戏" if not deadline else f"💰 发现周免游戏 {deadline}"
             logger.success(ToolBox.runtime_report(
                 motive="GET",
                 action_name=self.action_name,
-                message="🚀 发现新游戏",
+                message=message,
                 game=f"『{game_obj.text}』"
             ))
+
+            # 领取常驻免费游戏的操作是立即生效的，游戏库中立即可见，而领取周免游戏则存在一定的误判概率。
+            # 在非生产环境下，技术模型在完成周免游戏领取的操作后，会在连续时间内反复执行此函数进行游戏在库状态的判断。
+            # 但是这类游戏从严格意义上算是促销商品，Epic 后台需要一系列复杂的流水线处理流水/订单消息，
+            # 这是个较为耗时的过程，短则几秒，长则几分钟，因此可能会出现日志复刷的问题。
+
             return self.GAME_FETCH
 
         if "购买" in assert_obj.text:
@@ -382,17 +404,18 @@ class AwesomeFreeMan:
     @staticmethod
     def _assert_fall_in_captcha_runtime(ctx: Chrome) -> Optional[bool]:
         try:
+            # //iframe[@id='talon_frame_checkout_free_prod']
             WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
-                EC.presence_of_element_located((By.XPATH, "//iframe[@id='talon_frame_checkout_free_prod']"))
+                EC.presence_of_element_located((By.XPATH, "//iframe[contains(@title,'content')]"))
             )
             return True
         except TimeoutException:
             return False
 
     @staticmethod
-    def _assert_surprise_warning(ctx: Chrome) -> Optional[bool]:
+    def _assert_surprise_warning_purchase(ctx: Chrome) -> Optional[bool]:
         """
-        处理意外的遮挡消息。
+        处理意外的弹窗遮挡消息。
 
         这是一个没有意义的操作，但无可奈何，需要更多的测试。
         :param ctx:
@@ -411,47 +434,98 @@ class AwesomeFreeMan:
 
         return False
 
+    @staticmethod
+    def _assert_the_game(ctx: Chrome) -> Optional[str]:
+        try:
+            deadline = WebDriverWait(ctx, 2, ignored_exceptions=WebDriverException).until(
+                EC.presence_of_element_located((By.XPATH, "//span[@class='css-iqno47']//span"))
+            )
+            return deadline.text if deadline else ""
+        except WebDriverException:  # Timeout
+            return ""
+
+    @staticmethod
+    def _assert_payment_auto_submit(ctx: Chrome) -> NoReturn:
+        try:
+            warning_text = WebDriverWait(ctx, 7, ignored_exceptions=WebDriverException).until(
+                EC.presence_of_element_located((By.XPATH, "//div[@data-component='DownloadMessage']//span"))
+            ).text
+            if warning_text == "感谢您的购买":
+                raise PaymentAutoSubmit
+        except TimeoutException:
+            pass
+
+    @staticmethod
+    def _assert_payment_blocked(ctx: Chrome) -> NoReturn:
+        # 需要在 webPurchaseContainer 里执行
+        try:
+            warning_text = WebDriverWait(ctx, 2, ignored_exceptions=WebDriverException).until(
+                EC.presence_of_element_located((By.XPATH, "//h2[@class='payment-blocked__msg']"))
+            ).text
+            raise PaymentException(warning_text)
+        except TimeoutException:
+            pass
+
     def _handle_payment(self, ctx: Chrome) -> None:
         """
         处理游戏订单
 
+        逻辑过于复杂，需要重构。此处为了一套代码涵盖各种情况，做了很多妥协。
+        需要针对 周免游戏的订单处理 设计一套执行效率更高的业务模型。
         :param ctx:
         :return:
         """
-        # Switch to Payment iframe.
+
+        # 未弹出订单而直接入库
+        self._assert_payment_auto_submit(ctx)
+
+        # Switch to the [Purchase Container] iframe.
         try:
             payment_frame = WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@id='webPurchaseContainer']//iframe"))
             )
-        except TimeoutException:
-            warning_layout = WebDriverWait(ctx, 10, ignored_exceptions=WebDriverException).until(
-                EC.visibility_of_element_located((By.XPATH, "//div[@data-component='WarningLayout']"))
-            )
-            if "依旧要购买吗" in warning_layout.text:
-                ctx.switch_to.default_content()
-                return
-        else:
             ctx.switch_to.frame(payment_frame)
+        # todo 需要更好的方法处理 Cookie lazy loading 的问题
+        except TimeoutException:
+            try:
+                warning_layout = ctx.find_element(By.XPATH, "//div[@data-component='WarningLayout']")
+                if "依旧要购买吗" in warning_layout.text:
+                    ctx.switch_to.default_content()
+                    return
+            except NoSuchElementException:
+                pass
 
         # Click the [Accept Agreement] confirmation box.
-        for _ in range(4):
+        for i in range(3):
+            # 订单激活后，可能已勾选协议
             try:
-                WebDriverWait(ctx, 10, ignored_exceptions=ElementClickInterceptedException).until(
+                WebDriverWait(ctx, 1, ignored_exceptions=ElementClickInterceptedException).until(
                     EC.presence_of_element_located((By.XPATH, "//div[@class='payment-check-box']"))
                 ).click()
                 break
             except TimeoutException:  # noqa
                 try:
-                    ctx.find_element(By.XPATH, "//div[contains(@class,'payment-check-box')]").click()
-                except NoSuchElementException:
-                    warning_ = ctx.find_element(By.TAG_NAME, "h2").text
-                    raise PaymentException(warning_)
+                    WebDriverWait(ctx, 3, ignored_exceptions=ElementClickInterceptedException).until(
+                        EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'payment-check-box')]"))
+                    ).click()
+                    break
+                except TimeoutException:
+                    continue
+        else:
+            # 判断游戏锁区
+            self._assert_payment_blocked(ctx)
 
         # Click the [order] button.
-        time.sleep(0.5)
-        WebDriverWait(ctx, 60, ignored_exceptions=ElementClickInterceptedException).until(
-            EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'payment-btn')]"))
-        ).click()
+        try:
+            time.sleep(0.5)
+            WebDriverWait(ctx, 20, ignored_exceptions=ElementClickInterceptedException).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'payment-btn')]"))
+            ).click()
+        # 之前某一个断言操作有误，订单界面未能按照预期效果出现，在超时范围内重试一次。
+        except TimeoutException:
+            ctx.refresh()
+            ctx.switch_to.default_content()
+            return
 
         # 在运行时处理人机挑战是非常困难的事情。
         # 因为绝大多数的人机挑战都会试着识别驱动数据，若咱没使用专门处理人机挑战的驱动上下文，
@@ -462,7 +536,7 @@ class AwesomeFreeMan:
             try:
                 self._armor.anti_hcaptcha(ctx, door="free")
             except ChallengeReset:
-                pass
+                ctx.refresh()
 
         # Switch to default iframe.
         ctx.switch_to.default_content()
@@ -480,11 +554,13 @@ class AwesomeFreeMan:
                     EC.element_to_be_clickable((By.XPATH, "//button[@data-testid='purchase-cta-button']"))
                 ).click()
                 return True
+            # 加载超时，继续测试
             except TimeoutException:
                 continue
+            # 出现弹窗遮挡
             except ElementClickInterceptedException:
                 try:
-                    if self._assert_surprise_warning(api) is True:
+                    if self._assert_surprise_warning_purchase(api) is True:
                         continue
                 except UnableToGet:
                     return False
@@ -547,6 +623,7 @@ class AwesomeFreeMan:
             [🚀] 断言游戏的在库状态
             _______________
             """
+            self._assert_surprise_warning_purchase(ctx)
             result = self._assert_purchase_status(ctx, page_link)
             if result != self.GAME_FETCH:
                 break

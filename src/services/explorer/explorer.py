@@ -61,7 +61,7 @@ class GameLibManager(AwesomeFreeGirl):
                 return [i[-1] for i in data[1:]]
             return data[1:]
 
-    def is_my_game(self, ctx_cookies: Union[List[dict], str], page_link: str) -> Optional[bool]:
+    def is_my_game(self, ctx_cookies: Union[List[dict], str], page_link: str) -> Optional[dict]:
         """
 
         :param ctx_cookies:
@@ -79,37 +79,51 @@ class GameLibManager(AwesomeFreeGirl):
         scraper = cloudscraper.create_scraper()
         response = scraper.get(page_link, headers=headers)
         tree = etree.HTML(response.content)
-        assert_message = tree.xpath("//span[@data-component='PurchaseCTA']//span[@data-component='Message']")
+        assert_obj = tree.xpath("//span[@data-component='PurchaseCTA']//span[@data-component='Message']")
 
         # 异常状态
-        if not assert_message:
+        if not assert_obj:
             logger.warning(ToolBox.runtime_report(
                 motive="SKIP",
                 action_name=self.action_name,
                 message=BeautifulSoup(response.text, "html.parser").text,
                 url=page_link
             ))
-            return None
-        # 跳过任务
-        if assert_message[0].text in ["已在游戏库中", "立即购买"]:
-            return True
-        # 惰性加载
-        if assert_message[0].text in ["正在载入", ]:
-            return False
+            return {"assert": "AssertObjectNotFound", "status": None}
+
+        assert_message = assert_obj[0].text
+        # 跳过 `已在游戏库中` 的日志信息
+        if assert_message in ["已在游戏库中", ]:
+            return {"assert": assert_message, "status": True}
+        if assert_message in ["立即购买", ]:
+            logger.warning(ToolBox.runtime_report(
+                motive="SKIP",
+                action_name=self.action_name,
+                message="🚧 这不是免费游戏",
+                url=page_link,
+            ))
+            return {"assert": assert_message, "status": True}
+        # 惰性加载，前置节点不处理动态加载元素
+        if assert_message in ["正在载入", ]:
+            return {"assert": assert_message, "status": False}
         # 未领取的免费游戏
-        if assert_message[0].text in ["获取", ]:
+        if assert_message in ["获取", ]:
             warning_obj = tree.xpath("//h1[@class='css-1gty6cv']//span")
             # 出现遮挡警告
             if warning_obj:
+                warning_message = warning_obj[0].text
+                # 成人内容可获取
+                if "成人内容" in warning_message:
+                    return {"assert": assert_message, "warning": warning_message, "status": False}
                 logger.warning(ToolBox.runtime_report(
                     motive="SKIP",
                     action_name=self.action_name,
-                    message=warning_obj[0].text,
+                    message=warning_message,
                     url=page_link
                 ))
-                return None
+                return {"assert": assert_message, "warning": warning_message, "status": None}
             # 继续任务
-            return False
+            return {"assert": assert_message, "status": False}
 
 
 class Explorer(AwesomeFreeGirl):

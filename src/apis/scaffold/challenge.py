@@ -12,12 +12,6 @@ bricklayer = Bricklayer()
 
 def run():
     """
-    更新身份令牌
-
-    :return:
-    """
-
-    """
     [🌀] 激活人机挑战
     _______________
     """
@@ -26,7 +20,7 @@ def run():
         action_name="ScaffoldChallenge",
         message="正在更新身份令牌..."
     ))
-    if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True, silence=False):
+    if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
         return
 
     """
@@ -44,6 +38,6 @@ def run():
     logger.success(ToolBox.runtime_report(
         motive="GET",
         action_name="ChallengeRunner",
-        message="用户饼干已到货。",
+        message="玩家饼干已到货。",
         path=PATH_USR_COOKIES
     ))

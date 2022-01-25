@@ -28,8 +28,6 @@ DIR_EXPLORER = join(PROJECT_DATABASE, "explorer")
 DIR_TEMP_CACHE = join(PROJECT_DATABASE, "temp_cache")
 # 挑战缓存
 DIR_CHALLENGE = join(DIR_TEMP_CACHE, "_challenge")
-# 驱动运行缓存
-DIR_USER_DATA = join(DIR_TEMP_CACHE, "_driver")
 # 服务日志目录
 DIR_LOG = join(PROJECT_DATABASE, "logs")
 # ---------------------------------------------------
@@ -50,7 +48,7 @@ for _pending in [
     DIR_MODEL,
     DIR_EXPLORER,
     DIR_COOKIES,
-    DIR_TEMP_CACHE, DIR_CHALLENGE, DIR_USER_DATA,
+    DIR_TEMP_CACHE, DIR_CHALLENGE,
     DIR_LOG,
 ]:
     if not exists(_pending):
@@ -68,7 +66,7 @@ __all__ = [
     "logger", "DIR_CHALLENGE",
     "DIR_COOKIES",
     "DIR_TEMP_CACHE", "DIR_EXPLORER", "PATH_USR_COOKIES",
-    "DIR_USER_DATA", "DIR_MODEL",
+    "DIR_MODEL",
 
     # ------------------------------
     # CONFIG

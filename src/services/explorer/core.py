@@ -48,17 +48,18 @@ class AwesomeFreeGirl:
         self.path_free_games = os.path.join(self.runtime_workspace, self.path_free_games)
 
     def _discovery_free_games(self, ctx: Union[ContextManager, Chrome], ctx_cookies: List[dict]) -> None:
-
         # 重载玩家令牌
         if ctx_cookies:
-            logger.debug(ToolBox.runtime_report(
-                motive="DISCOVERY",
-                action_name=self.action_name,
-                message="正在为玩家搜集免费游戏..."
-            ))
             ctx.get(self.URL_STORE_FREE)
             for cookie_dict in ctx_cookies:
                 ctx.add_cookie(cookie_dict)
+
+        _mode = "（深度搜索）" if ctx_cookies else "（广度搜索）"
+        logger.debug(ToolBox.runtime_report(
+            motive="DISCOVERY",
+            action_name=self.action_name,
+            message=f"📡 正在为玩家搜集免费游戏{_mode}..."
+        ))
 
         # 获取免费游戏链接
         _start = time.time()
@@ -80,6 +81,7 @@ class AwesomeFreeGirl:
                 break
             if time.time() - _start > 80:
                 raise DiscoveryTimeoutException("获取免费游戏链接超时")
+
             # 断言最后一页
             WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
                 EC.element_to_be_clickable((By.XPATH, "//a[@data-component='PaginationItem']"))
@@ -111,5 +113,6 @@ class AwesomeFreeGirl:
         logger.success(ToolBox.runtime_report(
             motive="DISCOVERY",
             action_name=self.action_name,
-            message="免费游戏搜集完毕"
+            message="免费游戏搜集完毕",
+            qsize=len(self.game_objs)
         ))

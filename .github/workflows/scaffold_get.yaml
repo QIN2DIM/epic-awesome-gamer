@@ -1,3 +1,5 @@
+# 此工作流仅用于项目演示，不建议直接封装成 Actions 定时任务
+# Crontab表达式转义 https://crontab.guru/
 name: scaffold_get
 
 on:

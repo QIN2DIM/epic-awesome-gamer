@@ -39,6 +39,11 @@ class PaymentException(AwesomeException):
     pass
 
 
+class PaymentAutoSubmit(PaymentException):
+    """点击获取游戏后，订单窗格没有弹出，直接感谢我们购买游戏"""
+    pass
+
+
 class CookieExpired(AwesomeException):
     """身份令牌或饼干过期时抛出"""
     pass
