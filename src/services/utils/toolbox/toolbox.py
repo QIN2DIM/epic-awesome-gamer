@@ -4,6 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os.path
+import random
 import shutil
 import sys
 from datetime import datetime
@@ -100,6 +101,17 @@ class ToolBox:
             return [{"name": i.split("=")[0], "value": i.split("=")[1]} for i in api_cookies.split("; ")]
         return "; ".join([f"{i['name']}={i['value']}" for i in api_cookies])
 
+    @staticmethod
+    def fake_user_agent() -> str:
+        """Tip:指定UA可能会留下特征"""
+        user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+            " Chrome/97.0.4692.71 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62"
+        ]
+        return random.choice(user_agents)
+
 
 class InitLog:
 
@@ -159,7 +171,7 @@ def get_ctx(silence: Optional[bool] = None):
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-software-rasterizer")
-
+    options.add_argument('--user-agent="{}"'.format(ToolBox.fake_user_agent()))
     # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
     service = Service(ChromeDriverManager(log_level=0).install())
     return Chrome(options=options, service=service)  # noqa

@@ -305,7 +305,6 @@ class AwesomeFreeMan:
         :return:
         """
         # 捕获按钮对象，根据按钮上浮动的提示信息断言游戏在库状态
-        time.sleep(2)
         assert_obj = WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException).until(
             EC.element_to_be_clickable(
                 (By.XPATH, "//span[@data-component='PurchaseCTA']//span[@data-component='Message']"))
@@ -415,23 +414,26 @@ class AwesomeFreeMan:
     @staticmethod
     def _assert_surprise_warning_purchase(ctx: Chrome) -> Optional[bool]:
         """
-        处理意外的弹窗遮挡消息。
+        处理弹窗遮挡消息。
 
         这是一个没有意义的操作，但无可奈何，需要更多的测试。
         :param ctx:
         :return:
         """
-        surprise_warning = ctx.find_element(By.TAG_NAME, "h1").text
+        time.sleep(2)
 
-        if "成人内容" in surprise_warning:
-            WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[@class='css-n9sjaa']"))
-            ).click()
+        try:
+            surprise_warning = ctx.find_element(By.TAG_NAME, "h1").text
+        except NoSuchElementException:
             return True
 
+        if "成人内容" in surprise_warning:
+            WebDriverWait(ctx, 2, ignored_exceptions=ElementClickInterceptedException).until(
+                EC.element_to_be_clickable((By.XPATH, "//span[text()='继续']/parent::button"))
+            ).click()
+            return True
         if "内容品当前在您所在平台或地区不可用。" in surprise_warning:
             raise UnableToGet(surprise_warning)
-
         return False
 
     @staticmethod
@@ -447,7 +449,7 @@ class AwesomeFreeMan:
     @staticmethod
     def _assert_payment_auto_submit(ctx: Chrome) -> NoReturn:
         try:
-            warning_text = WebDriverWait(ctx, 7, ignored_exceptions=WebDriverException).until(
+            warning_text = WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@data-component='DownloadMessage']//span"))
             ).text
             if warning_text == "感谢您的购买":
@@ -459,7 +461,7 @@ class AwesomeFreeMan:
     def _assert_payment_blocked(ctx: Chrome) -> NoReturn:
         # 需要在 webPurchaseContainer 里执行
         try:
-            warning_text = WebDriverWait(ctx, 2, ignored_exceptions=WebDriverException).until(
+            warning_text = WebDriverWait(ctx, 3, ignored_exceptions=WebDriverException).until(
                 EC.presence_of_element_located((By.XPATH, "//h2[@class='payment-blocked__msg']"))
             ).text
             raise PaymentException(warning_text)
@@ -480,7 +482,7 @@ class AwesomeFreeMan:
 
         # Switch to the [Purchase Container] iframe.
         try:
-            payment_frame = WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
+            payment_frame = WebDriverWait(ctx, 5, ignored_exceptions=ElementNotVisibleException).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@id='webPurchaseContainer']//iframe"))
             )
             ctx.switch_to.frame(payment_frame)
@@ -488,36 +490,49 @@ class AwesomeFreeMan:
         except TimeoutException:
             try:
                 warning_layout = ctx.find_element(By.XPATH, "//div[@data-component='WarningLayout']")
-                if "依旧要购买吗" in warning_layout.text:
+                warning_text = warning_layout.text
+                if "依旧要购买吗" in warning_text:
                     ctx.switch_to.default_content()
                     return
-                logger.warning(warning_layout.text)
+                if "设备不受支持" in warning_text:
+                    ctx.find_element(By.XPATH, "//button[@class='css-38hacf']").click()
+                else:
+                    logger.critical(ToolBox.runtime_report(
+                        motive="DANCE",
+                        action_name=self.action_name,
+                        message="Activating flexible plan...",
+                        warning_text=warning_text.split("\n")
+                    ))
+                    ctx.find_element(By.XPATH, "//button[text()='继续']").click()
+                    logger.success(ToolBox.runtime_report(
+                        motive="DANCE",
+                        action_name=self.action_name,
+                        message="Recover the flexible plan",
+                        warning_text=warning_text.split("\n")
+                    ))
             except NoSuchElementException:
                 pass
 
+        # 判断游戏锁区
+        self._assert_payment_blocked(ctx)
+
         # Click the [Accept Agreement] confirmation box.
-        for i in range(2):
-            # 订单激活后，可能已勾选协议
+        try:
+            WebDriverWait(ctx, 10, ignored_exceptions=ElementClickInterceptedException).until(
+                EC.presence_of_element_located((By.XPATH, "//div[@class='payment-check-box']"))
+            ).click()
+        # After the order is activated, the agreement may be checked
+        except TimeoutException:
             try:
-                WebDriverWait(ctx, 10, ignored_exceptions=ElementClickInterceptedException).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[@class='payment-check-box']"))
+                WebDriverWait(ctx, 5, ignored_exceptions=ElementClickInterceptedException).until(
+                    EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'payment-check-box')]"))
                 ).click()
-                break
-            except TimeoutException:  # noqa
-                try:
-                    WebDriverWait(ctx, 5, ignored_exceptions=ElementClickInterceptedException).until(
-                        EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'payment-check-box')]"))
-                    ).click()
-                    break
-                except TimeoutException:
-                    continue
-        else:
-            # 判断游戏锁区
-            self._assert_payment_blocked(ctx)
+            except TimeoutException:
+                pass
 
         # Click the [order] button.
         try:
-            time.sleep(1.5)
+            time.sleep(0.5)
             WebDriverWait(ctx, 20, ignored_exceptions=ElementClickInterceptedException).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'payment-btn')]"))
             ).click()
@@ -593,6 +608,13 @@ class AwesomeFreeMan:
             EC.element_to_be_clickable((By.ID, "sign-in"))
         ).click()
 
+    @staticmethod
+    def _reset_page(ctx: Chrome, page_link: str, api_cookies):
+        ctx.get(page_link)
+        for cookie_dict in api_cookies:
+            ctx.add_cookie(cookie_dict)
+        ctx.get(page_link)
+
     def _get_free_game(self, page_link: str, api_cookies: List[dict], ctx: Chrome) -> None:
         """
         获取免费游戏
@@ -607,17 +629,15 @@ class AwesomeFreeMan:
             raise CookieExpired(self.COOKIE_EXPIRED)
 
         _loop_start = time.time()
+        _init = True
         while True:
-            self._assert_timeout(_loop_start)
             """
             [🚀] 重载COOKIE
             _______________
             - InvalidCookieDomainException：需要两次 GET 重载 cookie relative domain
             """
-            ctx.get(page_link)
-            for cookie_dict in api_cookies:
-                ctx.add_cookie(cookie_dict)
-            ctx.get(page_link)
+            _api_cookies = api_cookies if _init is True else ctx.get_cookies()
+            self._reset_page(ctx=ctx, page_link=page_link, api_cookies=api_cookies)
 
             """
             [🚀] 断言游戏的在库状态
@@ -645,3 +665,10 @@ class AwesomeFreeMan:
             _______________
             """
             self._handle_payment(ctx)
+
+            """
+            [🚀] 更新上下文状态
+            _______________
+            """
+            _init = False
+            self._assert_timeout(_loop_start)
