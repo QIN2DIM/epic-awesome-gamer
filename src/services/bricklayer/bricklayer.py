@@ -164,9 +164,10 @@ class CookieManager(AwesomeFreeMan):
             self.save_ctx_cookies(ctx_cookies=ctx.get_cookies())
             return True
         finally:
-            if ctx:
-                ctx.close()
+            try:
                 ctx.quit()
+            except Exception:  # noqa
+                pass
         # {{< Done >}}
 
 
