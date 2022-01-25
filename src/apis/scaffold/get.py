@@ -22,19 +22,6 @@ bricklayer = Bricklayer(silence=SILENCE)
 explorer = Explorer(silence=SILENCE)
 
 
-class _SpawnFilter(CoroutineSpeedup):
-    def __init__(self, docker, ctx_cookies):
-        super(_SpawnFilter, self).__init__(docker=docker, power=16)
-
-        self.ctx_cookies = ctx_cookies
-
-    def control_driver(self, url, *args, **kwargs):
-        response = explorer.game_manager.is_my_game(ctx_cookies=self.ctx_cookies, page_link=url)
-
-        if response.get("status") is False:
-            self.done.put_nowait(url)
-
-
 class SpawnBooster(CoroutineSpeedup):
     def __init__(self, docker, ctx_cookies, power: Optional[int] = None, debug: Optional[bool] = None):
         super(SpawnBooster, self).__init__(docker=docker, power=power)
@@ -45,37 +32,33 @@ class SpawnBooster(CoroutineSpeedup):
 
         self.ctx_cookies = ctx_cookies
 
-    def preload(self):
-        _mirror = []
-        if self.docker:
-            _filter = _SpawnFilter(ctx_cookies=self.ctx_cookies, docker=self.docker)
-            _filter.go()
-            _mirror = _filter.offload()
-        self.docker = _mirror
-
     def control_driver(self, url, *args, **kwargs):
-        logger.debug(ToolBox.runtime_report(
-            motive="BUILD",
-            action_name=self.action_name,
-            message="🛒 正在为玩家领取免费游戏",
-            progress=f"[{self.progress()}]",
-            url=url
-        ))
+        # 运行前置检查
+        response = explorer.game_manager.is_my_game(ctx_cookies=self.ctx_cookies, page_link=url)
 
         # 启动 Bricklayer，获取免费游戏
-        try:
-            bricklayer.get_free_game(page_link=url, ctx_cookies=self.ctx_cookies, refresh=False)
-        except WebDriverException as e:
-            # self.done.put_nowait(url)
-            if self.debug:
-                logger.exception(e)
-            logger.error(ToolBox.runtime_report(
-                motive="QUIT",
-                action_name="SpawnBooster",
-                message="未知错误",
+        if response.get("status") is False:
+            logger.debug(ToolBox.runtime_report(
+                motive="BUILD",
+                action_name=self.action_name,
+                message="🛒 正在为玩家领取免费游戏",
                 progress=f"[{self.progress()}]",
                 url=url
             ))
+
+            try:
+                bricklayer.get_free_game(page_link=url, ctx_cookies=self.ctx_cookies, refresh=False)
+            except WebDriverException as e:
+                # self.done.put_nowait(url)
+                if self.debug:
+                    logger.exception(e)
+                logger.error(ToolBox.runtime_report(
+                    motive="QUIT",
+                    action_name="SpawnBooster",
+                    message="未知错误",
+                    progress=f"[{self.progress()}]",
+                    url=url
+                ))
 
     def killer(self):
         logger.success(ToolBox.runtime_report(
@@ -122,5 +105,4 @@ def join(trace: bool = False):
     - 如果在命令行操作系统上运行本指令，执行效率受限于硬件性能。
     """
     booster = SpawnBooster(ctx_cookies=ctx_cookies, docker=urls, power=os.cpu_count(), debug=trace)
-    booster.preload()
     booster.go()

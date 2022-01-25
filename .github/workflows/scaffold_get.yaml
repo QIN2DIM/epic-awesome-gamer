@@ -27,12 +27,12 @@ jobs:
           echo -e "EMAIL: ${{secrets.EPIC_EMAIL}}\nPASSWORD: ${{secrets.EPIC_PASSWORD}}" > src/config.yaml
           cd src && python main.py install
 
-#      - name: Scaffold Challenge
-#        run: |
-#          export LANG=zh_CN.UTF8
-#          cd src && python main.py challenge
+      - name: Scaffold Challenge
+        run: |
+          export LANG=zh_CN.UTF8
+          cd src && python main.py challenge
 
-      # 五分钟左右搬空免费商店
+      # 五分钟搬空免费商店
       - name: Scaffold Get
         run: |
           export LANG=zh_CN.UTF8

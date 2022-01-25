@@ -186,5 +186,5 @@ def get_challenge_ctx(silence: Optional[bool] = None):
     if "linux" in sys.platform:
         silence = True
 
-    logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "激活挑战者上下文"))
+    logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
     return Chrome(options=_set_ctx(), headless=silence)
