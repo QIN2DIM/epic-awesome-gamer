@@ -3,6 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import os
 from typing import Optional
 
 from selenium.common.exceptions import WebDriverException
@@ -22,25 +23,18 @@ explorer = Explorer(silence=SILENCE)
 
 
 class SpawnBooster(CoroutineSpeedup):
-    def __init__(self, docker=None, power: int = 4, debug: Optional[bool] = None):
+    def __init__(self, docker, ctx_cookies, power: Optional[int] = None, debug: Optional[bool] = None):
         super(SpawnBooster, self).__init__(docker=docker, power=power)
 
         self.debug = False if debug is None else debug
-
+        self.power = min(3, 3 if power is None else power)
         self.action_name = "SpawnBooster"
 
-    def preload(self):
-        _mirror = []
-        if self.docker:
-            for ctx_cookies, url in self.docker:
-                _mirror.append({"ctx_cookies": ctx_cookies, "url": url})
-        self.docker = _mirror
+        self.ctx_cookies = ctx_cookies
 
-    def control_driver(self, context, *args, **kwargs):
-        ctx_cookies, url = context.get("ctx_cookies"), context.get("url")
-
-        # 前置状态检测
-        response = explorer.game_manager.is_my_game(ctx_cookies=ctx_cookies, page_link=url)
+    def control_driver(self, url, *args, **kwargs):
+        # 运行前置检查
+        response = explorer.game_manager.is_my_game(ctx_cookies=self.ctx_cookies, page_link=url)
 
         # 启动 Bricklayer，获取免费游戏
         if response.get("status") is False:
@@ -51,10 +45,11 @@ class SpawnBooster(CoroutineSpeedup):
                 progress=f"[{self.progress()}]",
                 url=url
             ))
+
             try:
-                bricklayer.get_free_game(page_link=url, ctx_cookies=ctx_cookies, refresh=False)
+                bricklayer.get_free_game(page_link=url, ctx_cookies=self.ctx_cookies, refresh=False)
             except WebDriverException as e:
-                self.done.put_nowait(context)
+                # self.done.put_nowait(url)
                 if self.debug:
                     logger.exception(e)
                 logger.error(ToolBox.runtime_report(
@@ -109,7 +104,5 @@ def join(trace: bool = False):
     - 启动一轮协程任务，执行效率受限于本地网络带宽，若首轮报错频发请手动调低 `power` 参数。
     - 如果在命令行操作系统上运行本指令，执行效率受限于硬件性能。
     """
-    docker = [[ctx_cookies, url] for url in urls]
-    booster = SpawnBooster(docker=docker, power=3, debug=trace)
-    booster.preload()
+    booster = SpawnBooster(ctx_cookies=ctx_cookies, docker=urls, power=os.cpu_count(), debug=trace)
     booster.go()

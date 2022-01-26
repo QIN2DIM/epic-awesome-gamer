@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="快速上手 # 本文以 Workflows（查看源码） 为例引导玩家基于本机环境熟悉并快速实现脚手架 Get 指令，成为 Epic免费人。 GitHub Actions 引言 # 在 GitHub Actions 上运行">
+<meta name="description" content="快速上手 # 本文以 Workflows（查看源码） 为例引导玩家基于本机环境熟悉并快速实现脚手架 Get 指令，成为 Epic免费人。 GitHub Actions 📌 本项目仍处于测试">
 <meta name="theme-color" content="#FFFFFF">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="快速上手" />
 <meta property="og:description" content="" />
@@ -15,7 +15,7 @@
 <link rel="icon" href="/epic-awesome-gamer/favicon.png" type="image/x-icon">
 <link rel="stylesheet" href="/epic-awesome-gamer/book.min.31cccedbc2b6812eb37d0d37cdf4cb30cb89bd41421d3d51da624e11baccfe92.css" integrity="sha256-MczO28K2gS6zfQ03zfTLMMuJvUFCHT1R2mJOEbrM/pI=" crossorigin="anonymous">
   <script defer src="/epic-awesome-gamer/flexsearch.min.js"></script>
-  <script defer src="/epic-awesome-gamer/zh.search.min.a63ca1af0ed4ca02a8893b847a8e5fac23b666c968c57f0406a9bfae5bbb4301.js" integrity="sha256-pjyhrw7UygKoiTuEeo5frCO2ZsloxX8EBqm/rlu7QwE=" crossorigin="anonymous"></script>
+  <script defer src="/epic-awesome-gamer/zh.search.min.37bd0acc34a0592786870ee114abc900e147d33f33ad53fa82ad3f1b97eff5da.js" integrity="sha256-N70KzDSgWSeGhw7hFKvJAOFH0z8zrVP6gq0/G5fv9do=" crossorigin="anonymous"></script>
 
   <script defer src="/epic-awesome-gamer/sw.min.fce957f404884887d3e2471bff9b46e9879d096ba64fd4ac8f550d0dd48d105a.js" integrity="sha256-/OlX9ASISIfT4kcb/5tG6YedCWumT9Ssj1UNDdSNEFo=" crossorigin="anonymous"></script>
 <link rel="alternate" type="application/rss+xml" href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/user/quick-start/index.xml" title="Epic 免费人" />
@@ -508,11 +508,14 @@ https://github.com/alex-shpak/hugo-book
 
 <div class="book-tabs"><input type="radio" class="toggle" name="tabs-quick-start" id="tabs-quick-start-0" checked="checked" />
   <label for="tabs-quick-start-0">GitHub Actions</label>
-  <div class="book-tabs-content markdown-inner"><h3 id="引言">
+  <div class="book-tabs-content markdown-inner"><blockquote class="book-hint info">
+  📌 本项目仍处于测试阶段，请不要直接添加 schedule trigger 作为定时任务运行！
+</blockquote>
+<h3 id="引言">
   引言
   <a class="anchor" href="#%e5%bc%95%e8%a8%80">#</a>
 </h3>
-<p>在 <code>GitHub Actions</code> 上运行 <code>Get</code> 指令是作者认为的本项目最佳实践方案，请在 <code>fork</code> 项目后依次实现下文所述配置。</p>
+<p>作者认为，在 <code>GitHub Actions</code> 上运行 <code>Get</code> 指令是本项目的最佳实践方案，请在 <code>fork</code> 项目后依次实现下文所述配置。</p>
 <p>当然，如果你本身就对工作流十分了解，以下手工配置的总耗时不会超过30秒（想不起账号密码的话另说233&hellip;）。</p>
 <h3 id="配置环境密钥">
   配置环境密钥

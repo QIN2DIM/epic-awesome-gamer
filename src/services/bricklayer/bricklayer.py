@@ -162,7 +162,7 @@ class CookieManager(AwesomeFreeMan):
         else:
             # Store contextual authentication information.
             self.save_ctx_cookies(ctx_cookies=ctx.get_cookies())
-            return True
+            return self.is_available_cookie(ctx_cookies=ctx.get_cookies())
         finally:
             if ctx:
                 ctx.close()

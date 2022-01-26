@@ -3,7 +3,7 @@
     <p>🚀 优雅地领取 Epic 免费游戏</p>
     <img src="https://img.shields.io/static/v1?message=reference&color=blue&style=for-the-badge&logo=micropython&label=python">
     <img src="https://img.shields.io/github/license/QIN2DIM/epic-awesome-gamer?style=for-the-badge">
-	<a href="https://github.com/QIN2DIM/epic-awesome-gamer/releases"><img src="https://img.shields.io/github/downloads/QIN2DIM/epic-awesome-gamer/total?style=for-the-badge"></a>
+	<a href=""><img src="https://img.shields.io/github/workflow/status/QIN2DIM/epic-awesome-gamer/scaffold_get?style=for-the-badge"></a>
 	<br>
     <a href="https://github.com/QIN2DIM/epic-awesome-gamer/"><img src="https://img.shields.io/github/stars/QIN2DIM/epic-awesome-gamer?style=social"></a>
 	<a href = "https://t.me/joinchat/HlB9SQJubb5VmNU5"><img src="https://img.shields.io/static/v1?style=social&logo=telegram&label=chat&message=studio" ></a>
@@ -11,7 +11,7 @@
 	<br>
 </div>
 
-![scaffold-get-demo-output-small](docs/scaffold-get-demo-output-small.gif)
+![scaffold-get-demo-output-small](https://github.com/QIN2DIM/img_pool/blob/main/img/scaffold-get-demo-output-small.gif)
 
 ## 项目简介 👋
 
