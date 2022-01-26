@@ -347,7 +347,8 @@ class AwesomeFreeMan:
                 pass
 
             # 必须使用挑战者驱动领取周免游戏，处理潜在的人机验证
-            self._assert_wrong_driver(ctx, "♻ 使用挑战者上下文领取周免游戏。")
+            if deadline:
+                self._assert_wrong_driver(ctx, "♻ 使用挑战者上下文领取周免游戏。")
 
             message = "🚀 发现免费游戏" if not deadline else f"💰 发现周免游戏 {deadline}"
             logger.success(ToolBox.runtime_report(
