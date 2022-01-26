@@ -3,6 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+
 from gevent import monkey
 
 monkey.patch_all()
@@ -47,7 +48,7 @@ class Scaffold:
         install.run(cdn=cdn)
 
     @staticmethod
-    def get(debug: Optional[bool] = None):
+    def get(url: Optional[str] = None, debug: Optional[bool] = None):
         """
         获取 Epic Store 所有未在库的免费游戏。一键操作，将免费商城搬空，科技改变生活！
 
@@ -62,10 +63,14 @@ class Scaffold:
         - 若运行出现意料之外的报错，请运行 debug 模式，留意 Exception 信息，并将完整的栈追踪信息提交至 `issues` ，不胜感激！
         -  https://github.com/QIN2DIM/epic-awesome-gamer
 
+        :param url:
         :param debug: 显示栈追踪日志信息
         :return:
         """
-        get.join(trace=debug)
+        if url:
+            get.special(special_link=url)
+        else:
+            get.join(trace=debug)
 
     @staticmethod
     def challenge():
@@ -92,8 +97,6 @@ class Scaffold:
         脑洞大开的作者想挑战一下 Python 自带的垃圾回收机制，
         决定以一种极其垂直的方式结束系统任务。
         """
-        # import sys
-        # sys.exit()
 
     @staticmethod
     def deploy():
