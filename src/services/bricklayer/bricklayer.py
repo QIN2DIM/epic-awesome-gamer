@@ -190,6 +190,7 @@ class Bricklayer(AwesomeFreeMan):
             ctx_cookies: List[dict] = None,
             refresh: bool = True,
             ctx: Chrome = None,
+            cluster: Optional[bool] = None
     ) -> Optional[bool]:
         """
         获取免费游戏
@@ -263,5 +264,7 @@ class Bricklayer(AwesomeFreeMan):
             ))
             return False
         finally:
-            if ctx:
+            try:
                 ctx.quit()
+            except Exception:  # noqa
+                pass
