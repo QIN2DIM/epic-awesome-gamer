@@ -104,5 +104,5 @@ def join(trace: bool = False):
     - 启动一轮协程任务，执行效率受限于本地网络带宽，若首轮报错频发请手动调低 `power` 参数。
     - 如果在命令行操作系统上运行本指令，执行效率受限于硬件性能。
     """
-    booster = SpawnBooster(ctx_cookies=ctx_cookies, docker=urls, power=os.cpu_count(), debug=trace)
+    booster = SpawnBooster(ctx_cookies=ctx_cookies, docker=urls, power=4, debug=trace)
     booster.go()
