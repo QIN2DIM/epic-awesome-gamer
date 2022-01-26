@@ -3,7 +3,6 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import os
 from typing import Optional
 
 from selenium.common.exceptions import WebDriverException
@@ -27,7 +26,7 @@ class SpawnBooster(CoroutineSpeedup):
         super(SpawnBooster, self).__init__(docker=docker, power=power)
 
         self.debug = False if debug is None else debug
-        self.power = min(3, 3 if power is None else power)
+        self.power = min(4, 4 if power is None else power)
         self.action_name = "SpawnBooster"
 
         self.ctx_cookies = ctx_cookies
@@ -78,7 +77,7 @@ def join(trace: bool = False):
     logger.info(ToolBox.runtime_report(
         motive="STARTUP",
         action_name="ScaffoldGet",
-        message="正在为玩家领取免费游戏"
+        message="🔨 正在为玩家领取免费游戏"
     ))
 
     """
@@ -106,3 +105,29 @@ def join(trace: bool = False):
     """
     booster = SpawnBooster(ctx_cookies=ctx_cookies, docker=urls, power=4, debug=trace)
     booster.go()
+
+
+def special(special_link: str):
+    if not special_link.startswith("https://www.epicgames.com/store/zh-CN"):
+        logger.critical(ToolBox.runtime_report(
+            motive="STARTUP",
+            action_name="ScaffoldGet",
+            message="链接不合法"
+        ))
+        return
+    logger.info(ToolBox.runtime_report(
+        motive="STARTUP",
+        action_name="ScaffoldGet",
+        message="🎯 正在为玩家领取指定游戏"
+    ))
+
+    if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
+        return
+
+    ctx_cookies = bricklayer.cookie_manager.load_ctx_cookies()
+
+    bricklayer.get_free_game(
+        page_link=special_link,
+        ctx_cookies=ctx_cookies,
+        challenge=True
+    )
