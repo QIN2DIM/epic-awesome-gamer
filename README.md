@@ -11,7 +11,7 @@
 	<br>
 </div>
 
-![scaffold-get-demo-output-small](docs/scaffold-get-demo-output-small.gif)
+![scaffold-get-demo-output-small](https://github.com/QIN2DIM/img_pool/blob/main/img/scaffold-get-demo-output-small.gif)
 
 ## 项目简介 👋
 
