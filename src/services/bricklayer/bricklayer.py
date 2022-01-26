@@ -16,6 +16,7 @@ from services.utils import (
     ToolBox,
     get_ctx,
     get_challenge_ctx,
+    ChallengeReset
 )
 from .core import AwesomeFreeMan
 from .exceptions import (
@@ -152,6 +153,8 @@ class CookieManager(AwesomeFreeMan):
                     message="Identity token update failed."
                 ))
                 return False
+        except ChallengeReset:
+            pass
         except AuthException as e:
             logger.critical(ToolBox.runtime_report(
                 motive="SKIP",
@@ -164,9 +167,11 @@ class CookieManager(AwesomeFreeMan):
             self.save_ctx_cookies(ctx_cookies=ctx.get_cookies())
             return self.is_available_cookie(ctx_cookies=ctx.get_cookies())
         finally:
-            if ctx:
+            try:
                 ctx.close()
                 ctx.quit()
+            except Exception:  # noqa
+                pass
         # {{< Done >}}
 
 
