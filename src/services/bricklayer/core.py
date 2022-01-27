@@ -598,6 +598,9 @@ class AwesomeFreeMan:
                 warning_text = warning_layout.text
                 if "依旧要购买吗" in warning_text:
                     return
+                if "设备不受支持" in warning_text:
+                    ctx.find_element(By.XPATH, "//span[text()='继续']/parent::button").click()
+                    return self._handle_payment(ctx)
             except NoSuchElementException:
                 pass
 
