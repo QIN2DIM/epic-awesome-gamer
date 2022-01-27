@@ -244,7 +244,7 @@ class Bricklayer(AwesomeFreeMan):
             return self.get_free_game(
                 page_link=page_link,
                 ctx_cookies=ctx_cookies,
-                challenge=challenge
+                challenge=True
             )
         except PaymentException as e:
             logger.debug(ToolBox.runtime_report(
