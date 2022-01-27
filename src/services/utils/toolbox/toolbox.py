@@ -180,11 +180,7 @@ def get_ctx(silence: Optional[bool] = None):
 def get_challenge_ctx(silence: Optional[bool] = None):
     from undetected_chromedriver import Chrome
 
-    silence = True if silence is None else silence
-
-    # 针对部署环境的优化调节
-    if "linux" in sys.platform:
-        silence = True
+    silence = True if silence is None or "linux" in sys.platform else silence
 
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
     return Chrome(options=_set_ctx(), headless=silence)

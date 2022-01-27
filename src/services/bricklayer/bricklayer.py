@@ -22,7 +22,8 @@ from .exceptions import (
     AssertTimeout,
     SwitchContext,
     PaymentException,
-    AuthException
+    AuthException,
+    UnableToGet
 )
 
 
@@ -232,20 +233,28 @@ class Bricklayer(AwesomeFreeMan):
                 action_name=self.action_name,
                 message="循环断言超时，任务退出。"
             ))
+        except UnableToGet as e:
+            logger.debug(ToolBox.runtime_report(
+                motive="QUIT",
+                action_name=self.action_name,
+                message=str(e).strip(),
+                url=page_link,
+            ))
         except SwitchContext as e:
             logger.warning(ToolBox.runtime_report(
                 motive="SWITCH",
                 action_name=self.action_name,
-                message="尝试切换驱动上下文进行人机挑战",
+                message="正在退出标准上下文",
                 error=str(e).strip(),
                 url=page_link,
             ))
-            ctx.quit()
-            return self.get_free_game(
-                page_link=page_link,
-                ctx_cookies=ctx_cookies,
-                challenge=True
-            )
+            # ctx.quit()
+            # fixme 未完成模块
+            # return self.get_free_game(
+            #     page_link=page_link,
+            #     ctx_cookies=ctx_cookies,
+            #     challenge=True
+            # )
         except PaymentException as e:
             logger.debug(ToolBox.runtime_report(
                 motive="QUIT",
