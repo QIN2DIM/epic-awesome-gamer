@@ -383,7 +383,8 @@ class AssertUtils:
             warning_text = WebDriverWait(ctx, 3, ignored_exceptions=WebDriverException).until(
                 EC.presence_of_element_located((By.XPATH, "//h2[@class='payment-blocked__msg']"))
             ).text
-            raise PaymentException(warning_text)
+            if warning_text:
+                raise PaymentException(warning_text)
         except TimeoutException:
             pass
 
@@ -580,26 +581,37 @@ class AwesomeFreeMan:
         :param ctx:
         :return:
         """
-        # Switch to the [Purchase Container] iframe.
+
+        """
+        [🍜] Switch to the [Purchase Container] iframe.
+        _______________
+        - TODO 需要更好的方法处理 Cookie lazy loading 的问题。
+        """
         try:
             payment_frame = WebDriverWait(ctx, 5, ignored_exceptions=ElementNotVisibleException).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@id='webPurchaseContainer']//iframe"))
             )
             ctx.switch_to.frame(payment_frame)
-        # todo 需要更好的方法处理 Cookie lazy loading 的问题
         except TimeoutException:
             try:
                 warning_layout = ctx.find_element(By.XPATH, "//div[@data-component='WarningLayout']")
                 warning_text = warning_layout.text
                 if "依旧要购买吗" in warning_text:
                     return
+                if "设备不受支持" in warning_text:
+                    ctx.find_element(By.XPATH, "//span[text()='继续']/parent::button").click()
+                    return self._handle_payment(ctx)
             except NoSuchElementException:
                 pass
 
-        # 判断游戏锁区
+        # 判断游戏锁区。
         self._assert.payment_blocked(ctx)
 
-        # Ignore: Click the [Accept Agreement] confirmation box.
+        """
+        [🍜] Ignore: Click the [Accept Agreement] confirmation box.
+        _______________
+        - Orz这个勾勾选不选都无所谓的。
+        """
         try:
             WebDriverWait(ctx, 2, ignored_exceptions=ElementClickInterceptedException).until(
                 EC.presence_of_element_located((By.XPATH, "//div[contains(@class,'payment-check-box')]"))
@@ -607,23 +619,29 @@ class AwesomeFreeMan:
         except TimeoutException:
             pass
 
-        # Click the [order] button.
+        """
+        [🍜] Click the [order] button.
+        _______________
+        """
         try:
             time.sleep(0.5)
             WebDriverWait(ctx, 20, ignored_exceptions=ElementClickInterceptedException).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'payment-btn')]"))
             ).click()
-        # 之前某一个断言操作有误，订单界面未能按照预期效果出现，在超时范围内重试一次。
         except TimeoutException:
             ctx.switch_to.default_content()
+
+            # 订单界面未能按照预期效果出现，在超时范围内重试一次。
             return
 
-        # 处理 UK 地区账号的「退款及撤销权信息」
+        """
+        [🍜] Handle heterogeneous business.
+        _______________
+        """
+        # 处理 UK 地区账号的「退款及撤销权信息」。
         self._assert.refund_info(ctx)
 
-        # 在运行时处理人机挑战是非常困难的事情。
-        # 因为绝大多数的人机挑战都会试着识别驱动数据，若咱没使用专门处理人机挑战的驱动上下文，
-        # 会诱发一系列影响系统效率的事情，所以此时最好的方法是主动结束任务，切换挑战上下文，重启。
+        # 捕获隐藏在订单中的人机挑战，仅在周免游戏中出现。
         if self._armor.fall_in_captcha_runtime(ctx):
             self._assert.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
@@ -631,7 +649,10 @@ class AwesomeFreeMan:
             except ChallengeReset:
                 pass
 
-        # Switch to default iframe.
+        """
+        [🍜] Switch to default iframe.
+        _______________
+        """
         ctx.switch_to.default_content()
         ctx.refresh()
 

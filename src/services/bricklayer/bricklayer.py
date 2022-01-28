@@ -23,7 +23,8 @@ from .exceptions import (
     SwitchContext,
     PaymentException,
     AuthException,
-    UnableToGet
+    UnableToGet,
+SurpriseExit
 )
 
 
@@ -275,4 +276,4 @@ class Bricklayer(AwesomeFreeMan):
 
             # 解决挑战者进程无法正常退出的问题
             if challenge:
-                raise KeyboardInterrupt
+                raise SurpriseExit("🎉 优雅离场 🎉  #抛个错庆祝一下，不要慌。")

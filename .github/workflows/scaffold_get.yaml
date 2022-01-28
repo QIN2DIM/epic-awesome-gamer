@@ -38,3 +38,8 @@ jobs:
         run: |
           export LANG=zh_CN.UTF8
           cd src && python main.py get --debug
+
+      - name: Scaffold Get Specially
+        run: |
+          export LANG=zh_CN.UTF8
+          cd src && python main.py get --url=https://www.epicgames.com/store/zh-CN/p/daemon-x-machina

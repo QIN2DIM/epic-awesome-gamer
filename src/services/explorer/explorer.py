@@ -81,7 +81,7 @@ class GameLibManager(AwesomeFreeGirl):
         tree = etree.HTML(response.content)
         assert_obj = tree.xpath("//span[@data-component='PurchaseCTA']//span[@data-component='Message']")
 
-        # 异常状态
+        # 🚧 异常状态
         if not assert_obj:
             logger.warning(ToolBox.runtime_report(
                 motive="SKIP",
@@ -92,21 +92,16 @@ class GameLibManager(AwesomeFreeGirl):
             return {"assert": "AssertObjectNotFound", "status": None}
 
         assert_message = assert_obj[0].text
-        # 跳过 `已在游戏库中` 的日志信息
+        # 🚧 跳过 `已在游戏库中` 的日志信息
         if assert_message in ["已在游戏库中", ]:
             return {"assert": assert_message, "status": True}
+        # 🚧 这不是免费游戏
         if assert_message in ["立即购买", ]:
-            logger.warning(ToolBox.runtime_report(
-                motive="SKIP",
-                action_name=self.action_name,
-                message="🚧 这不是免费游戏",
-                url=page_link,
-            ))
             return {"assert": assert_message, "status": True}
-        # 惰性加载，前置节点不处理动态加载元素
+        # 🚧 惰性加载，前置节点不处理动态加载元素
         if assert_message in ["正在载入", ]:
             return {"assert": assert_message, "status": False}
-        # 未领取的免费游戏
+        # 🍟 未领取的免费游戏
         if assert_message in ["获取", ]:
             warning_obj = tree.xpath("//h1[@class='css-1gty6cv']//span")
             # 出现遮挡警告
