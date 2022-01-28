@@ -107,7 +107,6 @@ def join(trace: bool = False):
     booster.go()
 
 
-@logger.catch()
 def special(special_link: str):
     if not special_link.startswith("https://www.epicgames.com/store/zh-CN"):
         logger.critical(ToolBox.runtime_report(
