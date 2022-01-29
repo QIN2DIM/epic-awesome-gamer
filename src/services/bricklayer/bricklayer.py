@@ -24,7 +24,7 @@ from .exceptions import (
     PaymentException,
     AuthException,
     UnableToGet,
-SurpriseExit
+    SurpriseExit
 )
 
 
@@ -249,13 +249,6 @@ class Bricklayer(AwesomeFreeMan):
                 error=str(e).strip(),
                 url=page_link,
             ))
-            # ctx.quit()
-            # fixme 未完成模块
-            # return self.get_free_game(
-            #     page_link=page_link,
-            #     ctx_cookies=ctx_cookies,
-            #     challenge=True
-            # )
         except PaymentException as e:
             logger.debug(ToolBox.runtime_report(
                 motive="QUIT",

@@ -31,6 +31,8 @@ class AwesomeFreeGirl:
         self.URL_STORE_PREFIX = "https://www.epicgames.com/store/zh-CN/browse?"
         self.URL_STORE_FREE = f"{self.URL_STORE_PREFIX}sortBy=releaseDate&sortDir=DESC&priceTier=tierFree&count=40"
         self.URL_HOME = "https://www.epicgames.com"
+        self.URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=zh-CN"
+        self.URL_PRODUCT_PAGE = "https://www.epicgames.com/store/zh-CN/p/"
 
         # 驱动参数
         self.action_name = "AwesomeFreeGirl"

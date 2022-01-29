@@ -4,7 +4,8 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import csv
-from typing import List, Optional, Union, Dict
+import json.decoder
+from typing import List, Optional, Union, Dict, Any
 
 import cloudscraper
 from bs4 import BeautifulSoup
@@ -159,3 +160,52 @@ class Explorer(AwesomeFreeGirl):
 
         # 返回链接
         return [game_obj.get("url") for game_obj in game_objs]
+
+    def get_the_limited_free_game(self) -> Dict[str, Any]:
+        """
+        获取限免游戏
+
+        :return:
+        """
+        limited_free_game_objs = {
+            "urls": []
+        }
+
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get(self.URL_PROMOTIONS)
+
+        try:
+            data = response.json()
+        except json.decoder.JSONDecodeError:
+            pass
+        else:
+            elements = data["data"]["Catalog"]["searchStore"]['elements']
+            for element in elements:
+                promotions = element.get("promotions")
+
+                # 剔除掉过期的折扣实体
+                if not promotions:
+                    continue
+
+                # 获取实体的促销折扣值 discount_percentage
+                discount_setting = promotions["promotionalOffers"][0]["promotionalOffers"][0]["discountSetting"]
+                discount_percentage = discount_setting["discountPercentage"]
+
+                # print("游戏：『{}』 促销折扣：-{}% 商品链接：{}".format(
+                #     element["title"], 100 - discount_percentage, self.URL_PRODUCT_PAGE + element["productSlug"]
+                # ))
+
+                # 健壮工程，提前预判数据类型的变更
+                # 将打折到免费卖的实体标记为 `limited_free_game_obj`
+                if (
+                        (type(discount_percentage) != str and not discount_percentage)
+                        or (type(discount_percentage) == str and not float(discount_percentage))
+                ):
+                    # print("周免游戏：{} 产品链接：{}".format(
+                    #     element["title"], self.URL_PRODUCT_PAGE + element["productSlug"]
+                    # ))
+                    url = self.URL_PRODUCT_PAGE + element["productSlug"]
+                    limited_free_game_objs[url] = element["title"]
+                    limited_free_game_objs["urls"].append(url)
+        finally:
+            return limited_free_game_objs

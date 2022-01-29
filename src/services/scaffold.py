@@ -3,7 +3,6 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-
 from gevent import monkey
 
 monkey.patch_all()
@@ -11,7 +10,8 @@ from typing import Optional
 from apis.scaffold import (
     get,
     challenge,
-    install
+    install,
+    claim
 )
 
 
@@ -71,6 +71,15 @@ class Scaffold:
             get.special(special_link=url)
         else:
             get.join(trace=debug)
+
+    @staticmethod
+    def claim():
+        """
+        领取周免游戏
+
+        :return:
+        """
+        claim.run()
 
     @staticmethod
     def challenge():
