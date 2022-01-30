@@ -3,7 +3,10 @@ name: scaffold_claim
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - "main"
+    paths:
+      - "src/**"
   # Give misbehaving naughty babies a New Year's blessing~
   # Crontab表达式转义 https://crontab.guru/
   schedule:
@@ -32,7 +35,7 @@ jobs:
           cd src && python main.py install
 
       # 五分钟搬空免费商店。
-      - name: Scaffold Get
+      - name: Scaffold Claim
         run: |
           export LANG=zh_CN.UTF8
           cd src && python main.py claim
