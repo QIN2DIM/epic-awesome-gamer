@@ -43,7 +43,7 @@ MESSAGE_PUSHER_SETTINGS: Dict[str, Any] = config_.get("pusher", {})
 
                                             Enjoy it -> ♂ main.py
 """
-__version__ = "0.1.3.dev"
+__version__ = "0.1.4.dev"
 
 # 时区
 TIME_ZONE_CN = pytz.timezone("Asia/Shanghai")

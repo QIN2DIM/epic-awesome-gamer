@@ -23,8 +23,7 @@ from .exceptions import (
     SwitchContext,
     PaymentException,
     AuthException,
-    UnableToGet,
-    SurpriseExit
+    UnableToGet
 )
 
 
@@ -268,5 +267,5 @@ class Bricklayer(AwesomeFreeMan):
             ctx.quit()
 
             # 解决挑战者进程无法正常退出的问题
-            if challenge:
-                raise SurpriseExit("🎉 优雅离场 🎉  #抛个错庆祝一下，不要慌。")
+            # if challenge:
+            #     raise SurpriseExit("🎉 优雅离场 🎉  #抛个错庆祝一下，不要慌。")
