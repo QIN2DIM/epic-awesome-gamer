@@ -92,8 +92,8 @@ def run(cdn: bool = False):
         _download_model
     ]
 
-    _sync_ctx()
-    booster = PerformanceReleaser(docker=docker, power=99)
+    # _sync_ctx()
+    booster = PerformanceReleaser(docker=docker, power=3)
     booster.go(cdn=cdn)
 
     logger.success(ToolBox.runtime_report(
