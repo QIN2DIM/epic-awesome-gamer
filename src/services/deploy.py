@@ -14,7 +14,7 @@ from services.settings import logger, MESSAGE_PUSHER_SETTINGS
 from services.utils import ToolBox
 
 
-class AwesomeScheduler:
+class ClaimerScheduler:
     def __init__(self, silence: Optional[bool] = None):
 
         self.action_name = "AwesomeScheduler"
@@ -27,7 +27,13 @@ class AwesomeScheduler:
         self.logger = logger
 
     def deploy_jobs(self):
-        pass
+        """
+        https://crontab.guru/
+        schedule:
+            - cron: "5 4 * * 5"
+            - cron: "3 2 * * 6"
+        :return:
+        """
 
     def start(self):
         try:

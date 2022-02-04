@@ -3,7 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from services.deploy import AwesomeScheduler
+from services.deploy import ClaimerScheduler
 
 SILENCE = False
 
@@ -13,4 +13,4 @@ def deploy():
 
 
 def run():
-    AwesomeScheduler(silence=SILENCE).job_loop_claim()
+    ClaimerScheduler(silence=SILENCE).job_loop_claim()
