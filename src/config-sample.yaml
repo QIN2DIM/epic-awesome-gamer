@@ -31,5 +31,14 @@ scheduler:
 # ===================================================
 # [√※] 通信鸽
 # ---------------------------------------------------
-# 一些主流的通信接口，用于提示订单信息
+# 一些主流的通信接口，用于反射运行报告
+# Docs https://github.com/caronc/apprise
 # ===================================================
+message_pusher_settings:
+  enable: true
+  pusher:
+    PUSHER_EMAIL: ""
+    PUSHER_DINGTALK: ""
+    PUSHER_TELEGRAM: ""
+    PUSHER_SERVERCHAN: ""
+    PUSHER_DISCORD: ""

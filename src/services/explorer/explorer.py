@@ -168,7 +168,7 @@ class Explorer(AwesomeFreeGirl):
         :return:
         """
 
-        def _update_limited_free_game_objs(element_:dict):
+        def _update_limited_free_game_objs(element_: dict):
             limited_free_game_objs[url] = element_["title"]
             limited_free_game_objs["urls"].append(url)
 

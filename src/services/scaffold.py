@@ -11,7 +11,7 @@ from apis.scaffold import (
     get,
     challenge,
     install,
-    claim
+    claimer
 )
 
 
@@ -48,6 +48,32 @@ class Scaffold:
         install.run(cdn=cdn)
 
     @staticmethod
+    def challenge():
+        """
+        正面硬刚人机挑战，为当前账号获取有效的身份令牌。
+
+        ## Intro
+
+        - 请确保你已在 `config.yaml` 中配置了正确的账号信息。
+        - 更新后的 cookie 存储在 `/src/database/cookies/user_cookies.txt` 文件中
+
+        ## Tips
+
+        - 本指令并不会强制激活人机验证。硬刚人机挑战不是目的，获取到有效的身份令牌才是目的，不要徒增功耗。
+        - 也即，如果当前缓存的身份令牌还未失效，挑战跳过。
+
+        :return:
+        """
+        challenge.run()
+
+        """
+        [🌀] 优雅离场
+        _______________
+        脑洞大开的作者想挑战一下 Python 自带的垃圾回收机制，
+        决定以一种极其垂直的方式结束系统任务。
+        """
+
+    @staticmethod
     def get(url: Optional[str] = None, debug: Optional[bool] = None):
         """
         获取 Epic Store 所有未在库的免费游戏。一键操作，将免费商城搬空，科技改变生活！
@@ -79,33 +105,7 @@ class Scaffold:
 
         :return:
         """
-        claim.run()
-
-    @staticmethod
-    def challenge():
-        """
-        正面硬刚人机挑战，为当前账号获取有效的身份令牌。
-
-        ## Intro
-
-        - 请确保你已在 `config.yaml` 中配置了正确的账号信息。
-        - 更新后的 cookie 存储在 `/src/database/cookies/user_cookies.txt` 文件中
-
-        ## Tips
-
-        - 本指令并不会强制激活人机验证。硬刚人机挑战不是目的，获取到有效的身份令牌才是目的，不要徒增功耗。
-        - 也即，如果当前缓存的身份令牌还未失效，挑战跳过。
-
-        :return:
-        """
-        challenge.run()
-
-        """
-        [🌀] 优雅离场
-        _______________
-        脑洞大开的作者想挑战一下 Python 自带的垃圾回收机制，
-        决定以一种极其垂直的方式结束系统任务。
-        """
+        claimer.run()
 
     @staticmethod
     def deploy():
@@ -114,8 +114,7 @@ class Scaffold:
 
         :return:
         """
-        # service.SystemCrontab()
-        raise NotImplementedError(Scaffold.NotImplementedErrorWarning)
+        claimer.deploy()
 
     @staticmethod
     def ping():
@@ -131,16 +130,6 @@ class Scaffold:
         """
         提供一个 WEBUI 引导输入，更新配置文件。
 
-        :return:
-        """
-        raise NotImplementedError(Scaffold.NotImplementedErrorWarning)
-
-    @staticmethod
-    def clear():
-        """
-        安全清理系统运行缓存
-
-        安全清理人机验证，运行日志等临时缓存。
         :return:
         """
         raise NotImplementedError(Scaffold.NotImplementedErrorWarning)

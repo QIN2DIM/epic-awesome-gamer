@@ -71,6 +71,6 @@ __all__ = [
     # ------------------------------
     # CONFIG
     # ------------------------------
-    "TIME_ZONE_CN", "TIME_ZONE_NY", "USER_PASSWORD", "USER_EMAIL",
-    "SCHEDULER_SETTINGS",
+    "USER_PASSWORD", "USER_EMAIL", "SCHEDULER_SETTINGS",
+    "MESSAGE_PUSHER_SETTINGS",
 ]

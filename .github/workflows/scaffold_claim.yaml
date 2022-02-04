@@ -16,6 +16,14 @@ on:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    env:
+      EPIC_EMAIL: ${{ secrets.EPIC_EMAIL }}
+      EPIC_PASSWORD: ${{ secrets.EPIC_PASSWORD }}
+      PUSHER_EMAIL: ${{ secrets.PUSHER_EMAIL }}
+      PUSHER_DINGTALK: ${{ secrets.PUSHER_DINGTALK }}
+      PUSHER_TELEGRAM: ${{ secrets.PUSHER_TELEGRAM }}
+      PUSHER_SERVERCHAN: ${{ secrets.PUSHER_SERVERCHAN }}
+      PUSHER_DISCORD: ${{ secrets.DISCORD }}
     steps:
       - uses: actions/checkout@v2
 
@@ -28,9 +36,12 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Scaffold Init
+        run: |
+          cd src && python main.py
+
       - name: Scaffold Install
         run: |
-          echo -e "EMAIL: ${{secrets.EPIC_EMAIL}}\nPASSWORD: ${{secrets.EPIC_PASSWORD}}" > src/config.yaml
           cd src && python main.py install
 
       # 🦽哟！这可不兴嫖啊宝友！

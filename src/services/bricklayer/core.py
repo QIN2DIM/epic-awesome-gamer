@@ -181,7 +181,7 @@ class ArmorUtils(ArmorCaptcha):
         except TimeoutException:
             # 如果挑战通过，自动跳转至其他页面（也即离开当前网址）
             try:
-                WebDriverWait(ctx, 8).until(EC.url_changes(flag))
+                WebDriverWait(ctx, 12).until(EC.url_changes(flag))
             # 如果挑战未通过，可能为“账号信息错误”“分数太低”“自动化特征被识别”
             except TimeoutException:
                 if door == "login":

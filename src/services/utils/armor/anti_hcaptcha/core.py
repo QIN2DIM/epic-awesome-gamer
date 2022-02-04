@@ -138,6 +138,7 @@ class ArmorCaptcha:
             "火车": "train",
             "卡车": "truck",
             "公交车": "bus",
+            "巴土": "bus",
             "飞机": "airplane",
             "ー条船": "boat",
             "船": "boat",
