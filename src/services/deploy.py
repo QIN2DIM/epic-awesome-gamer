@@ -75,7 +75,7 @@ class ClaimerScheduler:
                 inline_docker.append(_runtime)
 
         # 更新身份令牌
-        if not self.bricklayer.cookie_manager.refresh_ctx_cookies(verify=True, silence=False):
+        if not self.bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
             return
         ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
 

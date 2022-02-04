@@ -42,7 +42,7 @@ PUSHER = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
 
                                             Enjoy it -> ♂ main.py
 """
-__version__ = "0.1.4.dev"
+__version__ = "0.1.5.dev"
 
 # --------------------------------
 # [※] 补全语法模板

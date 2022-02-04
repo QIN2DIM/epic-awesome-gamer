@@ -5,7 +5,7 @@
 # Description:
 from services.deploy import ClaimerScheduler
 
-SILENCE = False
+SILENCE = True
 
 
 def deploy():
