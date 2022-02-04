@@ -140,6 +140,7 @@ class ArmorCaptcha:
             "公交车": "bus",
             "飞机": "airplane",
             "ー条船": "boat",
+            "船": "boat",
             "汽车": "car",
             "摩托车": "motorcycle",
             "雨伞": "umbrella",

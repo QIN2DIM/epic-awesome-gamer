@@ -161,12 +161,17 @@ class Explorer(AwesomeFreeGirl):
         # 返回链接
         return [game_obj.get("url") for game_obj in game_objs]
 
-    def get_the_limited_free_game(self, ctx_cookies: List[dict]) -> Dict[str, Any]:
+    def get_the_limited_free_game(self, ctx_cookies: Optional[List[dict]] = None) -> Dict[str, Any]:
         """
         获取限免游戏
 
         :return:
         """
+
+        def _update_limited_free_game_objs(element_:dict):
+            limited_free_game_objs[url] = element_["title"]
+            limited_free_game_objs["urls"].append(url)
+
         limited_free_game_objs = {
             "urls": []
         }
@@ -187,11 +192,22 @@ class Explorer(AwesomeFreeGirl):
                 if not promotions:
                     continue
 
-                # 健壮工程，提前预判数据类型的变更
+                # 提取商品页slug
                 url = self.URL_PRODUCT_PAGE + element["urlSlug"]
-                response = self.game_manager.is_my_game(ctx_cookies=ctx_cookies, page_link=url)
-                if not response["status"]:
-                    limited_free_game_objs[url] = element["title"]
-                    limited_free_game_objs["urls"].append(url)
+
+                # 健壮工程，预判数据类型的变更
+                if not ctx_cookies:
+                    # 获取实体的促销折扣值 discount_percentage
+                    discount_setting = promotions["promotionalOffers"][0]["promotionalOffers"][0]["discountSetting"]
+                    discount_percentage = discount_setting["discountPercentage"]
+                    if (
+                            (type(discount_percentage) != str and not discount_percentage)
+                            or (type(discount_percentage) == str and not float(discount_percentage))
+                    ):
+                        _update_limited_free_game_objs(element)
+                else:
+                    response = self.game_manager.is_my_game(ctx_cookies=ctx_cookies, page_link=url)
+                    if not response["status"]:
+                        _update_limited_free_game_objs(element)
         finally:
             return limited_free_game_objs

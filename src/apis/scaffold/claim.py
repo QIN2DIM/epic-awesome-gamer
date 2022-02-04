@@ -24,12 +24,9 @@ def run():
 
     # 扫描商城促销活动，返回“0折”商品的名称与商城链接
     limited_free_game_objs = explorer.get_the_limited_free_game(ctx_cookies)
-    if not limited_free_game_objs.get("urls"):
-        return
-    urls = limited_free_game_objs["urls"]
 
     # 优先处理常规情况 urls.__len__() == 1
-    for url in urls:
+    for url in limited_free_game_objs["urls"]:
         logger.debug(ToolBox.runtime_report(
             motive="STARTUP",
             action_name="ScaffoldClaim",
@@ -41,3 +38,6 @@ def run():
             ctx_cookies=ctx_cookies,
             challenge=True
         )
+
+    # TODO  feat(add): 领取免费DLC
+    # TODO feat(add): 领取多款游戏
