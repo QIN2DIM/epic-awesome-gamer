@@ -107,9 +107,10 @@ class AwesomeScheduler:
         _______________
         """
         # 组织推送模版
-        _inline_textbox = ["运行日志".center(20, "-"), ]
+        _inline_textbox = [f"当前玩家：{ToolBox.secret_email(self.bricklayer.email)}", ]
+        _inline_textbox += ["运行日志".center(20, "-"), ]
         if not inline_docker:
-            _inline_textbox += [f"当前玩家：{ToolBox.secret_email(self.bricklayer.email)}，暂无可领取的周免游戏", ]
+            _inline_textbox += [f"[{ToolBox.date_format_now()}] 🛴 暂无可领取的周免游戏", ]
         else:
             _inline_textbox += [f"[{game_obj[self.SPAWN_TIME]}] {game_obj['flag']} {game_obj['name']}"
                                 for game_obj in inline_docker]

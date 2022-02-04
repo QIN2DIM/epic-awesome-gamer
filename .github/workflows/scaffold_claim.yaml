@@ -2,11 +2,11 @@ name: scaffold_claim
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - "main"
-    paths:
-      - "src/**"
+  #  push:
+  #    branches:
+  #      - "main"
+  #    paths:
+  #      - "src/**"
   # Give misbehaving naughty babies a New Year's blessing~
   # Crontab表达式转义 https://crontab.guru/
   schedule:
