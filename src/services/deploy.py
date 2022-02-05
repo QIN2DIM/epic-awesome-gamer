@@ -53,7 +53,7 @@ class ClaimerScheduler:
                 self.logger.debug(ToolBox.runtime_report(
                     motive="SKIP",
                     action_name=self.action_name,
-                    message=f"🛴 当前玩家：{ToolBox.secret_email(self.bricklayer.email, False)}，暂无待认领的周免游戏。"
+                    message=f"🛴 当前玩家暂无待认领的周免游戏。"
                 ))
                 return
 
