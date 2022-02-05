@@ -2,11 +2,6 @@ name: scaffold_claim
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - "dev"
-    paths:
-      - "src/**"
 
 jobs:
   setup:

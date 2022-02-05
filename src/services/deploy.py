@@ -50,6 +50,11 @@ class ClaimerScheduler:
 
         def _release_power(urls: Optional[list] = None):
             if not urls:
+                self.logger.debug(ToolBox.runtime_report(
+                    motive="SKIP",
+                    action_name=self.action_name,
+                    message=f"🛴 当前玩家：{ToolBox.secret_email(self.bricklayer.email, False)}，暂无待认领的周免游戏。"
+                ))
                 return
 
             # 优先处理常规情况 urls.__len__() == 1

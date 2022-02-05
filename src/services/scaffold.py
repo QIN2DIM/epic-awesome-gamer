@@ -5,7 +5,7 @@
 # Description:
 from gevent import monkey
 
-monkey.patch_all(thread=False)
+monkey.patch_time()
 from typing import Optional
 from apis.scaffold import (
     get,

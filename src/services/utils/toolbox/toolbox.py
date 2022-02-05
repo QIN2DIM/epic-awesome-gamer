@@ -104,10 +104,11 @@ class ToolBox:
             return str(datetime.now(timezone)).split(".")[0]
 
     @staticmethod
-    def secret_email(email: str) -> str:
+    def secret_email(email: str, domain: Optional[bool] = None) -> str:
+        domain = True if domain is None else domain
         prefix, suffix = email.split("@")
         secrets_prefix = f"{prefix[0]}***{prefix[-1]}"
-        return f"{secrets_prefix}@{suffix}"
+        return f"{secrets_prefix}@{suffix}" if domain else secrets_prefix
 
 
 class InitLog:
