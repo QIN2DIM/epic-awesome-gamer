@@ -4,11 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
-from os.path import (
-    join,
-    dirname,
-    exists
-)
+from os.path import join, dirname, exists
 
 # ---------------------------------------------------
 # TODO [√]工程根目录定位
@@ -36,8 +32,7 @@ DIR_LOG = join(PROJECT_DATABASE, "logs")
 from services.utils import InitLog
 
 logger = InitLog.init_log(
-    error=join(DIR_LOG, "error.log"),
-    runtime=join(DIR_LOG, "runtime.log")
+    error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG, "runtime.log")
 )
 
 # ---------------------------------------------------
@@ -48,7 +43,8 @@ for _pending in [
     DIR_MODEL,
     DIR_EXPLORER,
     DIR_COOKIES,
-    DIR_TEMP_CACHE, DIR_CHALLENGE,
+    DIR_TEMP_CACHE,
+    DIR_CHALLENGE,
     DIR_LOG,
 ]:
     if not exists(_pending):
@@ -63,14 +59,18 @@ __all__ = [
     # ------------------------------
     # SETTINGS
     # ------------------------------
-    "logger", "DIR_CHALLENGE",
+    "logger",
+    "DIR_CHALLENGE",
     "DIR_COOKIES",
-    "DIR_TEMP_CACHE", "DIR_EXPLORER", "PATH_USR_COOKIES",
+    "DIR_TEMP_CACHE",
+    "DIR_EXPLORER",
+    "PATH_USR_COOKIES",
     "DIR_MODEL",
-
     # ------------------------------
     # CONFIG
     # ------------------------------
-    "USER_PASSWORD", "USER_EMAIL", "SCHEDULER_SETTINGS",
+    "USER_PASSWORD",
+    "USER_EMAIL",
+    "SCHEDULER_SETTINGS",
     "MESSAGE_PUSHER_SETTINGS",
 ]

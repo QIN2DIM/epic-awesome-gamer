@@ -40,35 +40,38 @@ class ClaimerScheduler:
             self.scheduler.start()
         except KeyboardInterrupt:
             self.scheduler.shutdown(wait=False)
-            self.logger.debug(ToolBox.runtime_report(
-                motive="EXITS",
-                action_name=self.action_name,
-                message="Received keyboard interrupt signal."
-            ))
+            self.logger.debug(
+                ToolBox.runtime_report(
+                    motive="EXITS",
+                    action_name=self.action_name,
+                    message="Received keyboard interrupt signal.",
+                )
+            )
 
     def job_loop_claim(self):
-
         def _release_power(urls: Optional[list] = None):
             if not urls:
-                self.logger.debug(ToolBox.runtime_report(
-                    motive="SKIP",
-                    action_name=self.action_name,
-                    message=f"🛴 当前玩家暂无待认领的周免游戏。"
-                ))
+                self.logger.debug(
+                    ToolBox.runtime_report(
+                        motive="SKIP",
+                        action_name=self.action_name,
+                        message=f"🛴 当前玩家暂无待认领的周免游戏。",
+                    )
+                )
                 return
 
             # 优先处理常规情况 urls.__len__() == 1
             for url in urls:
-                self.logger.debug(ToolBox.runtime_report(
-                    motive="STARTUP",
-                    action_name="ScaffoldClaim",
-                    message="🍜 正在为玩家领取周免游戏",
-                    game=f"『{limited_free_game_objs[url]}』"
-                ))
+                self.logger.debug(
+                    ToolBox.runtime_report(
+                        motive="STARTUP",
+                        action_name="ScaffoldClaim",
+                        message="🍜 正在为玩家领取周免游戏",
+                        game=f"『{limited_free_game_objs[url]}』",
+                    )
+                )
                 response = self.bricklayer.get_free_game(
-                    page_link=url,
-                    ctx_cookies=ctx_cookies,
-                    challenge=True
+                    page_link=url, ctx_cookies=ctx_cookies, challenge=True
                 )
 
                 # 编制运行缓存 用于生成业务报告
@@ -118,14 +121,25 @@ class ClaimerScheduler:
         _______________
         """
         # 组织推送模版
-        _inline_textbox = [f"当前玩家：{ToolBox.secret_email(self.bricklayer.email)}", ]
-        _inline_textbox += ["运行日志".center(20, "-"), ]
+        _inline_textbox = [
+            f"当前玩家：{ToolBox.secret_email(self.bricklayer.email)}",
+        ]
+        _inline_textbox += [
+            "运行日志".center(20, "-"),
+        ]
         if not inline_docker:
-            _inline_textbox += [f"[{ToolBox.date_format_now()}] 🛴 暂无可领取的周免游戏", ]
+            _inline_textbox += [
+                f"[{ToolBox.date_format_now()}] 🛴 暂无可领取的周免游戏",
+            ]
         else:
-            _inline_textbox += [f"[{game_obj[self.SPAWN_TIME]}] {game_obj['flag']} {game_obj['name']}"
-                                for game_obj in inline_docker]
-        _inline_textbox += ["生命周期统计".center(20, "-"), f"total:{inline_docker.__len__()}"]
+            _inline_textbox += [
+                f"[{game_obj[self.SPAWN_TIME]}] {game_obj['flag']} {game_obj['name']}"
+                for game_obj in inline_docker
+            ]
+        _inline_textbox += [
+            "生命周期统计".center(20, "-"),
+            f"total:{inline_docker.__len__()}",
+        ]
 
         # 注册 Apprise 消息推送框架
         active_pusher = pusher_settings["pusher"]
@@ -139,9 +153,11 @@ class ClaimerScheduler:
             title="EpicAwesomeGamer 运行报告",
         )
 
-        self.logger.success(ToolBox.runtime_report(
-            motive="Notify",
-            action_name=self.action_name,
-            message="消息推送完毕",
-            active_pusher=[i[0] for i in active_pusher.items() if i[-1]]
-        ))
+        self.logger.success(
+            ToolBox.runtime_report(
+                motive="Notify",
+                action_name=self.action_name,
+                message="消息推送完毕",
+                active_pusher=[i[0] for i in active_pusher.items() if i[-1]],
+            )
+        )

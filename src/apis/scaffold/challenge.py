@@ -15,11 +15,11 @@ def run():
     [🌀] 激活人机挑战
     _______________
     """
-    logger.info(ToolBox.runtime_report(
-        motive="STARTUP",
-        action_name="ScaffoldChallenge",
-        message="正在更新身份令牌..."
-    ))
+    logger.info(
+        ToolBox.runtime_report(
+            motive="STARTUP", action_name="ScaffoldChallenge", message="正在更新身份令牌..."
+        )
+    )
     if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
         return
 
@@ -36,9 +36,11 @@ def run():
     with open(PATH_USR_COOKIES, "w", encoding="utf8") as f:
         f.write(ToolBox.transfer_cookies(ctx_cookies))
 
-    logger.success(ToolBox.runtime_report(
-        motive="GET",
-        action_name="ChallengeRunner",
-        message="玩家饼干已到货。",
-        path=PATH_USR_COOKIES
-    ))
+    logger.success(
+        ToolBox.runtime_report(
+            motive="GET",
+            action_name="ChallengeRunner",
+            message="玩家饼干已到货。",
+            path=PATH_USR_COOKIES,
+        )
+    )

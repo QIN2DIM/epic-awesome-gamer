@@ -7,7 +7,9 @@ from typing import Optional, Sequence
 
 
 class Explorer(Exception):
-    def __init__(self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None) -> None:
+    def __init__(
+        self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None
+    ) -> None:
         self.msg = msg
         self.stacktrace = stacktrace
 
@@ -21,4 +23,5 @@ class Explorer(Exception):
 
 class DiscoveryTimeoutException(Explorer):
     """未能在规定时间内为指定玩家搜索免费游戏"""
+
     pass

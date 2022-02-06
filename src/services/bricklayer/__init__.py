@@ -5,4 +5,6 @@
 # Description:
 from .bricklayer import Bricklayer
 
-__all__ = ["Bricklayer", ]
+__all__ = [
+    "Bricklayer",
+]

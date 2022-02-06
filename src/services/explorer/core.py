@@ -7,9 +7,7 @@ import os.path
 import time
 from typing import List, ContextManager, Union
 
-from selenium.common.exceptions import (
-    WebDriverException
-)
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
@@ -46,10 +44,16 @@ class AwesomeFreeGirl:
         self._init_workspace()
 
     def _init_workspace(self) -> None:
-        self.runtime_workspace = "." if not os.path.exists(DIR_EXPLORER) else DIR_EXPLORER
-        self.path_free_games = os.path.join(self.runtime_workspace, self.path_free_games)
+        self.runtime_workspace = (
+            "." if not os.path.exists(DIR_EXPLORER) else DIR_EXPLORER
+        )
+        self.path_free_games = os.path.join(
+            self.runtime_workspace, self.path_free_games
+        )
 
-    def _discovery_free_games(self, ctx: Union[ContextManager, Chrome], ctx_cookies: List[dict]) -> None:
+    def _discovery_free_games(
+        self, ctx: Union[ContextManager, Chrome], ctx_cookies: List[dict]
+    ) -> None:
         # 重载玩家令牌
         if ctx_cookies:
             ctx.get(self.URL_STORE_FREE)
@@ -57,11 +61,13 @@ class AwesomeFreeGirl:
                 ctx.add_cookie(cookie_dict)
 
         _mode = "（深度搜索）" if ctx_cookies else "（广度搜索）"
-        logger.debug(ToolBox.runtime_report(
-            motive="DISCOVERY",
-            action_name=self.action_name,
-            message=f"📡 正在为玩家搜集免费游戏{_mode}..."
-        ))
+        logger.debug(
+            ToolBox.runtime_report(
+                motive="DISCOVERY",
+                action_name=self.action_name,
+                message=f"📡 正在为玩家搜集免费游戏{_mode}...",
+            )
+        )
 
         # 获取免费游戏链接
         _start = time.time()
@@ -70,7 +76,9 @@ class AwesomeFreeGirl:
             ctx.get(_url_store_free)
             time.sleep(1)
             WebDriverWait(ctx, 10, ignored_exceptions=WebDriverException).until(
-                EC.presence_of_element_located((By.XPATH, "//section[@data-testid='section-wrapper']"))
+                EC.presence_of_element_located(
+                    (By.XPATH, "//section[@data-testid='section-wrapper']")
+                )
             )
 
             # 滑到底部
@@ -86,9 +94,13 @@ class AwesomeFreeGirl:
 
             # 断言最后一页
             WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
-                EC.element_to_be_clickable((By.XPATH, "//a[@data-component='PaginationItem']"))
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//a[@data-component='PaginationItem']")
+                )
             )
-            page_switcher = ctx.find_elements(By.XPATH, "//a[@data-component='PaginationItem']")[-1]
+            page_switcher = ctx.find_elements(
+                By.XPATH, "//a[@data-component='PaginationItem']"
+            )[-1]
 
             # 提取价值信息
             game_objs = ctx.find_elements(By.XPATH, "//a[@class='css-1jx3eyg']")
@@ -99,7 +111,7 @@ class AwesomeFreeGirl:
                     {
                         self.game_objs.__len__(): {
                             "name": name.strip(),
-                            "url": url.strip()
+                            "url": url.strip(),
                         }
                     }
                 )
@@ -112,9 +124,11 @@ class AwesomeFreeGirl:
             # 更新跳转链接
             _url_store_free = page_end
 
-        logger.success(ToolBox.runtime_report(
-            motive="DISCOVERY",
-            action_name=self.action_name,
-            message="免费游戏搜集完毕",
-            qsize=len(self.game_objs)
-        ))
+        logger.success(
+            ToolBox.runtime_report(
+                motive="DISCOVERY",
+                action_name=self.action_name,
+                message="免费游戏搜集完毕",
+                qsize=len(self.game_objs),
+            )
+        )

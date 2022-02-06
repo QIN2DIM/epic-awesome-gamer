@@ -2,7 +2,9 @@ from typing import Optional, Sequence
 
 
 class ArmorException(Exception):
-    def __init__(self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None) -> None:
+    def __init__(
+        self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None
+    ) -> None:
         self.msg = msg
         self.stacktrace = stacktrace
 
@@ -20,14 +22,17 @@ class ChallengeException(ArmorException):
 
 class ChallengeReset(ChallengeException):
     """挑战失败，需要重试"""
+
     pass
 
 
 class LoadImageTimeout(ChallengeException):
     """加载挑战图片超时"""
+
     pass
 
 
 class LabelNotFoundException(ChallengeException):
     """获取到空的图像标签名"""
+
     pass

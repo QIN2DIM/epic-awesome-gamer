@@ -7,12 +7,7 @@ from gevent import monkey
 
 monkey.patch_time()
 from typing import Optional
-from apis.scaffold import (
-    get,
-    challenge,
-    install,
-    claimer
-)
+from apis.scaffold import get, challenge, install, claimer
 
 
 class Scaffold:
@@ -46,6 +41,10 @@ class Scaffold:
         :return:
         """
         install.run(cdn=cdn)
+
+    @staticmethod
+    def test():
+        install.test()
 
     @staticmethod
     def challenge():

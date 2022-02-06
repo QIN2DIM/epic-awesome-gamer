@@ -11,19 +11,14 @@ import cloudscraper
 import yaml
 
 from services.settings import logger
-from services.utils import (
-    ToolBox,
-    get_ctx,
-    get_challenge_ctx,
-    ChallengeReset
-)
+from services.utils import ToolBox, get_ctx, get_challenge_ctx, ChallengeReset
 from .core import AwesomeFreeMan
 from .exceptions import (
     AssertTimeout,
     SwitchContext,
     PaymentException,
     AuthException,
-    UnableToGet
+    UnableToGet,
 )
 
 
@@ -34,7 +29,9 @@ class CookieManager(AwesomeFreeMan):
         self.action_name = "CookieManager"
 
     def _t(self) -> str:
-        return sha256(self.email[-3::-1].encode("utf-8")).hexdigest() if self.email else ""
+        return (
+            sha256(self.email[-3::-1].encode("utf-8")).hexdigest() if self.email else ""
+        )
 
     def load_ctx_cookies(self) -> Optional[List[dict]]:
         """
@@ -45,18 +42,20 @@ class CookieManager(AwesomeFreeMan):
         if not os.path.exists(self.path_ctx_cookies):
             return []
 
-        with open(self.path_ctx_cookies, "r", encoding='utf8') as f:
+        with open(self.path_ctx_cookies, "r", encoding="utf8") as f:
             data: dict = yaml.safe_load(f)
 
-        ctx_cookies = data.get(self._t(), []) if type(data) == dict else []
+        ctx_cookies = data.get(self._t(), []) if type(data) is dict else []
         if not ctx_cookies:
             return []
 
-        logger.debug(ToolBox.runtime_report(
-            motive="LOAD",
-            action_name=self.action_name,
-            message="Load context cookie."
-        ))
+        logger.debug(
+            ToolBox.runtime_report(
+                motive="LOAD",
+                action_name=self.action_name,
+                message="Load context cookie.",
+            )
+        )
 
         return ctx_cookies
 
@@ -70,7 +69,7 @@ class CookieManager(AwesomeFreeMan):
         _data = {}
 
         if os.path.exists(self.path_ctx_cookies):
-            with open(self.path_ctx_cookies, "r", encoding='utf8') as f:
+            with open(self.path_ctx_cookies, "r", encoding="utf8") as f:
                 stream: dict = yaml.safe_load(f)
                 _data = _data if type(stream) != dict else stream
 
@@ -79,11 +78,13 @@ class CookieManager(AwesomeFreeMan):
         with open(self.path_ctx_cookies, "w", encoding="utf8") as f:
             yaml.dump(_data, f)
 
-        logger.debug(ToolBox.runtime_report(
-            motive="SAVE",
-            action_name=self.action_name,
-            message="Update Context Cookie."
-        ))
+        logger.debug(
+            ToolBox.runtime_report(
+                motive="SAVE",
+                action_name=self.action_name,
+                message="Update Context Cookie.",
+            )
+        )
 
     def is_available_cookie(self, ctx_cookies: Optional[List[dict]] = None) -> bool:
         """
@@ -96,15 +97,17 @@ class CookieManager(AwesomeFreeMan):
         headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
 
         scraper = cloudscraper.create_scraper()
-        response = scraper.get(self.URL_ACCOUNT_PERSONAL, headers=headers, allow_redirects=False)
+        response = scraper.get(
+            self.URL_ACCOUNT_PERSONAL, headers=headers, allow_redirects=False
+        )
         if response.status_code == 200:
             return True
         return False
 
     def refresh_ctx_cookies(
-            self,
-            verify: bool = True,
-            silence: bool = True,
+        self,
+        verify: bool = True,
+        silence: bool = True,
     ) -> Optional[bool]:
         """
         更新上下文身份信息
@@ -117,11 +120,13 @@ class CookieManager(AwesomeFreeMan):
         # {{< Check Context Cookie Validity >}}
         if verify:
             if self.is_available_cookie():
-                logger.success(ToolBox.runtime_report(
-                    motive="CHECK",
-                    action_name=self.action_name,
-                    message="The identity token is valid."
-                ))
+                logger.success(
+                    ToolBox.runtime_report(
+                        motive="CHECK",
+                        action_name=self.action_name,
+                        message="The identity token is valid.",
+                    )
+                )
                 return True
         # {{< Done >}}
 
@@ -147,20 +152,22 @@ class CookieManager(AwesomeFreeMan):
                     if response:
                         break
             else:
-                logger.critical(ToolBox.runtime_report(
-                    motive="MISS",
-                    action_name=self.action_name,
-                    message="Identity token update failed."
-                ))
+                logger.critical(
+                    ToolBox.runtime_report(
+                        motive="MISS",
+                        action_name=self.action_name,
+                        message="Identity token update failed.",
+                    )
+                )
                 return False
         except ChallengeReset:
             pass
         except AuthException as e:
-            logger.critical(ToolBox.runtime_report(
-                motive="SKIP",
-                action_name=self.action_name,
-                message=e.msg
-            ))
+            logger.critical(
+                ToolBox.runtime_report(
+                    motive="SKIP", action_name=self.action_name, message=e.msg
+                )
+            )
             return False
         else:
             # Store contextual authentication information.
@@ -181,11 +188,11 @@ class Bricklayer(AwesomeFreeMan):
         self.cookie_manager = CookieManager()
 
     def get_free_game(
-            self,
-            page_link: str = None,
-            ctx_cookies: List[dict] = None,
-            refresh: bool = True,
-            challenge: Optional[bool] = None
+        self,
+        page_link: str = None,
+        ctx_cookies: List[dict] = None,
+        refresh: bool = True,
+        challenge: Optional[bool] = None,
     ) -> Optional[bool]:
         """
         获取免费游戏
@@ -198,22 +205,30 @@ class Bricklayer(AwesomeFreeMan):
         :return:
         """
         page_link = self.URL_FREE_GAME_TEST if page_link is None else page_link
-        ctx_cookies = self.cookie_manager.load_ctx_cookies() if ctx_cookies is None else ctx_cookies
+        ctx_cookies = (
+            self.cookie_manager.load_ctx_cookies()
+            if ctx_cookies is None
+            else ctx_cookies
+        )
         """
         [🚀] 验证 COOKIE
         _______________
         请勿在并发环境下 让上下文驱动陷入到不得不更新 COOKIE 的陷阱之中。
         """
-        if not ctx_cookies or not self.cookie_manager.is_available_cookie(ctx_cookies=ctx_cookies):
+        if not ctx_cookies or not self.cookie_manager.is_available_cookie(
+            ctx_cookies=ctx_cookies
+        ):
             if refresh:
                 self.cookie_manager.refresh_ctx_cookies(verify=False)
                 ctx_cookies = self.cookie_manager.load_ctx_cookies()
             else:
-                logger.error(ToolBox.runtime_report(
-                    motive="QUIT",
-                    action_name=self.action_name,
-                    message="Cookie 已过期，任务已退出。"
-                ))
+                logger.error(
+                    ToolBox.runtime_report(
+                        motive="QUIT",
+                        action_name=self.action_name,
+                        message="Cookie 已过期，任务已退出。",
+                    )
+                )
                 return False
 
         """
@@ -224,40 +239,46 @@ class Bricklayer(AwesomeFreeMan):
         try:
             self._get_free_game(page_link=page_link, api_cookies=ctx_cookies, ctx=ctx)
         except AssertTimeout:
-            logger.debug(ToolBox.runtime_report(
-                motive="QUIT",
-                action_name=self.action_name,
-                message="循环断言超时，任务退出。"
-            ))
+            logger.debug(
+                ToolBox.runtime_report(
+                    motive="QUIT", action_name=self.action_name, message="循环断言超时，任务退出。"
+                )
+            )
         except UnableToGet as e:
-            logger.debug(ToolBox.runtime_report(
-                motive="QUIT",
-                action_name=self.action_name,
-                message=str(e).strip(),
-                url=page_link,
-            ))
+            logger.debug(
+                ToolBox.runtime_report(
+                    motive="QUIT",
+                    action_name=self.action_name,
+                    message=str(e).strip(),
+                    url=page_link,
+                )
+            )
         except SwitchContext as e:
-            logger.warning(ToolBox.runtime_report(
-                motive="SWITCH",
-                action_name=self.action_name,
-                message="正在退出标准上下文",
-                error=str(e).strip(),
-                url=page_link,
-            ))
+            logger.warning(
+                ToolBox.runtime_report(
+                    motive="SWITCH",
+                    action_name=self.action_name,
+                    message="正在退出标准上下文",
+                    error=str(e).strip(),
+                    url=page_link,
+                )
+            )
         except PaymentException as e:
-            logger.debug(ToolBox.runtime_report(
-                motive="QUIT",
-                action_name=self.action_name,
-                message="🚧 订单异常",
-                type=f"PaymentException {e}".strip(),
-                url=page_link,
-            ))
+            logger.debug(
+                ToolBox.runtime_report(
+                    motive="QUIT",
+                    action_name=self.action_name,
+                    message="🚧 订单异常",
+                    type=f"PaymentException {e}".strip(),
+                    url=page_link,
+                )
+            )
         except AuthException as e:
-            logger.critical(ToolBox.runtime_report(
-                motive="SKIP",
-                action_name=self.action_name,
-                message=e.msg
-            ))
+            logger.critical(
+                ToolBox.runtime_report(
+                    motive="SKIP", action_name=self.action_name, message=e.msg
+                )
+            )
             return False
         finally:
             ctx.quit()

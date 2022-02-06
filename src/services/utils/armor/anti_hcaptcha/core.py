@@ -11,17 +11,14 @@ from selenium.common.exceptions import (
     ElementNotVisibleException,
     ElementClickInterceptedException,
     WebDriverException,
-    TimeoutException
+    TimeoutException,
 )
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
-from .exceptions import (
-    LabelNotFoundException,
-    ChallengeReset
-)
+from .exceptions import LabelNotFoundException, ChallengeReset
 
 
 class YOLO:
@@ -30,24 +27,96 @@ class YOLO:
         self.cfg = {
             "name": "model_configuration",
             "path": os.path.join(self.dir_model, "yolov4_new.cfg"),
-            "src": "https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4_new.cfg"
+            "src": "https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4_new.cfg",
         }
         self.weights = {
             "name": "model_weights",
             "path": os.path.join(self.dir_model, "yolov4_new.weights"),
-            "src": "https://github.com/AlexeyAB/darknet/releases/download/yolov4/yolov4_new.weights"
+            "src": "https://github.com/AlexeyAB/darknet/releases/download/yolov4/yolov4_new.weights",
         }
 
-        self.classes = ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
-                        "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog",
-                        "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
-                        "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite",
-                        "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle",
-                        "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange",
-                        "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", "potted plant",
-                        "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
-                        "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors",
-                        "teddy bear", "hair drier", "toothbrush"]
+        self.classes = [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush",
+        ]
 
     def download_model(self):
         if not os.path.exists(self.dir_model):  # noqa
@@ -72,7 +141,9 @@ class YOLO:
         img = cv2.imdecode(np_array, flags=1)
         height, width = img.shape[:2]
 
-        blob = cv2.dnn.blobFromImage(img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+        blob = cv2.dnn.blobFromImage(
+            img, 0.00392, (416, 416), (0, 0, 0), True, crop=False
+        )
         self.download_model()
 
         net = cv2.dnn.readNetFromDarknet(self.cfg["path"], self.weights["path"])
@@ -162,7 +233,7 @@ class ArmorCaptcha:
 
         self._headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62",
+            "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62",
         }
 
     def log(self, message: str = "", **params):
@@ -178,8 +249,7 @@ class ArmorCaptcha:
 
     def _init_workspace(self):
         _prefix = "{}{}".format(
-            int(time.time()),
-            f'_{self.label}' if self.label else ''
+            int(time.time()), f"_{self.label}" if self.label else ""
         )
         _workspace = os.path.join(self.dir_workspace, _prefix)
         if not os.path.exists(_workspace):
@@ -207,7 +277,9 @@ class ArmorCaptcha:
 
         # 等待图片加载完成
         WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
-            EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
+            EC.presence_of_all_elements_located(
+                (By.XPATH, "//div[@class='task-image']")
+            )
         )
         time.sleep(1)
 
@@ -218,7 +290,9 @@ class ArmorCaptcha:
             # TODO 加入超时判定
             while True:
                 try:
-                    image_style = sample.find_element(By.CLASS_NAME, "image").get_attribute("style")
+                    image_style = sample.find_element(
+                        By.CLASS_NAME, "image"
+                    ).get_attribute("style")
                     url = re.split(r'[(")]', image_style)[2]
                     self.alias2url.update({alias: url})
                     break
@@ -234,8 +308,12 @@ class ArmorCaptcha:
         :return:
         """
         try:
-            label_obj = WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException).until(
-                EC.presence_of_element_located((By.XPATH, "//div[@class='prompt-text']"))
+            label_obj = WebDriverWait(
+                ctx, 30, ignored_exceptions=ElementNotVisibleException
+            ).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//div[@class='prompt-text']")
+                )
             )
         except TimeoutException:
             raise ChallengeReset("人机挑战意外通过")
@@ -247,7 +325,7 @@ class ArmorCaptcha:
             self.label = _label
             self.log(
                 message="获取挑战标签",
-                label=f"{self.label}({self.label_alias.get(self.label, 'none')})"
+                label=f"{self.label}({self.label_alias.get(self.label, 'none')})",
             )
 
     def download_images(self):
@@ -297,7 +375,9 @@ class ArmorCaptcha:
                 data = f.read()
 
             # 获取识别结果
-            _, labels, _ = model.detect_common_objects(data, confidence=confidence, nms_thresh=nms_thresh)
+            _, labels, _ = model.detect_common_objects(
+                data, confidence=confidence, nms_thresh=nms_thresh
+            )
 
             # 模型会根据置信度给出图片中的多个目标，只要命中一个就算通过
             if self.label_alias[self.label] in labels:
@@ -307,8 +387,12 @@ class ArmorCaptcha:
                 except WebDriverException:
                     pass
         # {{< SUBMIT ANSWER >}}
-        WebDriverWait(ctx, 35, ignored_exceptions=ElementClickInterceptedException).until(
-            EC.element_to_be_clickable((By.XPATH, "//div[@class='button-submit button']"))
+        WebDriverWait(
+            ctx, 35, ignored_exceptions=ElementClickInterceptedException
+        ).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, "//div[@class='button-submit button']")
+            )
         ).click()
 
         self.log(message="提交挑战")

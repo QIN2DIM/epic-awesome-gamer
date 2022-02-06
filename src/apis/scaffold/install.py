@@ -25,7 +25,9 @@ def _sync_ctx():
 
     logger.debug("同步 google-chrome 驱动版本...")
     os.system("apt-get update && apt-get install -y gcc wget")
-    os.system("wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb >/dev/null")
+    os.system(
+        "wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb >/dev/null"
+    )
     os.system("apt install ./google-chrome-stable_current_amd64.deb -y >/dev/null")
     os.system("rm -rf ./google-chrome-stable_current_amd64.deb")
     os.system("clear")
@@ -81,24 +83,44 @@ def run(cdn: bool = False):
 
     :return:
     """
-    logger.debug(ToolBox.runtime_report(
-        motive="BUILD",
-        action_name="RequirementInstaller",
-        message="正在下载系统依赖",
-        params=f"cdn={cdn}"
-    ))
-    docker = [
-        _download_driver,
-        _download_model
-    ]
+    logger.debug(
+        ToolBox.runtime_report(
+            motive="BUILD",
+            action_name="ScaffoldInstaller",
+            message="正在下载系统依赖",
+            params=f"cdn={cdn}",
+        )
+    )
+    docker = [_download_driver, _download_model]
 
-    # _sync_ctx()
     booster = PerformanceReleaser(docker=docker, power=3)
     booster.go(cdn=cdn)
 
-    logger.success(ToolBox.runtime_report(
-        motive="GET",
-        action_name="RequirementInstaller",
-        message="系统依赖下载完毕",
-        params=f"cdn={cdn}"
-    ))
+    logger.success(
+        ToolBox.runtime_report(
+            motive="GET",
+            action_name="ScaffoldInstaller",
+            message="系统依赖下载完毕",
+            params=f"cdn={cdn}",
+        )
+    )
+
+
+def test():
+    from services.utils import get_challenge_ctx
+
+    ctx = get_challenge_ctx(silence=True)
+    try:
+        ctx.get("https://www.baidu.com")
+    except Exception as e:  # noqa
+        logger.exception(e)
+    else:
+        logger.success(
+            ToolBox.runtime_report(
+                motive="TEST",
+                action_name="ScaffoldInstaller",
+                message="驱动适配成功",
+            )
+        )
+    finally:
+        ctx.quit()

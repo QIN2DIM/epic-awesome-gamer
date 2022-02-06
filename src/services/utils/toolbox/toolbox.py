@@ -18,7 +18,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 class ToolBox:
-
     @staticmethod
     def check_sample_yaml(path_output: str, path_sample: str) -> dict:
         """
@@ -52,11 +51,15 @@ class ToolBox:
 
         # 需要到项目仓库重新拉取文件
         except FileNotFoundError:
-            print("Please do not delete the system built-in `config-sample.yaml` "
-                  "Make sure it is located in the project root directory")
+            print(
+                "Please do not delete the system built-in `config-sample.yaml` "
+                "Make sure it is located in the project root directory"
+            )
 
     @staticmethod
-    def runtime_report(action_name: str, motive: str = "RUN", message: str = "", **params) -> str:
+    def runtime_report(
+        action_name: str, motive: str = "RUN", message: str = "", **params
+    ) -> str:
         flag_ = ">> {} [{}]".format(motive, action_name)
         if message != "":
             flag_ += " {}".format(message)
@@ -66,14 +69,19 @@ class ToolBox:
         return flag_
 
     @staticmethod
-    def transfer_cookies(api_cookies: Union[List[Dict[str, str]], str]) -> Union[str, List[Dict[str, str]]]:
+    def transfer_cookies(
+        api_cookies: Union[List[Dict[str, str]], str]
+    ) -> Union[str, List[Dict[str, str]]]:
         """
         将 cookies 转换为可携带的 Request Header
         :param api_cookies: api.get_cookies() or cookie_body
         :return:
         """
-        if type(api_cookies) == str:
-            return [{"name": i.split("=")[0], "value": i.split("=")[1]} for i in api_cookies.split("; ")]
+        if type(api_cookies) is str:
+            return [
+                {"name": i.split("=")[0], "value": i.split("=")[1]}
+                for i in api_cookies.split("; ")
+            ]
         return "; ".join([f"{i['name']}={i['value']}" for i in api_cookies])
 
     @staticmethod
@@ -83,7 +91,7 @@ class ToolBox:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
             " Chrome/97.0.4692.71 Safari/537.36",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62"
+            "Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62",
         ]
         return random.choice(user_agents)
 
@@ -112,7 +120,6 @@ class ToolBox:
 
 
 class InitLog:
-
     @staticmethod
     def init_log(**sink_path):
         event_logger_format = (
@@ -127,7 +134,7 @@ class InitLog:
             colorize=True,
             level="DEBUG",
             format=event_logger_format,
-            diagnose=False
+            diagnose=False,
         )
         if sink_path.get("error"):
             logger.add(
@@ -135,7 +142,7 @@ class InitLog:
                 level="ERROR",
                 rotation="1 week",
                 encoding="utf8",
-                diagnose=False
+                diagnose=False,
             )
         if sink_path.get("runtime"):
             logger.add(
@@ -144,7 +151,7 @@ class InitLog:
                 rotation="20 MB",
                 retention="20 days",
                 encoding="utf8",
-                diagnose=False
+                diagnose=False,
             )
         return logger
 
@@ -153,8 +160,7 @@ def _set_ctx() -> ChromeOptions:
     options = ChromeOptions()
     options.add_argument("--log-level=3")
     options.add_argument("--lang=zh-CN")  # 可能仅在 Windows 生效
-    options.add_argument('--disable-dev-shm-usage')
-    # options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     return options
 
 

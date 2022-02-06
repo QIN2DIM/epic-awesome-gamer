@@ -105,10 +105,10 @@ class CoroutineSpeedup:
         if self.max_queue_size == 0:
             return
 
-        # 配置弹性采集功率
-        # self.power = max(os.cpu_count(), power, self.power)
         self.power = self.power if power is None else power
-        self.power = self.max_queue_size if self.power > self.max_queue_size else self.power
+        self.power = (
+            self.max_queue_size if self.power > self.max_queue_size else self.power
+        )
 
         # 任务启动
         task_list = []

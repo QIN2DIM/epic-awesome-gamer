@@ -1,7 +1,12 @@
-name: scaffold_claim
+name: scaffold_test
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "src/**"
 
 jobs:
   setup:
@@ -38,4 +43,4 @@ jobs:
       - name: Scaffold Claim
         run: |
           export LANG=zh_CN.UTF8
-          cd src && python main.py claim
+          cd src && python main.py test

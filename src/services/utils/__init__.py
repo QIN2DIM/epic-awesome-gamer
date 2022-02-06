@@ -5,21 +5,18 @@
 # Description:
 
 from .accelerator.core import CoroutineSpeedup
-from .armor.anti_hcaptcha.core import (
-    ArmorCaptcha,
-    YOLO
-)
-from .armor.anti_hcaptcha.exceptions import (
-    LabelNotFoundException,
-    ChallengeReset
-)
-from .toolbox.toolbox import (
-    ToolBox,
-    InitLog,
-    get_ctx,
-    get_challenge_ctx
-)
+from .armor.anti_hcaptcha.core import ArmorCaptcha, YOLO
+from .armor.anti_hcaptcha.exceptions import LabelNotFoundException, ChallengeReset
+from .toolbox.toolbox import ToolBox, InitLog, get_ctx, get_challenge_ctx
 
-__all__ = ["ToolBox", "InitLog", "ArmorCaptcha", "LabelNotFoundException",
-           'CoroutineSpeedup', "get_ctx", "get_challenge_ctx", "ChallengeReset",
-           "YOLO"]
+__all__ = [
+    "ToolBox",
+    "InitLog",
+    "ArmorCaptcha",
+    "LabelNotFoundException",
+    "CoroutineSpeedup",
+    "get_ctx",
+    "get_challenge_ctx",
+    "ChallengeReset",
+    "YOLO",
+]

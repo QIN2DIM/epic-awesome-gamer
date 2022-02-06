@@ -10,10 +10,7 @@ from selenium.common.exceptions import WebDriverException
 from services.bricklayer import Bricklayer
 from services.explorer import Explorer
 from services.settings import logger
-from services.utils import (
-    CoroutineSpeedup,
-    ToolBox
-)
+from services.utils import CoroutineSpeedup, ToolBox
 
 SILENCE = True
 
@@ -22,7 +19,13 @@ explorer = Explorer(silence=SILENCE)
 
 
 class SpawnBooster(CoroutineSpeedup):
-    def __init__(self, docker, ctx_cookies, power: Optional[int] = None, debug: Optional[bool] = None):
+    def __init__(
+        self,
+        docker,
+        ctx_cookies,
+        power: Optional[int] = None,
+        debug: Optional[bool] = None,
+    ):
         super(SpawnBooster, self).__init__(docker=docker, power=power)
 
         self.debug = False if debug is None else debug
@@ -33,38 +36,45 @@ class SpawnBooster(CoroutineSpeedup):
 
     def control_driver(self, url, *args, **kwargs):
         # 运行前置检查
-        response = explorer.game_manager.is_my_game(ctx_cookies=self.ctx_cookies, page_link=url)
+        response = explorer.game_manager.is_my_game(
+            ctx_cookies=self.ctx_cookies, page_link=url
+        )
 
         # 启动 Bricklayer，获取免费游戏
         if response.get("status") is False:
-            logger.debug(ToolBox.runtime_report(
-                motive="BUILD",
-                action_name=self.action_name,
-                message="🛒 正在为玩家领取免费游戏",
-                progress=f"[{self.progress()}]",
-                url=url
-            ))
+            logger.debug(
+                ToolBox.runtime_report(
+                    motive="BUILD",
+                    action_name=self.action_name,
+                    message="🛒 正在为玩家领取免费游戏",
+                    progress=f"[{self.progress()}]",
+                    url=url,
+                )
+            )
 
             try:
-                bricklayer.get_free_game(page_link=url, ctx_cookies=self.ctx_cookies, refresh=False)
+                bricklayer.get_free_game(
+                    page_link=url, ctx_cookies=self.ctx_cookies, refresh=False
+                )
             except WebDriverException as e:
-                # self.done.put_nowait(url)
                 if self.debug:
                     logger.exception(e)
-                logger.error(ToolBox.runtime_report(
-                    motive="QUIT",
-                    action_name="SpawnBooster",
-                    message="未知错误",
-                    progress=f"[{self.progress()}]",
-                    url=url
-                ))
+                logger.error(
+                    ToolBox.runtime_report(
+                        motive="QUIT",
+                        action_name="SpawnBooster",
+                        message="未知错误",
+                        progress=f"[{self.progress()}]",
+                        url=url,
+                    )
+                )
 
     def killer(self):
-        logger.success(ToolBox.runtime_report(
-            motive="OVER",
-            action_name=self.action_name,
-            message="✔ 任务队列已清空"
-        ))
+        logger.success(
+            ToolBox.runtime_report(
+                motive="OVER", action_name=self.action_name, message="✔ 任务队列已清空"
+            )
+        )
 
 
 def join(trace: bool = False):
@@ -74,11 +84,11 @@ def join(trace: bool = False):
     :param trace:
     :return:
     """
-    logger.info(ToolBox.runtime_report(
-        motive="STARTUP",
-        action_name="ScaffoldGet",
-        message="🔨 正在为玩家领取免费游戏"
-    ))
+    logger.info(
+        ToolBox.runtime_report(
+            motive="STARTUP", action_name="ScaffoldGet", message="🔨 正在为玩家领取免费游戏"
+        )
+    )
 
     """
     [🔨] 读取有效的身份令牌
@@ -109,17 +119,17 @@ def join(trace: bool = False):
 
 def special(special_link: str):
     if not special_link.startswith("https://www.epicgames.com/store/zh-CN"):
-        logger.critical(ToolBox.runtime_report(
-            motive="STARTUP",
-            action_name="ScaffoldGet",
-            message="链接不合法"
-        ))
+        logger.critical(
+            ToolBox.runtime_report(
+                motive="STARTUP", action_name="ScaffoldGet", message="链接不合法"
+            )
+        )
         return
-    logger.info(ToolBox.runtime_report(
-        motive="STARTUP",
-        action_name="ScaffoldGet",
-        message="🎯 正在为玩家领取指定游戏"
-    ))
+    logger.info(
+        ToolBox.runtime_report(
+            motive="STARTUP", action_name="ScaffoldGet", message="🎯 正在为玩家领取指定游戏"
+        )
+    )
 
     if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
         return
@@ -127,7 +137,5 @@ def special(special_link: str):
     ctx_cookies = bricklayer.cookie_manager.load_ctx_cookies()
 
     bricklayer.get_free_game(
-        page_link=special_link,
-        ctx_cookies=ctx_cookies,
-        challenge=True
+        page_link=special_link, ctx_cookies=ctx_cookies, challenge=True
     )

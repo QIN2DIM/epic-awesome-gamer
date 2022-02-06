@@ -16,14 +16,20 @@ from services.utils import ToolBox
 ================================================ ʕ•ﻌ•ʔ ================================================
 [√]核心配置 [※]边缘参数
 """
-config_ = ToolBox.check_sample_yaml(path_output=join(dirname(__file__), "config.yaml"),
-                                    path_sample=join(dirname(__file__), "config-sample.yaml"))
+config_ = ToolBox.check_sample_yaml(
+    path_output=join(dirname(__file__), "config.yaml"),
+    path_sample=join(dirname(__file__), "config-sample.yaml"),
+)
 
 # --------------------------------
 # [√] 账号信息
 # --------------------------------
 USER_EMAIL: str = config_.get("EMAIL", "")
 USER_PASSWORD: str = config_.get("PASSWORD", "")
+# --------------------------------
+# [※] 本地化语言设置
+# --------------------------------
+LOCALE_LANG: str = config_.get("LOCALE_LANG", "")
 
 # --------------------------------
 # [※] 定任务配置
