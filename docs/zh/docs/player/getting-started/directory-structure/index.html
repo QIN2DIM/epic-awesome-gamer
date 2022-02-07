@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="目录结构 # New Project Scaffolding # . ├── examples ├── src │ ├── apis │ ├── database │ ├── model │ ├── services │ ├── config.py │ ├── config.yaml │ ├── config-sample.yaml │ └── main.py └── requirements.txt Diretory Structure Explained # examples # 这里">
+<meta name="description" content="目录结构 # New Project Scaffolding # . ├── examples ├── src │ ├── apis │ ├── database │ ├── model │ ├── services │ ├── config.yaml │ ├── config-sample.yaml │ └── main.py └── requirements.txt Diretory Structure Explained # examples # 这里存放一些精">
 <meta name="theme-color" content="#FFFFFF">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="目录结构" />
 <meta property="og:description" content="" />
@@ -15,7 +15,7 @@
 <link rel="icon" href="/epic-awesome-gamer/favicon.png" type="image/x-icon">
 <link rel="stylesheet" href="/epic-awesome-gamer/book.min.31cccedbc2b6812eb37d0d37cdf4cb30cb89bd41421d3d51da624e11baccfe92.css" integrity="sha256-MczO28K2gS6zfQ03zfTLMMuJvUFCHT1R2mJOEbrM/pI=" crossorigin="anonymous">
   <script defer src="/epic-awesome-gamer/flexsearch.min.js"></script>
-  <script defer src="/epic-awesome-gamer/zh.search.min.37bd0acc34a0592786870ee114abc900e147d33f33ad53fa82ad3f1b97eff5da.js" integrity="sha256-N70KzDSgWSeGhw7hFKvJAOFH0z8zrVP6gq0/G5fv9do=" crossorigin="anonymous"></script>
+  <script defer src="/epic-awesome-gamer/zh.search.min.dc3a34b2af8f7beecf13a7a628bcfaab491c14d802614fe5689f7aa1e68a5ea0.js" integrity="sha256-3Do0sq&#43;Pe&#43;7PE6emKLz6q0kcFNgCYU/laJ96oeaKXqA=" crossorigin="anonymous"></script>
 
   <script defer src="/epic-awesome-gamer/sw.min.fce957f404884887d3e2471bff9b46e9879d096ba64fd4ac8f550d0dd48d105a.js" integrity="sha256-/OlX9ASISIfT4kcb/5tG6YedCWumT9Ssj1UNDdSNEFo=" crossorigin="anonymous"></script>
 <link rel="alternate" type="application/rss+xml" href="https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/directory-structure/index.xml" title="Epic 免费人" />
@@ -512,7 +512,6 @@ https://github.com/alex-shpak/hugo-book
 │   ├── database
 │   ├── model
 │   ├── services
-│   ├── config.py
 │   ├── config.yaml
 │   ├── config-sample.yaml
 │   └── main.py
@@ -550,10 +549,12 @@ https://github.com/alex-shpak/hugo-book
 ├── bricklayer
 │   ├── __init__.py
 │   ├── core.py
+│   ├── bricklayer.py
 │   └── exceptions.py
 ├── explorer
 │   ├── __init__.py
 │   ├── core.py
+│   ├── explorer.py
 │   └── exceptions.py
 ├── utils
 │   ├── accelerator
@@ -567,41 +568,39 @@ https://github.com/alex-shpak/hugo-book
 </code></pre><ul>
 <li>
 <p>bricklayer</p>
-<p>采集器逻辑层代码。<code>core.py</code> 存放核心业务代码，包含采集器整个周期的行为函数；<code>actions.py</code> 维护一个  <code>__entropy__</code> 本地采集队列，存放着采集实例的上下文摘要信息；<code>operator.py</code> 存放着一个接口解释器，输入 <code>atomic_context</code> ，输出一个特征完整的采集实例；<code>exceptions.py</code> 存放采集器运行时常见的报错类型。</p>
+<p>搬瓦工核心业务代码，游戏认领。</p>
 </li>
 <li>
 <p>explorer</p>
-<p>订阅解耦器，核心功能是清楚失效订阅。</p>
+<p>探索者核心业务代码，游戏发现。</p>
 </li>
 <li>
 <p>utils</p>
-<p>可移植模组。</p>
+<p>可移植的 Toolkit 模组。</p>
 </li>
 <li>
 <p>deploy.py</p>
-<p>系统任务的调度中心。</p>
+<p>系统级的任务调度中心。</p>
 </li>
 <li>
 <p>scaffold.py</p>
-<p>脚手架源码。</p>
+<p>系统脚手架。</p>
 </li>
 <li>
 <p>settings.py</p>
-<p>系统设置。设定全局变量用于精确的绝对路径定位，初始化系统日志，引用 <code>src/config.py</code> 中的配置信息。</p>
+<p>系统核心设置。初始化日志中心，转义<code>config.yaml</code> 的全局变量，目录定位等。</p>
 </li>
 </ul>
 <h3 id="srcconfigyaml">
   src/config.yaml
   <a class="anchor" href="#srcconfigyaml">#</a>
 </h3>
-<p>项目配置文件。在项目初始化后，从 <code>src/config_sample.yaml</code> 拷贝生成。 <code>src/config.py</code> 的功能是读取配置信息并转义成 Python 全局变量。</p>
-<p>关于配置文件的具体介绍可见「
-  <a href="/epic-awesome-gamer/zh/docs/player/getting-started/configuration/">CONFIGURATION</a>」。</p>
+<p>项目配置文件。在项目初始化后，从 <code>src/config_sample.yaml</code> 拷贝生成。</p>
 <h3 id="srcmainpy">
   src/main.py
   <a class="anchor" href="#srcmainpy">#</a>
 </h3>
-<p>脚手架入口文件，作为运行根辐射系统指令，在脚手架未编译前，作为系统指令的统一入口。</p>
+<p>脚手架入口文件，作为运行根辐射系统指令。</p>
 </article>
  
       

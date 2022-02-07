@@ -42,5 +42,4 @@ jobs:
       # 🦽哟！这可不兴嫖啊宝友！
       - name: Scaffold Test
         run: |
-          export LANG=zh_CN.UTF8
           cd src && python main.py test
