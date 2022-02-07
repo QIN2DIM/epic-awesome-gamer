@@ -55,7 +55,7 @@ class ClaimerScheduler:
                     ToolBox.runtime_report(
                         motive="SKIP",
                         action_name=self.action_name,
-                        message=f"🛴 当前玩家暂无待认领的周免游戏。",
+                        message="🛴 当前玩家暂无待认领的周免游戏。",
                     )
                 )
                 return
@@ -83,7 +83,7 @@ class ClaimerScheduler:
                 inline_docker.append(_runtime)
 
         # 更新身份令牌
-        if not self.bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
+        if not self.bricklayer.cookie_manager.refresh_ctx_cookies():
             return
         ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
 

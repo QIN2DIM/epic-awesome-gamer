@@ -4,6 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
+from typing import Optional, List
 
 import gevent
 from gevent.queue import Queue
@@ -12,7 +13,7 @@ from gevent.queue import Queue
 class CoroutineSpeedup:
     """轻量化的协程控件"""
 
-    def __init__(self, docker=None, power: int = None):
+    def __init__(self, docker: Optional[List] = None, power: Optional[int] = None):
         # 任务容器：queue
         self.worker, self.done = Queue(), Queue()
 
@@ -51,7 +52,7 @@ class CoroutineSpeedup:
         :param task:
         :return:
         """
-        raise ImportError
+        raise NotImplementedError
 
     def preload(self):
         """
@@ -59,7 +60,6 @@ class CoroutineSpeedup:
 
         :return:
         """
-        pass
 
     def overload(self):
         """
@@ -89,9 +89,8 @@ class CoroutineSpeedup:
 
         :return:
         """
-        pass
 
-    def go(self, power: int = None, *args, **kwargs):
+    def go(self, *args, **kwargs):
         """
         框架接口
 
@@ -105,6 +104,8 @@ class CoroutineSpeedup:
         if self.max_queue_size == 0:
             return
 
+        # 粘性功率
+        power = kwargs.get("power")
         self.power = self.power if power is None else power
         self.power = (
             self.max_queue_size if self.power > self.max_queue_size else self.power

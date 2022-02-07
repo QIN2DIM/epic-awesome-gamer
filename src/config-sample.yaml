@@ -9,6 +9,21 @@ EMAIL: ""
 PASSWORD: ""
 
 # ===================================================
+# [√※] 通信鸽
+# ---------------------------------------------------
+# 一些主流的通信接口，用于反射运行报告
+# Docs https://github.com/caronc/apprise
+# ===================================================
+message_pusher_settings:
+  enable: true
+  pusher:
+    PUSHER_EMAIL: ""
+    PUSHER_DINGTALK: ""
+    PUSHER_TELEGRAM: ""
+    PUSHER_SERVERCHAN: ""
+    PUSHER_DISCORD: ""
+
+# ===================================================
 # [※] LOCALIZED LANGUAGE
 # ---------------------------------------------------
 #  https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
@@ -35,18 +50,3 @@ scheduler:
   bricklayer:
     enable: true
     interval: 86400
-
-# ===================================================
-# [√※] 通信鸽
-# ---------------------------------------------------
-# 一些主流的通信接口，用于反射运行报告
-# Docs https://github.com/caronc/apprise
-# ===================================================
-message_pusher_settings:
-  enable: true
-  pusher:
-    PUSHER_EMAIL: ""
-    PUSHER_DINGTALK: ""
-    PUSHER_TELEGRAM: ""
-    PUSHER_SERVERCHAN: ""
-    PUSHER_DISCORD: ""

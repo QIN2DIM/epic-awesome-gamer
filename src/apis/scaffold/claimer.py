@@ -9,7 +9,7 @@ SILENCE = True
 
 
 def deploy():
-    pass
+    raise NotImplementedError
 
 
 def run():

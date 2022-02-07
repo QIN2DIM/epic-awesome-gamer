@@ -1,7 +1,6 @@
 import os
 import re
 import time
-import urllib.request
 
 import cv2
 import numpy as np
@@ -347,7 +346,9 @@ class ArmorCaptcha:
         _workspace = self._init_workspace()
         for alias, url in self.alias2url.items():
             path_challenge_img = os.path.join(_workspace, f"{alias}.png")
-            urllib.request.urlretrieve(url, path_challenge_img)
+            stream = requests.get(url).content
+            with open(path_challenge_img, "wb") as f:
+                f.write(stream)
 
     def challenge(self, ctx: Chrome, model: YOLO, confidence=0.39, nms_thresh=0.7):
         """
@@ -397,13 +398,13 @@ class ArmorCaptcha:
 
         self.log(message="提交挑战")
 
-    def challenge_success(self, ctx: Chrome, init: bool = True):
+    def challenge_success(self, ctx: Chrome, init: bool = True, **kwargs):
         """
         自定义的人机挑战通过逻辑
 
         :return:
         """
-        raise ImportError
+        raise NotImplementedError
 
     def anti_captcha(self):
         """
@@ -424,4 +425,3 @@ class ArmorCaptcha:
             而 `recaptcha vc2` 之类的人机挑战就说不准了，可能程序一晚上都在“循环”。
         :return:
         """
-        raise ImportError

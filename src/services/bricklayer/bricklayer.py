@@ -104,30 +104,23 @@ class CookieManager(AwesomeFreeMan):
             return True
         return False
 
-    def refresh_ctx_cookies(
-        self,
-        verify: bool = True,
-        silence: bool = True,
-    ) -> Optional[bool]:
+    def refresh_ctx_cookies(self, silence: bool = True) -> Optional[bool]:
         """
         更新上下文身份信息
 
         :param silence:
-        :param verify:
         :return:
         """
-
         # {{< Check Context Cookie Validity >}}
-        if verify:
-            if self.is_available_cookie():
-                logger.success(
-                    ToolBox.runtime_report(
-                        motive="CHECK",
-                        action_name=self.action_name,
-                        message="The identity token is valid.",
-                    )
+        if self.is_available_cookie():
+            logger.success(
+                ToolBox.runtime_report(
+                    motive="CHECK",
+                    action_name=self.action_name,
+                    message="The identity token is valid.",
                 )
-                return True
+            )
+            return True
         # {{< Done >}}
 
         # {{< Insert Challenger Context >}}
@@ -148,7 +141,7 @@ class CookieManager(AwesomeFreeMan):
                         break
 
                     # Winter is coming, so hear me roar!
-                    response = self._armor.anti_hcaptcha(ctx)
+                    response = self._armor.anti_hcaptcha(ctx, door="login")
                     if response:
                         break
             else:
@@ -219,7 +212,7 @@ class Bricklayer(AwesomeFreeMan):
             ctx_cookies=ctx_cookies
         ):
             if refresh:
-                self.cookie_manager.refresh_ctx_cookies(verify=False)
+                self.cookie_manager.refresh_ctx_cookies()
                 ctx_cookies = self.cookie_manager.load_ctx_cookies()
             else:
                 logger.error(

@@ -34,7 +34,9 @@ class SpawnBooster(CoroutineSpeedup):
 
         self.ctx_cookies = ctx_cookies
 
-    def control_driver(self, url, *args, **kwargs):
+    def control_driver(self, task, *args, **kwargs):
+        url = task
+
         # 运行前置检查
         response = explorer.game_manager.is_my_game(
             ctx_cookies=self.ctx_cookies, page_link=url
@@ -95,7 +97,7 @@ def join(trace: bool = False):
     _______________
     - 必要时激活人机挑战
     """
-    if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
+    if not bricklayer.cookie_manager.refresh_ctx_cookies():
         return
     ctx_cookies = bricklayer.cookie_manager.load_ctx_cookies()
 
@@ -131,7 +133,7 @@ def special(special_link: str):
         )
     )
 
-    if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
+    if not bricklayer.cookie_manager.refresh_ctx_cookies():
         return
 
     ctx_cookies = bricklayer.cookie_manager.load_ctx_cookies()

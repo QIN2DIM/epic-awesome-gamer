@@ -5,9 +5,9 @@
 # Description:
 import os.path
 import time
-import urllib.request
 from typing import List, Optional, NoReturn
 
+import requests
 from selenium.common.exceptions import (
     TimeoutException,
     ElementNotVisibleException,
@@ -21,8 +21,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
-from config import USER_EMAIL, USER_PASSWORD
-from services.settings import logger, DIR_COOKIES, DIR_CHALLENGE, DIR_MODEL
+from services.settings import (
+    logger,
+    DIR_COOKIES,
+    DIR_CHALLENGE,
+    DIR_MODEL,
+    USER_EMAIL,
+    USER_PASSWORD,
+)
 from services.utils import (
     YOLO,
     ToolBox,
@@ -114,7 +120,9 @@ class ArmorUtils(ArmorCaptcha):
 
             def control_driver(self, task, *args, **kwargs):
                 path_challenge_img, url = task
-                urllib.request.urlretrieve(url, path_challenge_img)
+                stream = requests.get(url).content
+                with open(path_challenge_img, "wb") as f:
+                    f.write(stream)
 
         self.log(message="下载挑战图片")
         workspace_ = self._init_workspace()
@@ -129,7 +137,7 @@ class ArmorUtils(ArmorCaptcha):
         self.runtime_workspace = workspace_
 
     def challenge_success(
-        self, ctx: Chrome, init: bool = True, door: str = "login"
+        self, ctx: Chrome, init: bool = True, **kwargs
     ) -> Optional[bool]:
         """
         判断挑战是否成功的复杂逻辑
@@ -144,7 +152,6 @@ class ArmorUtils(ArmorCaptcha):
         - 通过验证，弹出 2FA 双重认证
           无法处理，任务结束
 
-        :param door:
         :param ctx: 挑战者驱动上下文
         :param init: 是否为初次挑战
         :return:
@@ -159,6 +166,8 @@ class ArmorUtils(ArmorCaptcha):
             else:
                 self.log("挑战继续")
                 return False
+
+        door: str = kwargs.get("door", "login")
 
         flag = ctx.current_url
 
@@ -208,19 +217,11 @@ class ArmorUtils(ArmorCaptcha):
 
         > ps:该篇文章中的部分内容已过时，现在 hcaptcha challenge 远没有作者说的那么容易应付。
 
-        :param door:
+        :param door: [login free]
         :param ctx:
         :return:
         """
-        iframe_mapping = {  # noqa
-            "login": "talon_frame_login_prod",
-            "free": "talon_frame_checkout_free_prod",
-        }
-        """
-        [👻] 进入人机挑战关卡
-        _______________
-        """
-
+        # [👻] 进入人机挑战关卡
         ctx.switch_to.frame(
             WebDriverWait(ctx, 5, ignored_exceptions=ElementNotVisibleException).until(
                 EC.presence_of_element_located(
@@ -229,20 +230,14 @@ class ArmorUtils(ArmorCaptcha):
             )
         )
 
-        """
-        [👻] 获取挑战图片
-        _______________
-        多轮验证标签不会改变
-        """
+        # [👻] 获取挑战图片
+        # 多轮验证标签不会改变
         self.get_label(ctx)
         if self.tactical_retreat():
             ctx.switch_to.default_content()
             return False
 
-        """
-        [👻] 人机挑战！
-        _______________
-        """
+        # [👻] 人机挑战！
         try:
             for index in range(2):
                 self.mark_samples(ctx)
@@ -251,7 +246,7 @@ class ArmorUtils(ArmorCaptcha):
 
                 self.challenge(ctx, model=self.model)
 
-                result = self.challenge_success(ctx, not bool(index), door)
+                result = self.challenge_success(ctx, init=not bool(index), door=door)
 
                 # 仅一轮测试就通过
                 if index == 0 and result:
@@ -262,7 +257,7 @@ class ArmorUtils(ArmorCaptcha):
                     return False
         except ChallengeReset:
             ctx.switch_to.default_content()
-            return self.anti_hcaptcha(ctx)
+            return self.anti_hcaptcha(ctx, door=door)
         else:
             # 回到主线剧情
             ctx.switch_to.default_content()
@@ -275,9 +270,6 @@ class AssertUtils:
     ASSERT_OBJECT_EXCEPTION = "无效的断言对象"
     GAME_OK = "游戏在库"
     GAME_FETCH = "游戏未在库/可获取"
-
-    def __init__(self):
-        pass
 
     @staticmethod
     def wrong_driver(ctx, msg: str):

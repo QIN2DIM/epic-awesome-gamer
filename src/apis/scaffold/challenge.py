@@ -20,7 +20,7 @@ def run():
             motive="STARTUP", action_name="ScaffoldChallenge", message="正在更新身份令牌..."
         )
     )
-    if not bricklayer.cookie_manager.refresh_ctx_cookies(verify=True):
+    if not bricklayer.cookie_manager.refresh_ctx_cookies():
         return
 
     """

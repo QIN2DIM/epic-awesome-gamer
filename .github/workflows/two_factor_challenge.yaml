@@ -1,24 +1,17 @@
-name: scaffold_test
+name: 2FA_challenge
 
 on:
   workflow_dispatch:
   push:
     branches:
       - "main"
-    paths:
-      - "src/**"
 
 jobs:
   setup:
     runs-on: ubuntu-latest
     env:
-      EPIC_EMAIL: ${{ secrets.EPIC_EMAIL }}
-      EPIC_PASSWORD: ${{ secrets.EPIC_PASSWORD }}
-      PUSHER_EMAIL: ${{ secrets.PUSHER_EMAIL }}
-      PUSHER_DINGTALK: ${{ secrets.PUSHER_DINGTALK }}
-      PUSHER_TELEGRAM: ${{ secrets.PUSHER_TELEGRAM }}
-      PUSHER_SERVERCHAN: ${{ secrets.PUSHER_SERVERCHAN }}
-      PUSHER_DISCORD: ${{ secrets.DISCORD }}
+      EPIC_EMAIL: ${{ secrets.ASSERT_2FA_EMAIL }}
+      EPIC_PASSWORD: ${{ secrets.ASSERT_2FA_PASSWORD }}
     steps:
       - uses: actions/checkout@v2
 
@@ -39,8 +32,7 @@ jobs:
         run: |
           cd src && python main.py install
 
-      # 🦽哟！这可不兴嫖啊宝友！
-      - name: Scaffold Test
+      - name: 2FA Challenge
         run: |
           export LANG=zh_CN.UTF8
-          cd src && python main.py test
+          cd src && python main.py challenge

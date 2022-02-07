@@ -242,5 +242,5 @@ class Explorer(AwesomeFreeGirl):
                     )
                     if not response["status"]:
                         _update_limited_free_game_objs(element)
-        finally:
-            return limited_free_game_objs
+
+        return limited_free_game_objs

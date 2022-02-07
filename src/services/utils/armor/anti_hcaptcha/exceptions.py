@@ -4,9 +4,10 @@ from typing import Optional, Sequence
 class ArmorException(Exception):
     def __init__(
         self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None
-    ) -> None:
+    ):
         self.msg = msg
         self.stacktrace = stacktrace
+        super(ArmorException, self).__init__()
 
     def __str__(self) -> str:
         exception_msg = "Message: {}\n".format(self.msg)
