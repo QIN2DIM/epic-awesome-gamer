@@ -7,7 +7,7 @@ from typing import Optional
 
 from gevent import monkey
 
-monkey.patch_all(subprocess=False, thread=False, socket=False)
+monkey.patch_time()
 
 from apis.scaffold import get, challenge, install, claimer
 
