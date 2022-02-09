@@ -21,16 +21,20 @@ from .exceptions import DiscoveryTimeoutException
 
 
 class AwesomeFreeGirl:
+    """游戏商店探索者 获取免费游戏数据以及促销信息"""
+
+    # 平台对象参数
+    URL_FREE_GAMES = "https://www.epicgames.com/store/zh-CN/free-games"
+    URL_STORE_PREFIX = "https://www.epicgames.com/store/zh-CN/browse?"
+    URL_STORE_FREE = (
+        f"{URL_STORE_PREFIX}sortBy=releaseDate&sortDir=DESC&priceTier=tierFree&count=40"
+    )
+    URL_HOME = "https://www.epicgames.com"
+    URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=zh-CN"
+    URL_PRODUCT_PAGE = "https://www.epicgames.com/store/zh-CN/p/"
+
     def __init__(self, silence: bool = None):
         self.silence = True if silence is None else silence
-
-        # 平台对象参数
-        self.URL_FREE_GAMES = "https://www.epicgames.com/store/zh-CN/free-games"
-        self.URL_STORE_PREFIX = "https://www.epicgames.com/store/zh-CN/browse?"
-        self.URL_STORE_FREE = f"{self.URL_STORE_PREFIX}sortBy=releaseDate&sortDir=DESC&priceTier=tierFree&count=40"
-        self.URL_HOME = "https://www.epicgames.com"
-        self.URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=zh-CN"
-        self.URL_PRODUCT_PAGE = "https://www.epicgames.com/store/zh-CN/p/"
 
         # 驱动参数
         self.action_name = "AwesomeFreeGirl"
@@ -44,6 +48,7 @@ class AwesomeFreeGirl:
         self._init_workspace()
 
     def _init_workspace(self) -> None:
+        """初始化工作目录 缓存游戏商店数据"""
         self.runtime_workspace = (
             "." if not os.path.exists(DIR_EXPLORER) else DIR_EXPLORER
         )
@@ -54,6 +59,8 @@ class AwesomeFreeGirl:
     def _discovery_free_games(
         self, ctx: Union[ContextManager, Chrome], ctx_cookies: List[dict]
     ) -> None:
+        """发现玩家所属地区可视的常驻免费游戏数据"""
+
         # 重载玩家令牌
         if ctx_cookies:
             ctx.get(self.URL_STORE_FREE)

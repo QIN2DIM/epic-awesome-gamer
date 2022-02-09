@@ -12,13 +12,8 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     env:
-      EPIC_EMAIL: ${{ secrets.EPIC_EMAIL }}
-      EPIC_PASSWORD: ${{ secrets.EPIC_PASSWORD }}
-      PUSHER_EMAIL: ${{ secrets.PUSHER_EMAIL }}
-      PUSHER_DINGTALK: ${{ secrets.PUSHER_DINGTALK }}
-      PUSHER_TELEGRAM: ${{ secrets.PUSHER_TELEGRAM }}
-      PUSHER_SERVERCHAN: ${{ secrets.PUSHER_SERVERCHAN }}
-      PUSHER_DISCORD: ${{ secrets.DISCORD }}
+      EPΙC_EMAΙL: ${{ secrets.EPΙC_EMAΙL }}
+      EPΙC_PASSWΟRD: ${{ secrets.EPΙC_PASSWΟRD }}
     steps:
       - uses: actions/checkout@v2
 

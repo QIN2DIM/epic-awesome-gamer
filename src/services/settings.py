@@ -73,9 +73,9 @@ PUSHER = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
 # [※] 补全语法模板
 # --------------------------------
 if not USER_EMAIL:
-    USER_EMAIL = os.getenv("EPIC_EMAIL", "")
+    USER_EMAIL = os.getenv("EPΙC_EMAΙL", "")
 if not USER_PASSWORD:
-    USER_PASSWORD = os.getenv("EPIC_PASSWORD", "")
+    USER_PASSWORD = os.getenv("EPΙC_PASSWΟRD", "")
 
 try:
     for server in PUSHER:
@@ -94,7 +94,7 @@ if not any(PUSHER.values()):
     MESSAGE_PUSHER_SETTINGS["enable"] = False
 
 # ---------------------------------------------------
-# TODO [√]工程根目录定位
+# [√]工程根目录定位
 # ---------------------------------------------------
 # 系统根目录
 PROJECT_ROOT = dirname(dirname(__file__))
@@ -114,11 +114,9 @@ DIR_CHALLENGE = join(DIR_TEMP_CACHE, "_challenge")
 # 服务日志目录
 DIR_LOG = join(PROJECT_DATABASE, "logs")
 # ---------------------------------------------------
-# TODO [√]服务器日志配置
+# [√]服务器日志配置
 # ---------------------------------------------------
-from services.utils import InitLog
-
-logger = InitLog.init_log(
+logger = ToolBox.init_log(
     error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG, "runtime.log")
 )
 

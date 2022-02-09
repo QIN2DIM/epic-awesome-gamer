@@ -32,8 +32,12 @@ class CoroutineSpeedup:
 
         :return:
         """
-        p = self.max_queue_size - self.worker.qsize()
-        return "__pending__" if p < self.power else f"{p}/{self.max_queue_size}"
+        _progress = self.max_queue_size - self.worker.qsize()
+        return (
+            "__pending__"
+            if _progress < self.power
+            else f"{_progress}/{self.max_queue_size}"
+        )
 
     def launcher(self, *args, **kwargs):
         """

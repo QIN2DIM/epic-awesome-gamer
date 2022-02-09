@@ -3,6 +3,8 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import random
+
 _THE_PROPHECY = """
 # ====================================================================================================
 # Ithlinne's Prophecy
@@ -17,7 +19,5 @@ _THE_PROPHECY = """
 # first the earth will flow with the blood of Aen Seidhe, the Blood of Elves. 
 # ====================================================================================================
 """
-import random
-
 if random.uniform(0, 1) > 0.911:
     print(_THE_PROPHECY)

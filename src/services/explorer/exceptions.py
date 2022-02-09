@@ -12,7 +12,7 @@ class Explorer(Exception):
     ):
         self.msg = msg
         self.stacktrace = stacktrace
-        super(Explorer, self).__init__()
+        super().__init__()
 
     def __str__(self) -> str:
         exception_msg = "Message: {}\n".format(self.msg)

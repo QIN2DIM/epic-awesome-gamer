@@ -7,19 +7,26 @@ import os.path
 import random
 import shutil
 import sys
-from datetime import datetime
-from typing import List, Union, Dict, Optional
+from datetime import datetime, timedelta
+from typing import List, Union, Dict, Optional, Any
 
 import pytz
+import undetected_chromedriver as uc
 import yaml
 from loguru import logger
+from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 
 class ToolBox:
+    """可移植的工具箱"""
+
     @staticmethod
-    def check_sample_yaml(path_output: str, path_sample: str) -> dict:
+    def check_sample_yaml(
+        path_output: str, path_sample: str
+    ) -> Optional[Dict[str, Any]]:
         """
         检查模板文件是否存在，检查配置文件是否存在，读取系统配置返回
 
@@ -60,9 +67,10 @@ class ToolBox:
     def runtime_report(
         action_name: str, motive: str = "RUN", message: str = "", **params
     ) -> str:
-        flag_ = ">> {} [{}]".format(motive, action_name)
+        """格式化输出"""
+        flag_ = f">> {motive} [{action_name}]"
         if message != "":
-            flag_ += " {}".format(message)
+            flag_ += f" {message}"
         if params:
             flag_ += " - "
             flag_ += " ".join([f"{i[0]}={i[1]}" for i in params.items()])
@@ -77,7 +85,7 @@ class ToolBox:
         :param api_cookies: api.get_cookies() or cookie_body
         :return:
         """
-        if type(api_cookies) is str:
+        if isinstance(api_cookies, str):
             return [
                 {"name": i.split("=")[0], "value": i.split("=")[1]}
                 for i in api_cookies.split("; ")
@@ -96,32 +104,45 @@ class ToolBox:
         return random.choice(user_agents)
 
     @staticmethod
-    def date_format_now(mode="log", tz="Asia/Shanghai") -> str:
+    def date_format_now(
+        mode: Optional[str] = None,
+        zone: Optional[str] = None,
+        threshold: Optional[int] = None,
+    ) -> str:
         """
         输出格式化日期
-        :param tz: 时区
-        :param mode: with [file log]
+        :param threshold:
+        :param zone: 时区
+        :param mode: with [file log threshold]
             - file：符合文件标准　yyyy-mm-dd
             - log：人类可读 yyyy-mm-dd HH:MM:SS
         :return:
         """
-        timezone = pytz.timezone(tz)
+        mode = "log" if mode is None else mode
+        zone = "Asia/Shanghai" if zone is None else zone
+        threshold = 30 if threshold is None else threshold
+        timezone = pytz.timezone(zone)
+
+        format_date: str = ""
         if mode == "file":
-            return str(datetime.now(timezone)).split(" ")[0]
-        if mode == "log":
-            return str(datetime.now(timezone)).split(".")[0]
+            format_date = str(datetime.now(timezone)).split(" ", maxsplit=1)[0]
+        elif mode == "log":
+            format_date = str(datetime.now(timezone)).split(".", maxsplit=1)[0]
+        elif mode == "threshold":
+            format_date = str(datetime.now(timezone) + timedelta(seconds=threshold))
+        return format_date
 
     @staticmethod
     def secret_email(email: str, domain: Optional[bool] = None) -> str:
+        """去除敏感数据"""
         domain = True if domain is None else domain
         prefix, suffix = email.split("@")
         secrets_prefix = f"{prefix[0]}***{prefix[-1]}"
         return f"{secrets_prefix}@{suffix}" if domain else secrets_prefix
 
-
-class InitLog:
     @staticmethod
     def init_log(**sink_path):
+        """初始化 loguru 日志信息"""
         event_logger_format = (
             "<g>{time:YYYY-MM-DD HH:mm:ss}</g> | "
             "<lvl>{level}</lvl> - "
@@ -157,6 +178,7 @@ class InitLog:
 
 
 def _set_ctx() -> ChromeOptions:
+    """统一的 ChromeOptions 启动参数"""
     options = ChromeOptions()
     options.add_argument("--log-level=3")
     options.add_argument("--lang=zh-CN")  # 可能仅在 Windows 生效
@@ -165,8 +187,7 @@ def _set_ctx() -> ChromeOptions:
 
 
 def get_ctx(silence: Optional[bool] = None):
-    from selenium.webdriver.chrome.service import Service
-    from selenium.webdriver import Chrome
+    """普通的 Selenium 驱动上下文，用于常规并发任务"""
 
     silence = True if silence is None or "linux" in sys.platform else silence
 
@@ -175,16 +196,18 @@ def get_ctx(silence: Optional[bool] = None):
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-software-rasterizer")
-    options.add_argument('--user-agent="{}"'.format(ToolBox.fake_user_agent()))
+    options.add_argument(f'--user-agent="{ToolBox.fake_user_agent()}"')
+
     # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
     service = Service(ChromeDriverManager(log_level=0).install())
     return Chrome(options=options, service=service)  # noqa
 
 
 def get_challenge_ctx(silence: Optional[bool] = None):
-    from undetected_chromedriver import Chrome
+    """挑战者驱动 用于处理人机挑战"""
 
     silence = True if silence is None or "linux" in sys.platform else silence
 
+    # 控制挑战者驱动版本，避免过于超前
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
-    return Chrome(options=_set_ctx(), headless=silence, version_main=97)
+    return uc.Chrome(options=_set_ctx(), headless=silence, version_main=98)

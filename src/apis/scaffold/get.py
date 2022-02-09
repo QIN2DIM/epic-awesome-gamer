@@ -19,6 +19,8 @@ explorer = Explorer(silence=SILENCE)
 
 
 class SpawnBooster(CoroutineSpeedup):
+    """协程助推器 并发执行片段代码"""
+
     def __init__(
         self,
         docker,
@@ -26,7 +28,7 @@ class SpawnBooster(CoroutineSpeedup):
         power: Optional[int] = None,
         debug: Optional[bool] = None,
     ):
-        super(SpawnBooster, self).__init__(docker=docker, power=power)
+        super().__init__(docker=docker, power=power)
 
         self.debug = False if debug is None else debug
         self.power = min(4, 4 if power is None else power)
@@ -58,9 +60,9 @@ class SpawnBooster(CoroutineSpeedup):
                 bricklayer.get_free_game(
                     page_link=url, ctx_cookies=self.ctx_cookies, refresh=False
                 )
-            except WebDriverException as e:
+            except WebDriverException as error:
                 if self.debug:
-                    logger.exception(e)
+                    logger.exception(error)
                 logger.error(
                     ToolBox.runtime_report(
                         motive="QUIT",
@@ -92,34 +94,30 @@ def join(trace: bool = False):
         )
     )
 
-    """
-    [🔨] 读取有效的身份令牌
-    _______________
-    - 必要时激活人机挑战
-    """
+    # [🔨] 刷新上下文身份令牌
     if not bricklayer.cookie_manager.refresh_ctx_cookies():
         return
+
+    # [🔨] 读取有效的身份令牌
     ctx_cookies = bricklayer.cookie_manager.load_ctx_cookies()
 
-    """
-    [🔨] 更新商城的免费游戏
-    _______________
-    """
+    # [🔨] 缓存免费商城数据
     urls = explorer.game_manager.load_game_objs(only_url=True)
     if not urls:
         urls = explorer.discovery_free_games(ctx_cookies=ctx_cookies, cover=True)
 
-    """
-    [🔨] 启动 Bricklayer，获取免费游戏
-    _______________
-    - 启动一轮协程任务，执行效率受限于本地网络带宽，若首轮报错频发请手动调低 `power` 参数。
-    - 如果在命令行操作系统上运行本指令，执行效率受限于硬件性能。
-    """
-    booster = SpawnBooster(ctx_cookies=ctx_cookies, docker=urls, power=4, debug=trace)
-    booster.go()
+    # [🔨] 启动 Bricklayer 搬空免费商店
+    # 启动一轮协程任务，执行效率受限于本地网络带宽
+    SpawnBooster(ctx_cookies=ctx_cookies, docker=urls, power=4, debug=trace).go()
 
 
 def special(special_link: str):
+    """
+    领取指定游戏
+
+    :param special_link: 游戏商城的 *中文* 本地化链接
+    :return:
+    """
     if not special_link.startswith("https://www.epicgames.com/store/zh-CN"):
         logger.critical(
             ToolBox.runtime_report(
@@ -133,11 +131,14 @@ def special(special_link: str):
         )
     )
 
+    # [🔨] 刷新上下文身份令牌
     if not bricklayer.cookie_manager.refresh_ctx_cookies():
         return
 
+    # [🔨] 读取有效的身份令牌
     ctx_cookies = bricklayer.cookie_manager.load_ctx_cookies()
 
+    # [🔨] 启动 Bricklayer 领取指定游戏
     bricklayer.get_free_game(
         page_link=special_link, ctx_cookies=ctx_cookies, challenge=True
     )

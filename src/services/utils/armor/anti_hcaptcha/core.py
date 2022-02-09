@@ -17,10 +17,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
-from .exceptions import LabelNotFoundException, ChallengeReset
+from .exceptions import LabelNotFoundException, ChallengeReset, ChallengeTimeout
 
 
 class YOLO:
+    """用于实现图像分类的 YOLO 模型"""
+
     def __init__(self, dir_model):
         self.dir_model = "./model" if dir_model is None else dir_model
         self.cfg = {
@@ -118,6 +120,7 @@ class YOLO:
         ]
 
     def download_model(self):
+        """下载模型和权重参数"""
         if not os.path.exists(self.dir_model):  # noqa
             os.mkdir(self.dir_model)
 
@@ -131,11 +134,20 @@ class YOLO:
             except requests.exceptions.RequestException:
                 return None
             else:
-                with open(dm["path"], "wb") as f:
+                with open(dm["path"], "wb") as file:
                     for chunk in r.iter_content(chunk_size=1024):
-                        f.write(chunk)
+                        file.write(chunk)
 
     def detect_common_objects(self, img_stream, confidence=0.28, nms_thresh=0.4):
+        """
+        目标检测
+
+        获取给定图像中识别出的多个标签
+        :param img_stream: 图像文件二进制流
+        :param confidence:
+        :param nms_thresh:
+        :return: bbox, label, conf
+        """
         np_array = np.frombuffer(img_stream, np.uint8)
         img = cv2.imdecode(np_array, flags=1)
         height, width = img.shape[:2]
@@ -182,11 +194,18 @@ class YOLO:
         for i in indices:
             i = i[0]
             box = boxes[i]
-            x = box[0]
-            y = box[1]
-            w = box[2]
-            h = box[3]
-            bbox.append([int(x), int(y), int(x + w), int(y + h)])
+            point_x = box[0]
+            point_y = box[1]
+            point_w = box[2]
+            point_h = box[3]
+            bbox.append(
+                [
+                    int(point_x),
+                    int(point_y),
+                    int(point_x + point_w),
+                    int(point_y + point_h),
+                ]
+            )
             label.append(str(self.classes[class_ids[i]]))
             conf.append(confidences[i])
 
@@ -194,6 +213,8 @@ class YOLO:
 
 
 class ArmorCaptcha:
+    """hCAPTCHA challenge 驱动控制"""
+
     def __init__(self, dir_workspace: str = None, debug=False):
 
         self.action_name = "ArmorCaptcha"
@@ -235,35 +256,32 @@ class ArmorCaptcha:
             "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62",
         }
 
-    def log(self, message: str = "", **params):
+    def log(self, message: str, **params) -> None:
+        """格式化日志信息"""
+        if not self.debug:
+            return
+
         motive = "Challenge"
-        flag_ = ">> {} [{}]".format(motive, self.action_name)
-        if message != "":
-            flag_ += " {}".format(message)
+        flag_ = f">> {motive} [{self.action_name}] {message}"
         if params:
             flag_ += " - "
             flag_ += " ".join([f"{i[0]}={i[1]}" for i in params.items()])
-        if self.debug:
-            return logger.debug(flag_)
+        logger.debug(flag_)
 
     def _init_workspace(self):
-        _prefix = "{}{}".format(
-            int(time.time()), f"_{self.label}" if self.label else ""
-        )
+        """初始化工作目录，存放缓存的挑战图片"""
+        _prefix = f"{int(time.time())}" + f"_{self.label}" if self.label else ""
         _workspace = os.path.join(self.dir_workspace, _prefix)
         if not os.path.exists(_workspace):
             os.mkdir(_workspace)
         return _workspace
 
-    def tactical_retreat(self):
-        """
-        # 模型泛化不足，快逃。
-
-        :return:
-        """
+    def tactical_retreat(self) -> bool:
+        """模型存在泛化死角，遇到指定标签时主动进入下一轮挑战，节约时间"""
         if self.label in ["水上飞机", "摩托车"] or not self.label_alias.get(self.label):
             self.log(message="模型泛化较差，逃逸", label=self.label)
             return True
+        return False
 
     def mark_samples(self, ctx: Chrome):
         """
@@ -286,7 +304,6 @@ class ArmorCaptcha:
         samples = ctx.find_elements(By.XPATH, "//div[@class='task-image']")
         for sample in samples:
             alias = sample.get_attribute("aria-label")
-            # TODO 加入超时判定
             while True:
                 try:
                     image_style = sample.find_element(
@@ -347,8 +364,8 @@ class ArmorCaptcha:
         for alias, url in self.alias2url.items():
             path_challenge_img = os.path.join(_workspace, f"{alias}.png")
             stream = requests.get(url).content
-            with open(path_challenge_img, "wb") as f:
-                f.write(stream)
+            with open(path_challenge_img, "wb") as file:
+                file.write(stream)
 
     def challenge(self, ctx: Chrome, model: YOLO, confidence=0.39, nms_thresh=0.7):
         """
@@ -372,8 +389,8 @@ class ArmorCaptcha:
         # {{< IMAGE CLASSIFICATION >}}
         for alias, img_filepath in self.alias2path.items():
             # 读取二进制数据编织成模型可接受的类型
-            with open(img_filepath, "rb") as f:
-                data = f.read()
+            with open(img_filepath, "rb") as file:
+                data = file.read()
 
             # 获取识别结果
             _, labels, _ = model.detect_common_objects(
@@ -388,13 +405,16 @@ class ArmorCaptcha:
                 except WebDriverException:
                     pass
         # {{< SUBMIT ANSWER >}}
-        WebDriverWait(
-            ctx, 35, ignored_exceptions=ElementClickInterceptedException
-        ).until(
-            EC.element_to_be_clickable(
-                (By.XPATH, "//div[@class='button-submit button']")
-            )
-        ).click()
+        try:
+            WebDriverWait(
+                ctx, 35, ignored_exceptions=ElementClickInterceptedException
+            ).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//div[@class='button-submit button']")
+                )
+            ).click()
+        except (TimeoutException, ElementClickInterceptedException):
+            raise ChallengeTimeout("CPU 算力不足，无法在规定时间内完成挑战")
 
         self.log(message="提交挑战")
 

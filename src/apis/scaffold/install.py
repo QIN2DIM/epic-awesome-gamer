@@ -7,6 +7,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from services.settings import DIR_MODEL, logger
 from services.utils import YOLO, CoroutineSpeedup, ToolBox
+from services.utils import get_challenge_ctx
 
 
 def _download_model():
@@ -26,12 +27,14 @@ def _download_driver():
     :return:
     """
     logger.debug("适配 ChromeDriver...")
-    ChromeDriverManager(version="latest").install()
+    ChromeDriverManager(version="98.0.4758.80").install()
 
 
 class PerformanceReleaser(CoroutineSpeedup):
+    """协程助推器 并发执行片段代码"""
+
     def __init__(self, docker, power=None):
-        super(PerformanceReleaser, self).__init__(docker=docker, power=power)
+        super().__init__(docker=docker, power=power)
 
     @logger.catch()
     def control_driver(self, task, *args, **kwargs):
@@ -65,8 +68,7 @@ def run():
 
 @logger.catch()
 def test():
-    from services.utils import get_challenge_ctx
-
+    """检查挑战者驱动版本是否适配"""
     ctx = get_challenge_ctx(silence=True)
     try:
         ctx.get("https://www.baidu.com")

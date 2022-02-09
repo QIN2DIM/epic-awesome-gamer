@@ -11,7 +11,13 @@ import cloudscraper
 import yaml
 
 from services.settings import logger
-from services.utils import ToolBox, get_ctx, get_challenge_ctx, ChallengeReset
+from services.utils import (
+    ToolBox,
+    get_ctx,
+    get_challenge_ctx,
+    ChallengeReset,
+    ChallengeTimeout,
+)
 from .core import AwesomeFreeMan
 from .exceptions import (
     AssertTimeout,
@@ -23,8 +29,10 @@ from .exceptions import (
 
 
 class CookieManager(AwesomeFreeMan):
+    """管理上下文身份令牌"""
+
     def __init__(self):
-        super(CookieManager, self).__init__()
+        super().__init__()
 
         self.action_name = "CookieManager"
 
@@ -42,10 +50,10 @@ class CookieManager(AwesomeFreeMan):
         if not os.path.exists(self.path_ctx_cookies):
             return []
 
-        with open(self.path_ctx_cookies, "r", encoding="utf8") as f:
-            data: dict = yaml.safe_load(f)
+        with open(self.path_ctx_cookies, "r", encoding="utf8") as file:
+            data: dict = yaml.safe_load(file)
 
-        ctx_cookies = data.get(self._t(), []) if type(data) is dict else []
+        ctx_cookies = data.get(self._t(), []) if isinstance(data, dict) else []
         if not ctx_cookies:
             return []
 
@@ -69,14 +77,14 @@ class CookieManager(AwesomeFreeMan):
         _data = {}
 
         if os.path.exists(self.path_ctx_cookies):
-            with open(self.path_ctx_cookies, "r", encoding="utf8") as f:
-                stream: dict = yaml.safe_load(f)
-                _data = _data if type(stream) != dict else stream
+            with open(self.path_ctx_cookies, "r", encoding="utf8") as file:
+                stream: dict = yaml.safe_load(file)
+                _data = _data if not isinstance(stream, dict) else stream
 
         _data.update({self._t(): ctx_cookies})
 
-        with open(self.path_ctx_cookies, "w", encoding="utf8") as f:
-            yaml.dump(_data, f)
+        with open(self.path_ctx_cookies, "w", encoding="utf8") as file:
+            yaml.dump(_data, file)
 
         logger.debug(
             ToolBox.runtime_report(
@@ -155,10 +163,10 @@ class CookieManager(AwesomeFreeMan):
                 return False
         except ChallengeReset:
             pass
-        except AuthException as e:
+        except (AuthException, ChallengeTimeout) as error:
             logger.critical(
                 ToolBox.runtime_report(
-                    motive="SKIP", action_name=self.action_name, message=e.msg
+                    motive="SKIP", action_name=self.action_name, message=error.msg
                 )
             )
             return False
@@ -170,10 +178,14 @@ class CookieManager(AwesomeFreeMan):
             ctx.quit()
         # {{< Done >}}
 
+        return True
+
 
 class Bricklayer(AwesomeFreeMan):
+    """常驻免费游戏的认领逻辑"""
+
     def __init__(self, silence: bool = None):
-        super(Bricklayer, self).__init__()
+        super().__init__()
         self.silence = True if silence is None else silence
 
         self.action_name = "AwesomeFreeMan"
@@ -203,11 +215,9 @@ class Bricklayer(AwesomeFreeMan):
             if ctx_cookies is None
             else ctx_cookies
         )
-        """
-        [🚀] 验证 COOKIE
-        _______________
-        请勿在并发环境下 让上下文驱动陷入到不得不更新 COOKIE 的陷阱之中。
-        """
+
+        # [🚀] 验证 COOKIE
+        # 请勿在并发环境下 让上下文驱动陷入到不得不更新 COOKIE 的陷阱之中。
         if not ctx_cookies or not self.cookie_manager.is_available_cookie(
             ctx_cookies=ctx_cookies
         ):
@@ -224,10 +234,7 @@ class Bricklayer(AwesomeFreeMan):
                 )
                 return False
 
-        """
-        [🚀] 使用普通级别的上下文获取免费游戏
-        _______________
-        """
+        # [🚀] 常驻免费（General）周免（Challenge）
         ctx = get_challenge_ctx(self.silence) if challenge else get_ctx(self.silence)
         try:
             self._get_free_game(page_link=page_link, api_cookies=ctx_cookies, ctx=ctx)
@@ -237,39 +244,39 @@ class Bricklayer(AwesomeFreeMan):
                     motive="QUIT", action_name=self.action_name, message="循环断言超时，任务退出。"
                 )
             )
-        except UnableToGet as e:
+        except UnableToGet as error:
             logger.debug(
                 ToolBox.runtime_report(
                     motive="QUIT",
                     action_name=self.action_name,
-                    message=str(e).strip(),
+                    message=str(error).strip(),
                     url=page_link,
                 )
             )
-        except SwitchContext as e:
+        except SwitchContext as error:
             logger.warning(
                 ToolBox.runtime_report(
                     motive="SWITCH",
                     action_name=self.action_name,
                     message="正在退出标准上下文",
-                    error=str(e).strip(),
+                    error=str(error).strip(),
                     url=page_link,
                 )
             )
-        except PaymentException as e:
+        except PaymentException as error:
             logger.debug(
                 ToolBox.runtime_report(
                     motive="QUIT",
                     action_name=self.action_name,
                     message="🚧 订单异常",
-                    type=f"PaymentException {e}".strip(),
+                    type=f"PaymentException {error}".strip(),
                     url=page_link,
                 )
             )
-        except AuthException as e:
+        except AuthException as error:
             logger.critical(
                 ToolBox.runtime_report(
-                    motive="SKIP", action_name=self.action_name, message=e.msg
+                    motive="SKIP", action_name=self.action_name, message=error.msg
                 )
             )
             return False

@@ -3,14 +3,18 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+from typing import Optional
+
 from gevent import monkey
 
-monkey.patch_time()
-from typing import Optional
+monkey.patch_all(subprocess=False, thread=False, socket=False)
+
 from apis.scaffold import get, challenge, install, claimer
 
 
 class Scaffold:
+    """系统脚手架 顶级接口指令"""
+
     NotImplementedErrorWarning = "本指令功能暂未完成，敬请期待。"
 
     @staticmethod
@@ -25,6 +29,7 @@ class Scaffold:
 
     @staticmethod
     def test():
+        """检查挑战者驱动版本是否适配"""
         install.test()
 
     @staticmethod
@@ -75,37 +80,20 @@ class Scaffold:
             get.join(trace=debug)
 
     @staticmethod
-    def claim():
+    def claim(silence: Optional[bool] = True):
         """
         认领周免游戏。
 
         :return:
         """
-        claimer.run()
+        claimer.run(silence=silence)
 
     @staticmethod
-    def deploy():
+    def deploy(platform: Optional[str] = None):
         """
         部署系统定时任务。
 
+        :param platform: 可选项 [vps serverless qing-long]
         :return:
         """
-        claimer.deploy()
-
-    @staticmethod
-    def ping():
-        """
-        测试配置文件中的账号信息是否有效。
-
-        :return:
-        """
-        raise NotImplementedError(Scaffold.NotImplementedErrorWarning)
-
-    @staticmethod
-    def config():
-        """
-        提供一个 WEBUI 引导输入，更新配置文件。
-
-        :return:
-        """
-        raise NotImplementedError(Scaffold.NotImplementedErrorWarning)
+        claimer.deploy(platform)

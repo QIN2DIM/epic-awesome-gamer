@@ -18,17 +18,20 @@ from .exceptions import DiscoveryTimeoutException
 
 
 class GameLibManager(AwesomeFreeGirl):
+    """游戏对象管理 缓存商城数据以及判断游戏在库状态"""
+
     def __init__(self):
-        super(GameLibManager, self).__init__()
+        super().__init__()
 
         self.action_name = "GameLibManager"
 
     def save_game_objs(self, game_objs: List[Dict[str, str]]) -> None:
+        """缓存免费商城数据"""
         if not game_objs:
             return
 
-        with open(self.path_free_games, "w", encoding="utf8", newline="") as f:
-            writer = csv.writer(f)
+        with open(self.path_free_games, "w", encoding="utf8", newline="") as file:
+            writer = csv.writer(file)
             writer.writerow(["name", "url"])
             for game_obj in game_objs:
                 cell = (game_obj["name"], game_obj["url"])
@@ -50,8 +53,8 @@ class GameLibManager(AwesomeFreeGirl):
         :return:
         """
         try:
-            with open(self.path_free_games, "r", encoding="utf8") as f:
-                data = list(csv.reader(f))
+            with open(self.path_free_games, "r", encoding="utf8") as file:
+                data = list(csv.reader(file))
         except FileNotFoundError:
             return []
         else:
@@ -65,6 +68,7 @@ class GameLibManager(AwesomeFreeGirl):
         self, ctx_cookies: Union[List[dict], str], page_link: str
     ) -> Optional[dict]:
         """
+        判断游戏在库状态
 
         :param ctx_cookies:
         :param page_link:
@@ -77,7 +81,7 @@ class GameLibManager(AwesomeFreeGirl):
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62",
             "cookie": ctx_cookies
-            if type(ctx_cookies) is str
+            if isinstance(ctx_cookies, str)
             else ToolBox.transfer_cookies(ctx_cookies),
         }
         scraper = cloudscraper.create_scraper()
@@ -100,56 +104,56 @@ class GameLibManager(AwesomeFreeGirl):
             return {"assert": "AssertObjectNotFound", "status": None}
 
         assert_message = assert_obj[0].text
+        response_obj = {"assert": assert_message, "warning": "", "status": None}
         # 🚧 跳过 `已在游戏库中` 的日志信息
         if assert_message in [
             "已在游戏库中",
         ]:
-            return {"assert": assert_message, "status": True}
+            response_obj["status"] = True
         # 🚧 这不是免费游戏
-        if assert_message in [
+        elif assert_message in [
             "立即购买",
         ]:
-            return {"assert": assert_message, "status": True}
+            response_obj["status"] = True
         # 🚧 惰性加载，前置节点不处理动态加载元素
-        if assert_message in [
+        elif assert_message in [
             "正在载入",
         ]:
-            return {"assert": assert_message, "status": False}
+            response_obj["status"] = False
         # 🍟 未领取的免费游戏
-        if assert_message in [
+        elif assert_message in [
             "获取",
         ]:
             warning_obj = tree.xpath("//h1[@class='css-1gty6cv']//span")
             # 出现遮挡警告
             if warning_obj:
                 warning_message = warning_obj[0].text
+                response_obj["warning"] = warning_message
                 # 成人内容可获取
                 if "成人内容" in warning_message:
-                    return {
-                        "assert": assert_message,
-                        "warning": warning_message,
-                        "status": False,
-                    }
-                logger.warning(
-                    ToolBox.runtime_report(
-                        motive="SKIP",
-                        action_name=self.action_name,
-                        message=warning_message,
-                        url=page_link,
+                    response_obj["status"] = False
+                else:
+                    logger.warning(
+                        ToolBox.runtime_report(
+                            motive="SKIP",
+                            action_name=self.action_name,
+                            message=warning_message,
+                            url=page_link,
+                        )
                     )
-                )
-                return {
-                    "assert": assert_message,
-                    "warning": warning_message,
-                    "status": None,
-                }
+                    response_obj["status"] = None
             # 继续任务
-            return {"assert": assert_message, "status": False}
+            else:
+                response_obj["status"] = False
+
+        return response_obj
 
 
 class Explorer(AwesomeFreeGirl):
+    """商城探索者 发现常驻免费游戏以及周免游戏"""
+
     def __init__(self, silence: Optional[bool] = None):
-        super(Explorer, self).__init__(silence=silence)
+        super().__init__(silence=silence)
 
         self.action_name = "Explorer"
 
@@ -192,8 +196,9 @@ class Explorer(AwesomeFreeGirl):
         self, ctx_cookies: Optional[List[dict]] = None
     ) -> Dict[str, Any]:
         """
-        获取限免游戏
+        获取周免游戏
 
+        :param ctx_cookies:
         :return:
         """
 
@@ -230,9 +235,10 @@ class Explorer(AwesomeFreeGirl):
                     ][0]["discountSetting"]
                     discount_percentage = discount_setting["discountPercentage"]
                     if (
-                        type(discount_percentage) != str and not discount_percentage
+                        not isinstance(discount_percentage, str)
+                        and not discount_percentage
                     ) or (
-                        type(discount_percentage) is str
+                        isinstance(discount_percentage, str)
                         and not float(discount_percentage)
                     ):
                         _update_limited_free_game_objs(element)

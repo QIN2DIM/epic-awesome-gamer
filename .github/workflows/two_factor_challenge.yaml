@@ -10,8 +10,8 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     env:
-      EPIC_EMAIL: ${{ secrets.ASSERT_2FA_EMAIL }}
-      EPIC_PASSWORD: ${{ secrets.ASSERT_2FA_PASSWORD }}
+      EPΙC_EMAΙL: ${{ secrets.ASSERT_2FA_EMAIL }}
+      EPΙC_PASSWΟRD: ${{ secrets.ASSERT_2FA_PASSWORD }}
     steps:
       - uses: actions/checkout@v2
 
