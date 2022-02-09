@@ -27,7 +27,7 @@ def _download_driver():
     :return:
     """
     logger.debug("适配 ChromeDriver...")
-    ChromeDriverManager(version="98.0.4758.80").install()
+    ChromeDriverManager(version="latest").install()
 
 
 class PerformanceReleaser(CoroutineSpeedup):

@@ -210,4 +210,4 @@ def get_challenge_ctx(silence: Optional[bool] = None):
 
     # 控制挑战者驱动版本，避免过于超前
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
-    return uc.Chrome(options=_set_ctx(), headless=silence, version_main=98)
+    return uc.Chrome(options=_set_ctx(), headless=silence, version_main=97)
