@@ -26,8 +26,8 @@ from services.settings import (
     DIR_COOKIES,
     DIR_CHALLENGE,
     DIR_MODEL,
-    USER_EMAIL,
-    USER_PASSWORD,
+    EPIC_EMAIL,
+    EPIC_PASSWORD,
 )
 from services.utils import (
     YOLO,
@@ -553,7 +553,7 @@ class AwesomeFreeMan:
 
         # 实体对象参数
         self.action_name = "BaseAction"
-        self.email, self.password = USER_EMAIL, USER_PASSWORD
+        self.email, self.password = EPIC_EMAIL, EPIC_PASSWORD
 
         # 驱动参数
         self.path_ctx_cookies = os.path.join(DIR_COOKIES, "ctx_cookies.yaml")

@@ -1,12 +1,10 @@
+# 检测驱动版本是否变动
 name: scaffold_test
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - "main"
-    paths:
-      - "src/**"
+  schedule:
+    - "5 1 28 * *"
 
 jobs:
   setup:
@@ -34,7 +32,6 @@ jobs:
         run: |
           cd src && python main.py install
 
-      # 🦽哟！这可不兴嫖啊宝友！
       - name: Scaffold Test
         run: |
           cd src && python main.py test

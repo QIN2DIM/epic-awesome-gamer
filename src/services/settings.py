@@ -24,12 +24,12 @@ __all__ = [
     # ------------------------------
     # CONFIG
     # ------------------------------
-    "USER_PASSWORD",
-    "USER_EMAIL",
+    "EPIC_PASSWORD",
+    "EPIC_EMAIL",
     "SCHEDULER_SETTINGS",
     "MESSAGE_PUSHER_SETTINGS",
 ]
-__version__ = "0.1.5.dev"
+__version__ = "0.1.6.dev"
 
 """
 ================================================ ʕ•ﻌ•ʔ ================================================
@@ -45,8 +45,10 @@ config_ = ToolBox.check_sample_yaml(
 # --------------------------------
 # [√] 账号信息
 # --------------------------------
-USER_EMAIL: str = config_.get("EMAIL", "")
-USER_PASSWORD: str = config_.get("PASSWORD", "")
+# 不建议在公有库上创建工作流运行项目，有仓库禁用风险
+EPIC_EMAIL: str = config_.get("EPΙC_EMAΙL", "")
+EPIC_PASSWORD: str = config_.get("EPΙC_PASSWΟRD", "")
+
 # --------------------------------
 # [※] 本地化语言设置
 # --------------------------------
@@ -72,10 +74,10 @@ PUSHER = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
 # --------------------------------
 # [※] 补全语法模板
 # --------------------------------
-if not USER_EMAIL:
-    USER_EMAIL = os.getenv("EPΙC_EMAΙL", "")
-if not USER_PASSWORD:
-    USER_PASSWORD = os.getenv("EPΙC_PASSWΟRD", "")
+if not EPIC_EMAIL:
+    EPIC_EMAIL = os.getenv("EPΙC_EMAΙL", "")
+if not EPIC_PASSWORD:
+    EPIC_PASSWORD = os.getenv("EPΙC_PASSWΟRD", "")
 
 try:
     for server in PUSHER:
@@ -87,7 +89,7 @@ except KeyError as e:
 # --------------------------------
 # [√] 阻止缺省配置
 # --------------------------------
-if not all((USER_EMAIL, USER_PASSWORD)):
+if not all((EPIC_EMAIL, EPIC_PASSWORD)):
     sys.exit()
 
 if not any(PUSHER.values()):
