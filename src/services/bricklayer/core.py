@@ -3,11 +3,11 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import asyncio
 import os.path
 import time
 from typing import List, Optional, NoReturn
 
-import requests
 from selenium.common.exceptions import (
     TimeoutException,
     ElementNotVisibleException,
@@ -33,7 +33,7 @@ from services.utils import (
     YOLO,
     ToolBox,
     ArmorCaptcha,
-    CoroutineSpeedup,
+    AshFramework,
     ChallengeReset,
 )
 from .exceptions import (
@@ -114,27 +114,38 @@ class ArmorUtils(ArmorCaptcha):
         :return:
         """
 
-        class ImageDownloader(CoroutineSpeedup):
+        class ImageDownloader(AshFramework):
             """协程助推器 提高挑战图片的下载效率"""
 
             def __init__(self, docker=None):
                 super().__init__(docker=docker)
 
-            def control_driver(self, task, *args, **kwargs):
-                path_challenge_img, url = task
-                stream = requests.get(url).content
-                with open(path_challenge_img, "wb") as file:
-                    file.write(stream)
+            async def control_driver(self, context, session=None):
+                path_challenge_img, url = context
+
+                # 下载挑战图片
+                async with session.get(url) as response:
+                    with open(path_challenge_img, "wb") as file:
+                        file.write(await response.read())
 
         self.log(message="下载挑战图片")
+
+        # 初始化挑战图片下载目录
         workspace_ = self._init_workspace()
+
+        # 初始化数据容器
         docker_ = []
         for alias_, url_ in self.alias2url.items():
             path_challenge_img_ = os.path.join(workspace_, f"{alias_}.png")
             self.alias2path.update({alias_: path_challenge_img_})
             docker_.append((path_challenge_img_, url_))
+
+        # 初始化图片下载器
         downloader = ImageDownloader(docker=docker_)
-        downloader.go(power=9)
+
+        # 启动最高功率的协程任务
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(downloader.subvert(workers="fast"))
 
         self.runtime_workspace = workspace_
 

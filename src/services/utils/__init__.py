@@ -4,7 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 
-from .accelerator.core import CoroutineSpeedup
+from .accelerator.core import CoroutineSpeedup, AshFramework
 from .armor.anti_hcaptcha.core import ArmorCaptcha, YOLO
 from .armor.anti_hcaptcha.exceptions import (
     LabelNotFoundException,
@@ -18,6 +18,7 @@ __all__ = [
     "ArmorCaptcha",
     "LabelNotFoundException",
     "CoroutineSpeedup",
+    "AshFramework",
     "get_ctx",
     "get_challenge_ctx",
     "ChallengeReset",

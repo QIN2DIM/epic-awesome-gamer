@@ -55,7 +55,7 @@ def run():
         )
     )
 
-    PerformanceReleaser(docker=[_download_driver, _download_model], power=3).go()
+    PerformanceReleaser(docker=[_download_driver, _download_model], power=3).speedup()
 
     logger.success(
         ToolBox.runtime_report(

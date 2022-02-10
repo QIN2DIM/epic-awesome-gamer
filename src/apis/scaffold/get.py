@@ -83,8 +83,9 @@ class SpawnBooster(CoroutineSpeedup):
 
 def join(trace: bool = False):
     """
-    科技改变生活，一键操作，将免费商城搬空！
+    一键搬空免费商店
 
+    需要确保上下文身份令牌有效，可通过 `challenge` 脚手架强制刷新。
     :param trace:
     :return:
     """
@@ -94,12 +95,17 @@ def join(trace: bool = False):
         )
     )
 
-    # [🔨] 刷新上下文身份令牌
-    if not bricklayer.cookie_manager.refresh_ctx_cookies():
-        return
-
     # [🔨] 读取有效的身份令牌
     ctx_cookies = bricklayer.cookie_manager.load_ctx_cookies()
+    if not bricklayer.cookie_manager.is_available_cookie(ctx_cookies):
+        logger.critical(
+            ToolBox.runtime_report(
+                motive="SKIP",
+                action_name="ScaffoldGet",
+                message="身份令牌不存在或失效，手动执行 `challenge` 指令更新身份令牌。",
+            )
+        )
+        return
 
     # [🔨] 缓存免费商城数据
     urls = explorer.game_manager.load_game_objs(only_url=True)
@@ -108,37 +114,4 @@ def join(trace: bool = False):
 
     # [🔨] 启动 Bricklayer 搬空免费商店
     # 启动一轮协程任务，执行效率受限于本地网络带宽
-    SpawnBooster(ctx_cookies=ctx_cookies, docker=urls, power=4, debug=trace).go()
-
-
-def special(special_link: str):
-    """
-    领取指定游戏
-
-    :param special_link: 游戏商城的 *中文* 本地化链接
-    :return:
-    """
-    if not special_link.startswith("https://www.epicgames.com/store/zh-CN"):
-        logger.critical(
-            ToolBox.runtime_report(
-                motive="STARTUP", action_name="ScaffoldGet", message="链接不合法"
-            )
-        )
-        return
-    logger.info(
-        ToolBox.runtime_report(
-            motive="STARTUP", action_name="ScaffoldGet", message="🎯 正在为玩家领取指定游戏"
-        )
-    )
-
-    # [🔨] 刷新上下文身份令牌
-    if not bricklayer.cookie_manager.refresh_ctx_cookies():
-        return
-
-    # [🔨] 读取有效的身份令牌
-    ctx_cookies = bricklayer.cookie_manager.load_ctx_cookies()
-
-    # [🔨] 启动 Bricklayer 领取指定游戏
-    bricklayer.get_free_game(
-        page_link=special_link, ctx_cookies=ctx_cookies, challenge=True
-    )
+    SpawnBooster(ctx_cookies=ctx_cookies, docker=urls, power=4, debug=trace).speedup()

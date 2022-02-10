@@ -161,13 +161,11 @@ class YOLO:
 
         net.setInput(blob)
 
-        layer_names = net.getLayerNames()
-        output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
-        outs = net.forward(output_layers)
-
         class_ids = []
         confidences = []
         boxes = []
+
+        outs = net.forward(["yolo_139", "yolo_150", "yolo_161"])
 
         for out in outs:
             for detection in out:
@@ -192,7 +190,6 @@ class YOLO:
         conf = []
 
         for i in indices:
-            i = i[0]
             box = boxes[i]
             point_x = box[0]
             point_y = box[1]

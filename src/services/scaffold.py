@@ -5,26 +5,15 @@
 # Description:
 from typing import Optional
 
-from gevent import monkey
-
-monkey.patch_time()
-
 from apis.scaffold import get, challenge, install, claimer
 
 
 class Scaffold:
     """系统脚手架 顶级接口指令"""
 
-    NotImplementedErrorWarning = "本指令功能暂未完成，敬请期待。"
-
     @staticmethod
     def install():
-        """
-        下载项目运行所需的配置。
-
-        本指令不包含 `requirements.txt` 的拉取行为。
-        :return:
-        """
+        """下载运行依赖"""
         install.run()
 
     @staticmethod
@@ -52,37 +41,46 @@ class Scaffold:
         challenge.run()
 
     @staticmethod
-    def get(url: Optional[str] = None, debug: Optional[bool] = None):
+    def get(debug: Optional[bool] = None):
         """
-        一键搬空免费商店。
+        「我可以不玩但不能没有。」—— 鲁·克莱摩·迅
 
         ## Intro
 
-        获取 Epic Store 所有未在库的免费游戏。
+        - `get` 只做一件事，搬空免费商店！
+
+        - 这是个趣味性和观赏性都拉满的一次性任务。系统会根据你的设备性能发起最高 4 协程并发的驱动任务，为你节省扫荡时间。
+
+        - 显然地，这是一项对操作系统内存和网络I/O要求都不低的任务，如果你嫌这五六十款（不同地区权限不同）
+        多余的常驻免费游戏会影响你翻找游戏库的效率，请速速退朝。
+
+        - `get` 指令启动标准上下文执行任务，其并不足以应付隐藏在订单中的人机挑战。因此，`get` 指令会自动跳过未认领的周免游戏。
+        请使用生产效率更高的 `claim` 指令认领周免游戏。
 
         ## Local Static CacheFile
 
-        - 考虑到 `get` 是玩家手动执行的指令，而 Epic 更新免费游戏的频率并不高，所以复用本地静态缓存是比较合理的打开方式。
-        - 此指令会将 Epic 当前的免费游戏的展示链接存储在 `src/database/explorer` 目录下。
+        此指令会将免费商城数据存储在 `src/database/explorer` 目录下。存储内容与当前上下文身份令牌有关（不同地区权限不同）
 
         ## Contributes
 
         - 若运行出现意料之外的报错，请运行 debug 模式，留意 Exception 信息，并将完整的栈追踪信息提交至 `issues` ，不胜感激！
         -  https://github.com/QIN2DIM/epic-awesome-gamer
 
-        :param url:
         :param debug: 显示栈追踪日志信息
         :return:
         """
-        if url:
-            get.special(special_link=url)
-        else:
-            get.join(trace=debug)
+        get.join(trace=debug)
 
     @staticmethod
     def claim(silence: Optional[bool] = True):
         """
         认领周免游戏。
+
+        ## Intro
+
+        `claim` 做的事非常简单，获取本周促销数据，分析是否有待认领的周免游戏，根据分析结果执行相关任务。
+
+        `claim` 是系统级指令 `deploy` 的单步子任务，在上述业务结束后，会根据你配置的 `pusher` 推送追踪日志（若配置无效则不发）。
 
         :return:
         """

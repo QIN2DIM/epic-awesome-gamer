@@ -102,12 +102,16 @@ class CookieManager(AwesomeFreeMan):
         :return:
         """
         ctx_cookies = self.load_ctx_cookies() if ctx_cookies is None else ctx_cookies
+        if not ctx_cookies:
+            return False
+
         headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
 
         scraper = cloudscraper.create_scraper()
         response = scraper.get(
             self.URL_ACCOUNT_PERSONAL, headers=headers, allow_redirects=False
         )
+
         if response.status_code == 200:
             return True
         return False
