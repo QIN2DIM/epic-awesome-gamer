@@ -44,7 +44,7 @@ class SpawnBooster(CoroutineSpeedup):
             ctx_cookies=self.ctx_cookies, page_link=url
         )
 
-        # 启动 Bricklayer，获取免费游戏
+        # 识别未在库的常驻周免游戏
         if response.get("status") is False:
             logger.debug(
                 ToolBox.runtime_report(
@@ -56,6 +56,7 @@ class SpawnBooster(CoroutineSpeedup):
                 )
             )
 
+            # 启动 Bricklayer 获取免费游戏
             try:
                 bricklayer.get_free_game(
                     page_link=url, ctx_cookies=self.ctx_cookies, refresh=False
@@ -89,6 +90,9 @@ def join(trace: bool = False):
     :param trace:
     :return:
     """
+    from gevent import monkey
+
+    monkey.patch_all(ssl=False)
     logger.info(
         ToolBox.runtime_report(
             motive="STARTUP", action_name="ScaffoldGet", message="🔨 正在为玩家领取免费游戏"
