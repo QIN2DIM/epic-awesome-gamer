@@ -105,25 +105,15 @@ class GameLibManager(AwesomeFreeGirl):
 
         assert_message = assert_obj[0].text
         response_obj = {"assert": assert_message, "warning": "", "status": None}
-        # 🚧 跳过 `已在游戏库中` 的日志信息
-        if assert_message in [
-            "已在游戏库中",
-        ]:
-            response_obj["status"] = True
-        # 🚧 这不是免费游戏
-        elif assert_message in [
-            "立即购买",
-        ]:
+
+        # 🚧 跳过 `无法认领` 的日志信息
+        if assert_message in ["已在游戏库中", "立即购买", "即将推出"]:
             response_obj["status"] = True
         # 🚧 惰性加载，前置节点不处理动态加载元素
-        elif assert_message in [
-            "正在载入",
-        ]:
+        elif assert_message in ["正在载入"]:
             response_obj["status"] = False
         # 🍟 未领取的免费游戏
-        elif assert_message in [
-            "获取",
-        ]:
+        elif assert_message in ["获取"]:
             warning_obj = tree.xpath("//h1[@class='css-1gty6cv']//span")
             # 出现遮挡警告
             if warning_obj:
