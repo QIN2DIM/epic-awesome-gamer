@@ -22,7 +22,7 @@ class Scaffold:
         install.test()
 
     @staticmethod
-    def challenge():
+    def challenge(demo: Optional[bool] = None):
         """
         正面硬刚人机挑战，为当前账号获取有效的身份令牌。
 
@@ -36,9 +36,10 @@ class Scaffold:
         - 本指令并不会强制激活人机验证。硬刚人机挑战不是目的，获取到有效的身份令牌才是目的，不要徒增功耗。
         - 也即，如果当前缓存的身份令牌还未失效，挑战跳过。
 
+        :param demo: 若指定该参数，将在图形化系统中显式启动浏览器，演示人机挑战的执行过程。
         :return:
         """
-        challenge.run()
+        challenge.run(silence=demo)
 
     @staticmethod
     def get(debug: Optional[bool] = None):

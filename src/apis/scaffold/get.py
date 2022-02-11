@@ -93,6 +93,7 @@ def join(trace: bool = False):
     from gevent import monkey
 
     monkey.patch_all(ssl=False)
+
     logger.info(
         ToolBox.runtime_report(
             motive="STARTUP", action_name="ScaffoldGet", message="🔨 正在为玩家领取免费游戏"
