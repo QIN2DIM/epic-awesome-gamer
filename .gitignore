@@ -134,3 +134,5 @@ src/config.yaml
 tests/
 src/model
 docs-src
+.github/workflows/automated.yaml
+.github/workflows/automated_claim.yaml
