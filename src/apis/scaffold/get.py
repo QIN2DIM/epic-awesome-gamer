@@ -3,6 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import random
 from typing import Optional
 
 from selenium.common.exceptions import WebDriverException
@@ -12,7 +13,7 @@ from services.explorer import Explorer
 from services.settings import logger
 from services.utils import CoroutineSpeedup, ToolBox
 
-SILENCE = True
+SILENCE = False
 
 bricklayer = Bricklayer(silence=SILENCE)
 explorer = Explorer(silence=SILENCE)
@@ -22,11 +23,11 @@ class SpawnBooster(CoroutineSpeedup):
     """协程助推器 并发执行片段代码"""
 
     def __init__(
-        self,
-        docker,
-        ctx_cookies,
-        power: Optional[int] = None,
-        debug: Optional[bool] = None,
+            self,
+            docker,
+            ctx_cookies,
+            power: Optional[int] = None,
+            debug: Optional[bool] = None,
     ):
         super().__init__(docker=docker, power=power)
 
@@ -35,6 +36,9 @@ class SpawnBooster(CoroutineSpeedup):
         self.action_name = "SpawnBooster"
 
         self.ctx_cookies = ctx_cookies
+
+        if self.docker:
+            random.shuffle(self.docker)
 
     def control_driver(self, task, *args, **kwargs):
         url = task
@@ -82,11 +86,12 @@ class SpawnBooster(CoroutineSpeedup):
         )
 
 
-def join(trace: bool = False):
+def join(trace: bool = False, cache: bool = True):
     """
     一键搬空免费商店
 
     需要确保上下文身份令牌有效，可通过 `challenge` 脚手架强制刷新。
+    :param cache:
     :param trace:
     :return:
     """
@@ -114,7 +119,7 @@ def join(trace: bool = False):
 
     # [🔨] 缓存免费商城数据
     urls = explorer.game_manager.load_game_objs(only_url=True)
-    if not urls:
+    if not cache or not urls:
         urls = explorer.discovery_free_games(ctx_cookies=ctx_cookies, cover=True)
 
     # [🔨] 启动 Bricklayer 搬空免费商店

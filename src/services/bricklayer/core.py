@@ -494,6 +494,7 @@ class AssertUtils:
             try:
                 deadline = ctx.find_element(
                     By.XPATH,
+                    "//div[@data-component='PDPSidebarLayout']"
                     "//span[contains(text(),'优惠截止')][@data-component='Message']",
                 ).text
             except (NoSuchElementException, AttributeError):

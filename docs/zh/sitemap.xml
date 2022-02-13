@@ -4,9 +4,9 @@
   <url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/overview/</loc>
   </url><url>
-    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/v2rss-deploy/</loc>
-  </url><url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/user/</loc>
+  </url><url>
+    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/container/</loc>
   </url><url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/</loc>
   </url><url>
@@ -14,15 +14,19 @@
   </url><url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/user/quick-start/</loc>
   </url><url>
-    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/ping/</loc>
+    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/privatisation/</loc>
   </url><url>
-    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/host-on-GitHub/</loc>
+    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/deploy/</loc>
+  </url><url>
+    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/qinglong_panel/</loc>
+  </url><url>
+    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/install/</loc>
+  </url><url>
+    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/test/</loc>
   </url><url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/</loc>
   </url><url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/</loc>
-  </url><url>
-    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/install-v2rss/</loc>
   </url><url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/basic-usage/</loc>
   </url><url>
@@ -30,11 +34,13 @@
   </url><url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/configuration/</loc>
   </url><url>
+    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/challenge/</loc>
+  </url><url>
+    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/get/</loc>
+  </url><url>
+    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/claim/</loc>
+  </url><url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/cli/deploy/</loc>
-  </url><url>
-    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/overview/</loc>
-  </url><url>
-    <loc>https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/getting-started/quick-start/</loc>
   </url><url>
     <loc>https://blog.echosec.top/epic-awesome-gamer/zh/posts/</loc>
     <xhtml:link

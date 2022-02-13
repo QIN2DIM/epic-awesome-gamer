@@ -42,7 +42,7 @@ class Scaffold:
         challenge.run(silence=silence)
 
     @staticmethod
-    def get(debug: Optional[bool] = None):
+    def get(debug: Optional[bool] = None, cache: Optional[bool] = True):
         """
         「我可以不玩但不能没有。」—— 鲁·克莱摩·迅
 
@@ -67,10 +67,11 @@ class Scaffold:
         - 若运行出现意料之外的报错，请运行 debug 模式，留意 Exception 信息，并将完整的栈追踪信息提交至 `issues` ，不胜感激！
         -  https://github.com/QIN2DIM/epic-awesome-gamer
 
+        :param cache: 使用商城缓存数据
         :param debug: 显示栈追踪日志信息
         :return:
         """
-        get.join(trace=debug)
+        get.join(trace=debug, cache=cache)
 
     @staticmethod
     def claim(silence: Optional[bool] = True):
