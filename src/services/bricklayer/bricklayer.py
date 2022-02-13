@@ -139,7 +139,7 @@ class CookieManager(AwesomeFreeMan):
 
         if "linux" in sys.platform and "zh_CN" not in locale.getdefaultlocale():
             print("Please modify the locale `LANG` before executing the scaffold command.")
-            print("such as: `export LANG=zh_CN.UTF8 && python3 main.py claim`")
+            print("such as: `export LC_ALL=zh_CN.UTF8 && python3 main.py claim`")
             sys.exit()
 
         # {{< Insert Challenger Context >}}

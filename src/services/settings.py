@@ -41,7 +41,6 @@ config_ = ToolBox.check_sample_yaml(
     path_output=join(dirname(dirname(__file__)), "config.yaml"),
     path_sample=join(dirname(dirname(__file__)), "config-sample.yaml"),
 )
-
 # --------------------------------
 # [√] 账号信息
 # --------------------------------
