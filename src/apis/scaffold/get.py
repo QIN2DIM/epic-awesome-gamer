@@ -13,7 +13,7 @@ from services.explorer import Explorer
 from services.settings import logger
 from services.utils import CoroutineSpeedup, ToolBox
 
-SILENCE = False
+SILENCE = True
 
 bricklayer = Bricklayer(silence=SILENCE)
 explorer = Explorer(silence=SILENCE)
