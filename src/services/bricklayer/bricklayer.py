@@ -3,7 +3,9 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import locale
 import os.path
+import sys
 from hashlib import sha256
 from typing import List, Optional
 
@@ -134,6 +136,11 @@ class CookieManager(AwesomeFreeMan):
             )
             return True
         # {{< Done >}}
+
+        if "linux" in sys.platform and "zh_CN" not in locale.getdefaultlocale():
+            print("Please modify the locale `LANG` before executing the scaffold command.")
+            print("such as: `export LANG=zh_CN.UTF8 && python3 main.py claim`")
+            sys.exit()
 
         # {{< Insert Challenger Context >}}
         ctx = get_challenge_ctx(silence=silence)

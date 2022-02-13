@@ -3,7 +3,6 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import locale
 import os
 import sys
 from os.path import join, dirname
@@ -95,11 +94,6 @@ if not all((EPIC_EMAIL, EPIC_PASSWORD)):
 
 if not any(PUSHER.values()):
     MESSAGE_PUSHER_SETTINGS["enable"] = False
-
-if "linux" in sys.platform and "zh_CN" not in locale.getdefaultlocale():
-    print("Please modify the locale `LANG` before executing the scaffold command.")
-    print("such as: `export LANG=zh_CN.UTF8 && python3 main.py claim`")
-    sys.exit()
 
 # ---------------------------------------------------
 # [√]工程根目录定位
