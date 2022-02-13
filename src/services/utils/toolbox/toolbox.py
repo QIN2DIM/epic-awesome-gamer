@@ -16,7 +16,6 @@ import yaml
 from loguru import logger
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
-from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 
@@ -25,7 +24,7 @@ class ToolBox:
 
     @staticmethod
     def check_sample_yaml(
-        path_output: str, path_sample: str
+            path_output: str, path_sample: str
     ) -> Optional[Dict[str, Any]]:
         """
         检查模板文件是否存在，检查配置文件是否存在，读取系统配置返回
@@ -65,7 +64,7 @@ class ToolBox:
 
     @staticmethod
     def runtime_report(
-        action_name: str, motive: str = "RUN", message: str = "", **params
+            action_name: str, motive: str = "RUN", message: str = "", **params
     ) -> str:
         """格式化输出"""
         flag_ = f">> {motive} [{action_name}]"
@@ -78,7 +77,7 @@ class ToolBox:
 
     @staticmethod
     def transfer_cookies(
-        api_cookies: Union[List[Dict[str, str]], str]
+            api_cookies: Union[List[Dict[str, str]], str]
     ) -> Union[str, List[Dict[str, str]]]:
         """
         将 cookies 转换为可携带的 Request Header
@@ -105,9 +104,9 @@ class ToolBox:
 
     @staticmethod
     def date_format_now(
-        mode: Optional[str] = None,
-        zone: Optional[str] = None,
-        threshold: Optional[int] = None,
+            mode: Optional[str] = None,
+            zone: Optional[str] = None,
+            threshold: Optional[int] = None,
     ) -> str:
         """
         输出格式化日期
@@ -199,8 +198,7 @@ def get_ctx(silence: Optional[bool] = None):
     options.add_argument(f'--user-agent="{ToolBox.fake_user_agent()}"')
 
     # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
-    service = Service(ChromeDriverManager(log_level=0).install())
-    return Chrome(options=options, service=service)  # noqa
+    return Chrome(ChromeDriverManager(log_level=0).install(), options=options)
 
 
 def get_challenge_ctx(silence: Optional[bool] = None):
@@ -210,4 +208,4 @@ def get_challenge_ctx(silence: Optional[bool] = None):
 
     # 控制挑战者驱动版本，避免过于超前
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
-    return uc.Chrome(options=_set_ctx(), headless=silence, version_main=97)
+    return uc.Chrome(options=_set_ctx(), headless=silence)

@@ -171,7 +171,7 @@ class AshFramework:
             context = self.worker.get_nowait()
             await self.control_driver(context, session=session)
 
-    async def subvert(self, workers: Union[str, int] = None):
+    async def subvert(self, workers: Union[str, int]):
         """
         框架接口
 

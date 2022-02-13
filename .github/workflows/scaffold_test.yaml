@@ -1,4 +1,4 @@
-# 检测驱动版本是否变动
+# 入坑指南 https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/privatisation/
 name: scaffold_test
 
 on:
@@ -10,6 +10,8 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     env:
+      # 任何时候都不要在 fork 分支上提交明文信息，
+      # 删库回滚都没用，隐私数据将被封存在母仓库内任何人都可以查看
       EPΙC_EMAΙL: ${{ secrets.EPΙC_EMAΙL }}
       EPΙC_PASSWΟRD: ${{ secrets.EPΙC_PASSWΟRD }}
     steps:

@@ -23,25 +23,26 @@ from .exceptions import LabelNotFoundException, ChallengeReset, ChallengeTimeout
 class YOLO:
     """用于实现图像分类的 YOLO 模型"""
 
-    def __init__(self, dir_model):
+    def __init__(self, dir_model, onnx_prefix: str = "yolov5n6"):
         self.dir_model = "./model" if dir_model is None else dir_model
-        self.cfg = {
-            "name": "model_configuration",
-            "path": os.path.join(self.dir_model, "yolov4_new.cfg"),
-            "src": "https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4_new.cfg",
-        }
-        self.weights = {
-            "name": "model_weights",
-            "path": os.path.join(self.dir_model, "yolov4_new.weights"),
-            "src": "https://github.com/AlexeyAB/darknet/releases/download/yolov4/yolov4_new.weights",
+        self.onnx_prefix = (
+            "yolov5n6"
+            if onnx_prefix not in ["yolov5m6", "yolov5s6", "yolov5n6"]
+            else onnx_prefix
+        )
+
+        self.onnx_model = {
+            "name": f"{self.onnx_prefix}(onnx)_model",
+            "path": os.path.join(self.dir_model, f"{self.onnx_prefix}.onnx"),
+            "src": f"https://github.com/QIN2DIM/epic-awesome-gamer/releases/download/v0.2.0.dev/{self.onnx_prefix}.onnx",
         }
 
         self.classes = [
             "person",
             "bicycle",
             "car",
-            "motorcycle",
-            "airplane",
+            "motorbike",
+            "aeroplane",
             "bus",
             "train",
             "truck",
@@ -94,12 +95,12 @@ class YOLO:
             "donut",
             "cake",
             "chair",
-            "couch",
-            "potted plant",
+            "sofa",
+            "pottedplant",
             "bed",
-            "dining table",
+            "diningtable",
             "toilet",
-            "tv",
+            "tvmonitor",
             "laptop",
             "mouse",
             "remote",
@@ -124,21 +125,22 @@ class YOLO:
         if not os.path.exists(self.dir_model):  # noqa
             os.mkdir(self.dir_model)
 
-        for dm in [self.cfg, self.weights]:
-            if os.path.exists(dm["path"]):
-                continue
-            print(f"Downloading {dm['name']} from {dm['src']}")
+        if os.path.exists(self.onnx_model["path"]):
+            return
 
-            try:
-                r = requests.get(dm["src"], allow_redirects=True, stream=True)
-            except requests.exceptions.RequestException:
-                return None
-            else:
-                with open(dm["path"], "wb") as file:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        file.write(chunk)
+        print(f"Downloading {self.onnx_model['name']} from {self.onnx_model['src']}")
 
-    def detect_common_objects(self, img_stream, confidence=0.28, nms_thresh=0.4):
+        try:
+            response = requests.get(
+                self.onnx_model["src"], allow_redirects=True, stream=True
+            )
+        except requests.exceptions.RequestException:
+            return None
+        else:
+            with open(self.onnx_model["path"], "wb") as file:
+                file.write(response.content)
+
+    def detect_common_objects(self, img_stream, confidence=0.4, nms_thresh=0.4):
         """
         目标检测
 
@@ -153,11 +155,11 @@ class YOLO:
         height, width = img.shape[:2]
 
         blob = cv2.dnn.blobFromImage(
-            img, 0.00392, (416, 416), (0, 0, 0), True, crop=False
+            img, 0.00392, (320, 320), (0, 0, 0), True, crop=False
         )
         self.download_model()
 
-        net = cv2.dnn.readNetFromDarknet(self.cfg["path"], self.weights["path"])
+        net = cv2.dnn.readNetFromONNX(self.onnx_model["path"])
 
         net.setInput(blob)
 
@@ -165,7 +167,7 @@ class YOLO:
         confidences = []
         boxes = []
 
-        outs = net.forward(["yolo_139", "yolo_150", "yolo_161"])
+        outs = net.forward()
 
         for out in outs:
             for detection in out:
@@ -185,28 +187,7 @@ class YOLO:
 
         indices = cv2.dnn.NMSBoxes(boxes, confidences, confidence, nms_thresh)
 
-        bbox = []
-        label = []
-        conf = []
-
-        for i in indices:
-            box = boxes[i]
-            point_x = box[0]
-            point_y = box[1]
-            point_w = box[2]
-            point_h = box[3]
-            bbox.append(
-                [
-                    int(point_x),
-                    int(point_y),
-                    int(point_x + point_w),
-                    int(point_y + point_h),
-                ]
-            )
-            label.append(str(self.classes[class_ids[i]]))
-            conf.append(confidences[i])
-
-        return bbox, label, conf
+        return [str(self.classes[class_ids[i]]) for i in indices]
 
 
 class ArmorCaptcha:
@@ -227,12 +208,12 @@ class ArmorCaptcha:
             "卡车": "truck",
             "公交车": "bus",
             "巴土": "bus",
-            "飞机": "airplane",
+            "飞机": "aeroplane",
             "ー条船": "boat",
             "船": "boat",
             "汽车": "car",
-            "摩托车": "motorcycle",
-            "雨伞": "umbrella",
+            "摩托车": "motorbike",
+            "水上飞机": "boat",
         }
 
         # 样本标签映射 {挑战图片1: locator1, ...}
@@ -275,7 +256,7 @@ class ArmorCaptcha:
 
     def tactical_retreat(self) -> bool:
         """模型存在泛化死角，遇到指定标签时主动进入下一轮挑战，节约时间"""
-        if self.label in ["水上飞机", "摩托车"] or not self.label_alias.get(self.label):
+        if self.label in ["each"] or not self.label_alias.get(self.label):
             self.log(message="模型泛化较差，逃逸", label=self.label)
             return True
         return False
@@ -390,7 +371,7 @@ class ArmorCaptcha:
                 data = file.read()
 
             # 获取识别结果
-            _, labels, _ = model.detect_common_objects(
+            labels = model.detect_common_objects(
                 data, confidence=confidence, nms_thresh=nms_thresh
             )
 

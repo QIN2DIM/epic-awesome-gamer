@@ -23,11 +23,11 @@ class SpawnBooster(CoroutineSpeedup):
     """协程助推器 并发执行片段代码"""
 
     def __init__(
-            self,
-            docker,
-            ctx_cookies,
-            power: Optional[int] = None,
-            debug: Optional[bool] = None,
+        self,
+        docker,
+        ctx_cookies,
+        power: Optional[int] = None,
+        debug: Optional[bool] = None,
     ):
         super().__init__(docker=docker, power=power)
 
