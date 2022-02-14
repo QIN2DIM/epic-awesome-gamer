@@ -150,7 +150,7 @@ class ArmorUtils(ArmorCaptcha):
         self.runtime_workspace = workspace_
 
     def challenge_success(
-        self, ctx: Chrome, init: bool = True, **kwargs
+            self, ctx: Chrome, init: bool = True, **kwargs
     ) -> Optional[bool]:
         """
         判断挑战是否成功的复杂逻辑
@@ -180,6 +180,23 @@ class ArmorUtils(ArmorCaptcha):
                 self.log("挑战继续")
                 return False
 
+        def _assert_retry():
+            """error-text:: 请再试一次"""
+            try:
+                time.sleep(1)
+                error_tag = WebDriverWait(
+                    ctx, 2, ignored_exceptions=WebDriverException
+                ).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//div[@class='error-text']/parent::div")
+                    )
+                )
+            except TimeoutException:
+                return True
+            else:
+                if error_tag.get_attribute("aria-hidden") in ["false"]:
+                    return False
+
         door: str = kwargs.get("door", "login")
 
         flag = ctx.current_url
@@ -188,6 +205,11 @@ class ArmorUtils(ArmorCaptcha):
         # hcaptcha 最多两轮验证，一般情况下，账号信息有误仅会执行一轮，然后返回登录窗格提示密码错误
         # 其次是被识别为自动化控制，这种情况也是仅执行一轮，回到登录窗格提示“返回数据错误”
         if init and not _continue_action():
+            return False
+
+        # 次轮测试因准确度过低需要重置挑战
+        if not init and not _assert_retry():
+            self.log("挑战被迫重置 可能需要关闭系统代理")
             return False
 
         try:
@@ -201,7 +223,7 @@ class ArmorUtils(ArmorCaptcha):
         except TimeoutException:
             # 如果挑战通过，自动跳转至其他页面（也即离开当前网址）
             try:
-                WebDriverWait(ctx, 12).until(EC.url_changes(flag))
+                WebDriverWait(ctx, 10).until(EC.url_changes(flag))
             # 如果挑战未通过，可能为“账号信息错误”“分数太低”“自动化特征被识别”
             except TimeoutException:
                 if door == "login":
@@ -385,12 +407,12 @@ class AssertUtils:
         try:
             warning_text = (
                 WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException)
-                .until(
+                    .until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//div[@data-component='DownloadMessage']//span")
                     )
                 )
-                .text
+                    .text
             )
             if warning_text == "感谢您的购买":
                 raise PaymentAutoSubmit
@@ -404,12 +426,12 @@ class AssertUtils:
         try:
             warning_text = (
                 WebDriverWait(ctx, 3, ignored_exceptions=WebDriverException)
-                .until(
+                    .until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//h2[@class='payment-blocked__msg']")
                     )
                 )
-                .text
+                    .text
             )
             if warning_text:
                 raise PaymentException(warning_text)
@@ -424,10 +446,10 @@ class AssertUtils:
 
     @staticmethod
     def purchase_status(
-        ctx: Chrome,
-        page_link: str,
-        action_name: Optional[str] = "AssertUtils",
-        init: Optional[bool] = True,
+            ctx: Chrome,
+            page_link: str,
+            action_name: Optional[str] = "AssertUtils",
+            init: Optional[bool] = True,
     ) -> Optional[str]:
         """
         断言当前上下文页面的游戏的在库状态。
@@ -462,8 +484,8 @@ class AssertUtils:
         # 游戏名 超时的空对象主动抛出异常
         game_name = (
             WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException)
-            .until(EC.visibility_of_element_located((By.XPATH, "//h1")))
-            .text
+                .until(EC.visibility_of_element_located((By.XPATH, "//h1")))
+                .text
         )
 
         if game_name[-1] == "。":
@@ -718,7 +740,7 @@ class AwesomeFreeMan:
         ctx.refresh()
 
     def _get_free_game(
-        self, page_link: str, api_cookies: List[dict], ctx: Chrome
+            self, page_link: str, api_cookies: List[dict], ctx: Chrome
     ) -> None:
         """
         获取免费游戏

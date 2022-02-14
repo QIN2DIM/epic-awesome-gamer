@@ -23,10 +23,10 @@ from .exceptions import LabelNotFoundException, ChallengeReset, ChallengeTimeout
 class YOLO:
     """用于实现图像分类的 YOLO 模型"""
 
-    def __init__(self, dir_model, onnx_prefix: str = "yolov5n6"):
+    def __init__(self, dir_model, onnx_prefix: str = "yolov5s6"):
         self.dir_model = "./model" if dir_model is None else dir_model
         self.onnx_prefix = (
-            "yolov5n6"
+            "yolov5s6"
             if onnx_prefix not in ["yolov5m6", "yolov5s6", "yolov5n6"]
             else onnx_prefix
         )
@@ -155,7 +155,7 @@ class YOLO:
         height, width = img.shape[:2]
 
         blob = cv2.dnn.blobFromImage(
-            img, 0.00392, (320, 320), (0, 0, 0), True, crop=False
+            img, 0.00392, (320, 320), (0, 0, 0), swapRB=True, crop=False
         )
         self.download_model()
 
@@ -256,7 +256,7 @@ class ArmorCaptcha:
 
     def tactical_retreat(self) -> bool:
         """模型存在泛化死角，遇到指定标签时主动进入下一轮挑战，节约时间"""
-        if self.label in ["each"] or not self.label_alias.get(self.label):
+        if self.label in ["水上飞机"] or not self.label_alias.get(self.label):
             self.log(message="模型泛化较差，逃逸", label=self.label)
             return True
         return False
@@ -382,6 +382,7 @@ class ArmorCaptcha:
                     self.alias2locator[alias].click()
                 except WebDriverException:
                     pass
+
         # {{< SUBMIT ANSWER >}}
         try:
             WebDriverWait(
