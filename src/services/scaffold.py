@@ -3,140 +3,97 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from gevent import monkey
+from typing import Optional
 
-monkey.patch_all()
-from apis.scaffold import get, challenge, install
+from apis.scaffold import get, challenge, install, claimer
 
 
 class Scaffold:
-    NotImplementedErrorWarning = "本指令功能暂未完成，敬请期待。"
-
-    def __init__(self):
-        pass
+    """系统脚手架 顶级接口指令"""
 
     @staticmethod
-    def install(cdn: bool = False):
-        """
-        下载项目运行所需的配置。
-
-        ## Basic Usage
-
-        Usage: python main.py install
-        _________________________________________________________________
-        or: python main.py install --cdn       |使用CDN下载模型
-        _________________________________________________________________
-
-        ## Intro
-
-        本指令不拉取 `requirements.txt`，需要手动操作。
-
-        ## Warning
-
-        - 本指令仍有较大进步空间（在测试中...）
-            - 若小伙伴使用此指令后并不能一次性将所有依赖拉取完毕，出现缺漏，可以将简要信息提交至 `issues`。
-            - 若下载速度较慢，可以使用 `cdn` 参数加速下载
-        - https://github.com/QIN2DIM/epic-awesome-gamer
-
-        :param cdn: CloudFlare CDN
-        :return:
-        """
-        install.run(cdn=cdn)
+    def install():
+        """下载运行依赖"""
+        install.run()
 
     @staticmethod
-    def get(update: bool = None):
-        """
-        获取 Epic Store 所有未在库的免费游戏。一键操作，将免费商城搬空，科技改变生活！
-
-        ## Basic Usage
-
-        Usage: python main.py get
-        _________________________________________________________________
-        or: python main.py get --update       |强制更新免费游戏缓存
-        _________________________________________________________________
-
-        ## Local Static CacheFile
-
-        - 考虑到 `get` 是玩家手动执行的指令，而 Epic 更新免费游戏的频率并不高，
-        所以在不指定 `update` 参数的情况下，复用本地静态缓存是比较合理的打开方式。
-
-        - 此指令会将 Epic 当前的免费游戏的展示链接存储在 `src/database/explorer` 目录下。
-
-        ## Defeat
-
-        当前执行逻辑非常保守，处于多个特殊场景下的游戏无法自动获取，如：
-        “包含成人信息”“当前账号地区或平台无法获取”等
-
-        ## Warning
-
-        - 本指令仍有较大进步空间（在测试中...）
-            - 若小伙伴在首轮中执行中遇到 `QUIT` 异常（几乎必然），可以在执行结束再执行几轮 `get` 指令，直至清空商城；
-                有些异常是仅在性能释放不足时被抛出，在单例执行时几乎不会撞见。
-            - 若出现其他报错，请留意 Exception 信息，并将完整的栈追踪信息提交至 `issues` ，不胜感激！
-        >> https://github.com/QIN2DIM/epic-awesome-gamer
-
-        :return:
-        :param update:
-        :return:
-        """
-        get.join(update=update)
+    def test():
+        """检查挑战者驱动版本是否适配"""
+        install.test()
 
     @staticmethod
-    def challenge():
+    def challenge(silence: Optional[bool] = True):
         """
-        正面硬钢人机验证，为当前账号获取有效的身份令牌。
+        正面硬刚人机挑战，为当前账号获取有效的身份令牌。
 
         ## Intro
 
         - 请确保你已在 `config.yaml` 中配置了正确的账号信息。
-        - 本指令可插入在项目 `uminoleon/epicgames-claimer` 的生产环节之中，用于被动更新玩家的身份令牌。
-        - 更新后的 cookie 明文信息将存储到 `/src/database/cookies/user_cookies.txt` 中
+        - 更新后的 cookie 存储在 `/src/database/cookies/user_cookies.txt` 文件中
 
         ## Tips
 
         - 本指令并不会强制激活人机验证。硬刚人机挑战不是目的，获取到有效的身份令牌才是目的，不要徒增功耗。
-        - 也即若当前缓存的身份令牌还未失效，任务跳过。
-        - 如果想强制激活，请手动删除 `src/database/cookies/api_cookies.txt` 文件
-        - 请无视 `SurpriseExit()` 异常
+        - 也即，如果当前缓存的身份令牌还未失效，挑战跳过。
+
+        :param silence: (Default: True) IF False: 将在图形化系统中显式启动浏览器，演示人机挑战的执行过程。
+        :return:
+        """
+        challenge.run(silence=silence)
+
+    @staticmethod
+    def get(debug: Optional[bool] = None, cache: Optional[bool] = True):
+        """
+        「我可以不玩但不能没有。」—— 鲁·克莱摩·迅
+
+        ## Intro
+
+        - `get` 只做一件事，搬空免费商店！
+
+        - 这是个趣味性和观赏性都拉满的一次性任务。系统会根据你的设备性能发起最高 4 协程并发的驱动任务，为你节省扫荡时间。
+
+        - 显然地，这是一项对操作系统内存和网络I/O要求都不低的任务，如果你嫌这五六十款（不同地区权限不同）
+        多余的常驻免费游戏会影响你翻找游戏库的效率，请速速退朝。
+
+        - `get` 指令启动标准上下文执行任务，其并不足以应付隐藏在订单中的人机挑战。因此，`get` 指令会自动跳过未认领的周免游戏。
+        请使用生产效率更高的 `claim` 指令认领周免游戏。
+
+        ## Local Static CacheFile
+
+        此指令会将免费商城数据存储在 `src/database/explorer` 目录下。存储内容与当前上下文身份令牌有关（不同地区权限不同）
+
+        ## Contributes
+
+        - 若运行出现意料之外的报错，请运行 debug 模式，留意 Exception 信息，并将完整的栈追踪信息提交至 `issues` ，不胜感激！
+        -  https://github.com/QIN2DIM/epic-awesome-gamer
+
+        :param cache: 使用商城缓存数据
+        :param debug: 显示栈追踪日志信息
+        :return:
+        """
+        get.join(trace=debug, cache=cache)
+
+    @staticmethod
+    def claim(silence: Optional[bool] = True):
+        """
+        认领周免游戏。
+
+        ## Intro
+
+        `claim` 做的事非常简单，获取本周促销数据，分析是否有待认领的周免游戏，根据分析结果执行相关任务。
+
+        `claim` 是系统级指令 `deploy` 的单步子任务，在上述业务结束后，会根据你配置的 `pusher` 推送追踪日志（若配置无效则不发）。
 
         :return:
         """
-        challenge.run()
+        claimer.run(silence=silence)
 
     @staticmethod
-    def deploy():
+    def deploy(platform: Optional[str] = None):
         """
         部署系统定时任务。
 
+        :param platform: 可选项 [vps serverless qing-long]
         :return:
         """
-        # service.SystemCrontab()
-        raise NotImplementedError(Scaffold.NotImplementedErrorWarning)
-
-    @staticmethod
-    def ping():
-        """
-        测试配置文件中的账号信息是否有效。
-
-        :return:
-        """
-        raise NotImplementedError(Scaffold.NotImplementedErrorWarning)
-
-    @staticmethod
-    def config():
-        """
-        提供一个 WEBUI 引导输入，更新配置文件。
-
-        :return:
-        """
-        raise NotImplementedError(Scaffold.NotImplementedErrorWarning)
-
-    @staticmethod
-    def clear():
-        """
-        安全清理系统运行缓存
-
-        安全清理人机验证，运行日志等临时缓存。
-        :return:
-        """
-        raise NotImplementedError(Scaffold.NotImplementedErrorWarning)
+        claimer.deploy(platform)

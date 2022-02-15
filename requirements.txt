@@ -1,15 +1,36 @@
-selenium>=4.1.0
-gevent>=21.12.0
+# {{< Scaffolding dependency >}}
 fire>=0.4.0
-opencv-python>=4.5.3.56
-numpy>=1.22.1
-requests>=2.27.1
+
+# {{< Log system >}}
 loguru>=0.5.3
-colorama>=0.4.4
-pytz>=2021.3
 pyyaml>=6.0
+
+# {{< Timed task >}}
+apscheduler>=3.8.1
+pytz>=2021.3
+
+# {{< Interface /Data cleaning >}}
+requests>=2.27.1
 cloudscraper>=1.2.58
 bs4>=0.0.1
 beautifulsoup4>=4.10.0
 lxml>=4.7.1
-apscheduler>=3.8.1
+aiohttp>=3.8.1
+
+# {{< Object Detection >}}
+opencv-python>=4.5.5.62
+numpy>=1.22.1
+
+# {{< Challenger Drive >}}
+gevent>=21.12.0
+selenium>=4.1.0
+webdriver_manager==3.5.2
+undetected_chromedriver==3.1.3
+
+# {{< Message Push >}}
+apprise>=0.9.6
+
+# {{< Conflicting dependencies >}}
+# Manually install according to your needs.
+# Used to skip `tls in tls` authentication.
+# urllib3==1.25.11

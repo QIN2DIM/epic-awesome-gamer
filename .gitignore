@@ -129,8 +129,9 @@ dmypy.json
 .pyre/
 .idea
 src/database
-src/driver
+src/model
 src/config.yaml
 tests/
-src/model
-docs-src
+docs-src/
+.github/workflows/automated.yaml
+.github/workflows/automated_claim.yaml

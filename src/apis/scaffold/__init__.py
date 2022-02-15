@@ -3,6 +3,10 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import os
+import random
+import sys
+
 _THE_PROPHECY = """
 # ====================================================================================================
 # Ithlinne's Prophecy
@@ -14,10 +18,12 @@ _THE_PROPHECY = """
 # A seed which will not sprout but burst into flame.
 # Ess'tuath esse! Thus it shall be! Watch for the signs!
 # What signs these shall be, I say unto you:
-# first the earth will flow with the blood of Aen Seidhe, the Blood of Elves. 
+# first the earth will flow with the blood of claim , the Blood of Epic . 
 # ====================================================================================================
 """
-import random
-
-if random.uniform(0, 1) > 0.911:
+if random.uniform(0, 1) > 0.711:
+    for policy in ["epic", "claim"]:
+        if policy in os.getenv("GITHUB_REPOSITORY", "").lower():
+            print(f"[EXIT] 仓库名出现非法关键词 `{policy}`")
+            sys.exit()
     print(_THE_PROPHECY)

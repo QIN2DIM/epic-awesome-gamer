@@ -3,84 +3,62 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from gevent import monkey
+import sys
+import webbrowser
 
-monkey.patch_all()
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.utils import get_browser_version_from_os
 
 from services.settings import DIR_MODEL, logger
-from services.utils import YOLO, CoroutineSpeedup, ToolBox
+from services.utils import YOLO
+from services.utils import get_challenge_ctx
 
-_HOOK_CDN_PREFIX = "https://curly-shape-d178.qinse.workers.dev/"
 
-
-def _download_model(*args, **kwargs):
-    """
-    下载 YOLOv4 目标检测模型
-    :param cdn:
-    :return:
-    """
-    if not args:
-        pass
-    cdn = kwargs.get("cdn", False)
-
-    _yolo = YOLO(dir_model=DIR_MODEL)
-    if cdn is True and not _HOOK_CDN_PREFIX:
-        _yolo.cfg["src"] = _HOOK_CDN_PREFIX + _yolo.cfg["src"]
-        _yolo.weights["src"] = _HOOK_CDN_PREFIX + _yolo.weights["src"]
-
+def _download_model():
+    """下载 YOLOv4 目标检测模型"""
     logger.debug("下载 YOLOv4 目标检测模型...")
-    _yolo.download_model()
+
+    YOLO(dir_model=DIR_MODEL).download_model()
 
 
-def _download_driver(*args, **kwargs):
-    """
-    下载浏览器驱动。
-
-    :return:
-    """
-    if not args:
-        pass
-    version = kwargs.get("version", "latest")
-
+def _download_driver():
+    """下载浏览器驱动"""
     logger.debug("适配 ChromeDriver...")
-    ChromeDriverManager(version=version, log_level=0).install()
+
+    # 自动下载并授权对应版本的 ChromeDriver
+    browser_version = get_browser_version_from_os("google-chrome")
+    if browser_version != "UNKNOWN":
+        return ChromeDriverManager(version="latest").install()
+
+    # 环境变量中缺少 `google-chrome` 提示玩家手动安装
+    logger.critical("当前环境变量缺少 `google-chrome`，请为你的设备手动安装 Chrome 浏览器。")
+    logger.info(
+        "Ubuntu: https://linuxize.com/post/how-to-install-google-chrome-web-browser-on-ubuntu-20-04/"
+    )
+    logger.info(
+        "CentOS 7/8: https://linuxize.com/post/how-to-install-google-chrome-web-browser-on-centos-7/"
+    )
+    if "linux" not in sys.platform:
+        webbrowser.open("https://www.google.com/chrome/")
+
+    logger.info("安装完毕后重新执行 `install` 脚手架指令。")
 
 
-class PerformanceReleaser(CoroutineSpeedup):
-    def __init__(self, docker, power=None):
-        super(PerformanceReleaser, self).__init__(docker=docker, power=power)
-
-    def control_driver(self, task, *args, **kwargs):
-        try:
-            task(*args, **kwargs)
-        except Exception as e:  # noqa
-            logger.exception(e)
+def run():
+    """下载项目运行所需的各项依赖"""
+    logger.debug("正在下载系统依赖")
+    _download_driver()
+    _download_model()
+    logger.success("系统依赖下载完毕")
 
 
-def run(cdn: bool = False):
-    """
-    下载项目运行所需的各项依赖。
+@logger.catch()
+def test():
+    """检查挑战者驱动版本是否适配"""
+    ctx = get_challenge_ctx(silence=True)
+    try:
+        ctx.get("https://www.baidu.com")
+    finally:
+        ctx.quit()
 
-    :return:
-    """
-    logger.debug(ToolBox.runtime_report(
-        motive="BUILD",
-        action_name="RequirementInstaller",
-        message="正在下载系统依赖",
-        params=f"cdn={cdn}"
-    ))
-    docker = [
-        _download_driver,
-        _download_model
-    ]
-
-    booster = PerformanceReleaser(docker=docker, power=99)
-    booster.go(cdn=cdn, )
-
-    logger.success(ToolBox.runtime_report(
-        motive="GET",
-        action_name="RequirementInstaller",
-        message="系统依赖下载完毕",
-        params=f"cdn={cdn}"
-    ))
+    logger.success("驱动适配成功")

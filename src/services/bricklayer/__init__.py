@@ -3,6 +3,8 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from .core import Bricklayer
+from .bricklayer import Bricklayer
 
-__all__ = ["Bricklayer", ]
+__all__ = [
+    "Bricklayer",
+]

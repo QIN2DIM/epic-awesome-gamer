@@ -2,32 +2,38 @@ from typing import Optional, Sequence
 
 
 class ArmorException(Exception):
-    def __init__(self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None) -> None:
+    """Armor module basic exception"""
+
+    def __init__(
+        self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None
+    ):
         self.msg = msg
         self.stacktrace = stacktrace
+        super().__init__()
 
     def __str__(self) -> str:
-        exception_msg = "Message: {}\n".format(self.msg)
+        exception_msg = f"Message: {self.msg}\n"
         if self.stacktrace:
             stacktrace = "\n".join(self.stacktrace)
-            exception_msg += "Stacktrace:\n{}".format(stacktrace)
+            exception_msg += f"Stacktrace:\n{stacktrace}"
         return exception_msg
 
 
 class ChallengeException(ArmorException):
-    pass
+    """hCAPTCHA Challenge basic exceptions"""
 
 
 class ChallengeReset(ChallengeException):
     """挑战失败，需要重试"""
-    pass
 
 
 class LoadImageTimeout(ChallengeException):
     """加载挑战图片超时"""
-    pass
+
+
+class ChallengeTimeout(ChallengeException):
+    """人机挑战超时 CPU能力太弱无法在规定时间内完成挑战"""
 
 
 class LabelNotFoundException(ChallengeException):
     """获取到空的图像标签名"""
-    pass
