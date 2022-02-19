@@ -14,7 +14,9 @@ if os.getenv("RUNNER_TOOL_CACHE"):
         if requests.get(_uxo).status_code != 404:
             raise requests.RequestException
     except requests.RequestException:
-        print("[Warning] 禁止在 fork 分支上运行工作流，请创建私有工作流。\n"
-              "详见 https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/privatisation/")
+        print(
+            "[Warning] 禁止在 fork 分支上运行工作流，请创建私有工作流。\n"
+            "详见 https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/privatisation/"
+        )
         if random.uniform(0, 1) > 0.15:
             sys.exit()

@@ -187,9 +187,7 @@ class ArmorUtils(ArmorCaptcha):
                 return False
 
             try:
-                WebDriverWait(
-                    ctx, 2, ignored_exceptions=WebDriverException
-                ).until(
+                WebDriverWait(ctx, 2, ignored_exceptions=WebDriverException).until(
                     EC.visibility_of_element_located(
                         (By.XPATH, "//div[@class='error-text']")
                     )

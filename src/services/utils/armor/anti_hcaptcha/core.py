@@ -375,7 +375,7 @@ class ArmorCaptcha:
             labels = model.detect_common_objects(
                 data, confidence=confidence, nms_thresh=nms_thresh
             )
-            ta.append(time.time()-t0)
+            ta.append(time.time() - t0)
 
             # 模型会根据置信度给出图片中的多个目标，只要命中一个就算通过
             if self.label_alias[self.label] in labels:

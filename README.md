@@ -21,19 +21,14 @@
 
 ## 快速上手 🛴
 
-- 免费人：详见 [Epic AwesomeGamer 入座指南](https://blog.echosec.top/epic-awesome-gamer/zh/docs/user/quick-start/)。
-- 开发者：Fork 项目，根据 [技术文档](https://blog.echosec.top/epic-awesome-gamer/zh/) 合理配置 `config.yaml` ，使用脚手架调试并部署服务。
-
-## 网上冲浪 🌊
-
-- :gear: 技术文档
+- :gear: [技术文档](https://www.wolai.com/vAiu9mSp6G15xhWeoEPUn2)
 - :small_red_triangle: 注意事项
 - :loudspeaker: 更新日志
 - :world_map: [开源计划](https://github.com/QIN2DIM/epic-awesome-gamer/issues/1)
 
 ## 联系我们 📧
 
-> 本项目由海南大学机器人与人工智能协会数据挖掘小组（`A-RAI.DM`）提供维护。
+> 本项目由海南大学机器人与人工智能实验室（`RobAI-Lab`）提供维护。
 
 - [**Email**](mailto:HainanU_arai@163.com?subject=CampusDailyAutoSign-ISSUE) **||** [**Home**](https://a-rai.github.io/) **||** [**TG**](https://t.me/joinchat/HlB9SQJubb5VmNU5)
 
