@@ -6,7 +6,7 @@
 import os
 import sys
 from os.path import join, dirname
-from typing import Dict, Union, Any
+from typing import Dict, Any, Optional
 
 from services.utils import ToolBox
 
@@ -26,10 +26,9 @@ __all__ = [
     # ------------------------------
     "EPIC_PASSWORD",
     "EPIC_EMAIL",
-    "SCHEDULER_SETTINGS",
     "MESSAGE_PUSHER_SETTINGS",
 ]
-__version__ = "0.1.7.dev"
+__version__ = "0.3.0.dev"
 
 """
 ================================================ ʕ•ﻌ•ʔ ================================================
@@ -93,24 +92,16 @@ config_ = ToolBox.check_sample_yaml(
 # [√] 账号信息
 # --------------------------------
 # 不建议在公有库上创建工作流运行项目，有仓库禁用风险
-EPIC_EMAIL: str = config_.get("EPΙC_EMAΙL", "")
-EPIC_PASSWORD: str = config_.get("EPΙC_PASSWΟRD", "")
-
-# --------------------------------
-# [※] 本地化语言设置
-# --------------------------------
-LOCALE_LANG: str = config_.get("LOCALE_LANG", "")
-
-# --------------------------------
-# [※] 定任务配置
-# --------------------------------
-SCHEDULER_SETTINGS: Dict[str, Union[int, bool]] = config_.get("scheduler", {})
+EPIC_EMAIL: Optional[str] = config_.get("EPΙC_EMAΙL", "")
+EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD", "")
 
 # --------------------------------
 # [※] 消息推送配置
 # --------------------------------
-MESSAGE_PUSHER_SETTINGS: Dict[str, Any] = config_.get("message_pusher_settings", {})
-PUSHER = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
+MESSAGE_PUSHER_SETTINGS: Optional[Dict[str, Any]] = config_.get(
+    "message_pusher_settings", {}
+)
+PUSHER: Optional[Dict[str, Optional[str]]] = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
 
 # --------------------------------
 # [※] 补全语法模板
@@ -131,6 +122,7 @@ except KeyError as e:
 # [√] 阻止缺省配置
 # --------------------------------
 if not all((EPIC_EMAIL, EPIC_PASSWORD)):
+    print("[进程退出] 账号信息未配置或相关变量不合法")
     sys.exit()
 
 if not any(PUSHER.values()):

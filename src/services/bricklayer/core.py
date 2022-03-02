@@ -32,6 +32,7 @@ from services.settings import (
 )
 from services.utils import (
     YOLO,
+    RiverChallenger,
     ToolBox,
     ArmorCaptcha,
     AshFramework,
@@ -107,6 +108,14 @@ class ArmorUtils(ArmorCaptcha):
             return True
         except TimeoutException:
             return False
+
+    def switch_solution(self, mirror, label: Optional[str] = None):
+        """模型卸载"""
+        label = self.label if label is None else label
+
+        if label in ["垂直河流"]:
+            return RiverChallenger()
+        return mirror
 
     def download_images(self) -> None:
         """
@@ -270,6 +279,10 @@ class ArmorUtils(ArmorCaptcha):
             ctx.switch_to.default_content()
             return False
 
+        # [👻] 注册解决方案
+        # 根据挑战类型自动匹配不同的模型
+        model = self.switch_solution(mirror=self.model)
+
         # [👻] 人机挑战！
         try:
             for index in range(2):
@@ -277,7 +290,7 @@ class ArmorUtils(ArmorCaptcha):
 
                 self.download_images()
 
-                self.challenge(ctx, model=self.model)
+                self.challenge(ctx, model=model)
 
                 result = self.challenge_success(ctx, init=not bool(index), door=door)
 
@@ -730,7 +743,7 @@ class AwesomeFreeMan:
             self._assert.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
                 self._armor.anti_hcaptcha(ctx, door="free")
-            except ChallengeReset:
+            except (ChallengeReset, TimeoutException):
                 pass
 
         # [🍜] Switch to default iframe.

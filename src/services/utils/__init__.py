@@ -4,7 +4,9 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 from .accelerator.core import CoroutineSpeedup, AshFramework
-from .armor.anti_hcaptcha.core import ArmorCaptcha, YOLO
+from .armor.anti_hcaptcha.core import ArmorCaptcha
+from .armor.anti_hcaptcha.solutions.yolo import YOLO
+from .armor.anti_hcaptcha.solutions.ski_river import RiverChallenger
 from .armor.anti_hcaptcha.exceptions import (
     LabelNotFoundException,
     ChallengeReset,
@@ -23,4 +25,5 @@ __all__ = [
     "ChallengeReset",
     "ChallengeTimeout",
     "YOLO",
+    "RiverChallenger",
 ]

@@ -12,9 +12,9 @@ class Scaffold:
     """系统脚手架 顶级接口指令"""
 
     @staticmethod
-    def install():
+    def install(onnx_prefix: Optional[str] = None):
         """下载运行依赖"""
-        install.run()
+        install.run(onnx_prefix=onnx_prefix)
 
     @staticmethod
     def test():

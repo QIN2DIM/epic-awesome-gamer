@@ -14,11 +14,11 @@ from services.utils import YOLO
 from services.utils import get_challenge_ctx
 
 
-def _download_model():
+def _download_model(onnx_prefix: str = None):
     """下载 YOLOv4 目标检测模型"""
     logger.debug("下载 YOLOv4 目标检测模型...")
 
-    YOLO(dir_model=DIR_MODEL).download_model()
+    YOLO(dir_model=DIR_MODEL, onnx_prefix=onnx_prefix).download_model()
 
 
 def _download_driver():
@@ -44,11 +44,11 @@ def _download_driver():
     logger.info("安装完毕后重新执行 `install` 脚手架指令。")
 
 
-def run():
+def run(onnx_prefix: str = None):
     """下载项目运行所需的各项依赖"""
     logger.debug("正在下载系统依赖")
     _download_driver()
-    _download_model()
+    _download_model(onnx_prefix=onnx_prefix)
     logger.success("系统依赖下载完毕")
 
 

@@ -136,4 +136,5 @@ docs-src/
 docs/
 .github/workflows/automated.yaml
 .github/workflows/automated_claim.yaml
-container
+.github/workflows/sync_repo.yaml
+docker-compose.yaml

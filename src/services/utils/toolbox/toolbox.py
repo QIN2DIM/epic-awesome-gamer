@@ -176,12 +176,17 @@ class ToolBox:
         return logger
 
 
-def _set_ctx() -> ChromeOptions:
+def _set_ctx(language: Optional[str] = None) -> ChromeOptions:
     """统一的 ChromeOptions 启动参数"""
     options = ChromeOptions()
     options.add_argument("--log-level=3")
-    options.add_argument("--lang=zh-CN")  # 可能仅在 Windows 生效
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--no-sandbox")
+
+    # 统一挑战语言
+    os.environ["LANGUAGE"] = "zh" if language is None else language
+    options.add_argument(f"--lang={os.getenv('LANGUAGE','')}")
+
     return options
 
 

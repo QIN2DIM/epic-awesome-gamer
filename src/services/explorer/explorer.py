@@ -192,10 +192,10 @@ class Explorer(AwesomeFreeGirl):
         """
 
         def _update_limited_free_game_objs(element_: dict):
-            limited_free_game_objs[url] = element_["title"]
-            limited_free_game_objs["urls"].append(url)
+            free_game_objs[url] = element_["title"]
+            free_game_objs["urls"].append(url)
 
-        limited_free_game_objs = {"urls": []}
+        free_game_objs = {"urls": []}
 
         scraper = cloudscraper.create_scraper()
         response = scraper.get(self.URL_PROMOTIONS)
@@ -241,4 +241,32 @@ class Explorer(AwesomeFreeGirl):
                     ):
                         _update_limited_free_game_objs(element)
 
-        return limited_free_game_objs
+        return free_game_objs
+
+    def get_the_absolute_free_game(
+        self, ctx_cookies: Optional[List[dict]]
+    ) -> Dict[str, Any]:
+        """使用应力表达式萃取商品链接"""
+
+        free_game_objs = {"urls": []}
+
+        # 使用应力表达式萃取商品链接
+        with get_ctx(silence=self.silence) as ctx:
+            pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx)
+
+        # 中断空对象的工作流
+        if not pending_games:
+            return free_game_objs
+
+        # 任务批处理
+        for url, title in pending_games.items():
+            # 带入身份令牌判断周免游戏的在库状态
+            response = self.game_manager.is_my_game(
+                ctx_cookies=ctx_cookies, page_link=url
+            )
+            if not response["status"] and response["assert"] != "AssertObjectNotFound":
+                # 将待认领的周免游戏送入任务队列
+                free_game_objs[url] = title
+                free_game_objs["urls"].append(url)
+
+        return free_game_objs

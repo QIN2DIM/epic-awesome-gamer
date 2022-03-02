@@ -192,6 +192,8 @@ class ClaimerScheduler:
                         game=f"『{limited_free_game_objs[url]}』",
                     )
                 )
+
+                # 反复生产挑战者领取周免游戏
                 response = self.bricklayer.get_free_game(
                     page_link=url, ctx_cookies=ctx_cookies, challenge=True
                 )
@@ -221,7 +223,7 @@ class ClaimerScheduler:
         ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
 
         # 扫描商城促销活动，返回“0折”商品的名称与商城链接
-        limited_free_game_objs = self.explorer.get_the_limited_free_game(ctx_cookies)
+        limited_free_game_objs = self.explorer.get_the_absolute_free_game(ctx_cookies)
 
         # 初始化内联数据容器 临时存储运行缓存
         inline_docker = []

@@ -5,7 +5,7 @@
 # Description:
 import os.path
 import time
-from typing import List, ContextManager, Union
+from typing import List, ContextManager, Union, Dict
 
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Chrome
@@ -24,6 +24,7 @@ class AwesomeFreeGirl:
     """游戏商店探索者 获取免费游戏数据以及促销信息"""
 
     # 平台对象参数
+    URL_STORE_HOME = "https://www.epicgames.com/store/zh-CN/"
     URL_FREE_GAMES = "https://www.epicgames.com/store/zh-CN/free-games"
     URL_STORE_PREFIX = "https://www.epicgames.com/store/zh-CN/browse?"
     URL_STORE_FREE = (
@@ -139,3 +140,53 @@ class AwesomeFreeGirl:
                 qsize=len(self.game_objs),
             )
         )
+
+    def stress_expressions(self, ctx: Union[ContextManager, Chrome]) -> Dict[str, str]:
+        """
+        应力表达式的主要实现
+
+        :param ctx: 浏览器驱动上下文
+        :return:
+        """
+        logger.debug(
+            ToolBox.runtime_report(
+                motive="DISCOVERY",
+                action_name=self.action_name,
+                message="📡 使用应力表达式搜索周免游戏...",
+            )
+        )
+
+        # 访问链接 游戏名称
+        pending_games = {}
+
+        for _ in range(2):
+            try:
+                ctx.get(self.URL_STORE_HOME)
+                time.sleep(3)
+
+                # 定位周免游戏的绝对位置
+                WebDriverWait(ctx, 45, ignored_exceptions=WebDriverException).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//a[contains(string(),'当前免费')]")
+                    )
+                )
+
+                # 周免游戏基本信息
+                stress_operator = ctx.find_elements(
+                    By.XPATH, "//a[contains(string(),'当前免费')]"
+                )
+                img_seq = ctx.find_elements(
+                    By.XPATH, "//a[contains(string(),'当前免费')]//img"
+                )
+
+                # 重组周免游戏信息
+                for index, _ in enumerate(stress_operator):
+                    href = stress_operator[index].get_attribute("href")
+                    alias = img_seq[index].get_attribute("alt")
+                    pending_games[href] = alias
+
+                break
+            except (WebDriverException, AttributeError):
+                continue
+
+        return pending_games
