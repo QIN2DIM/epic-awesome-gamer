@@ -5,13 +5,16 @@
 # Description:
 from .accelerator.core import CoroutineSpeedup, AshFramework
 from .armor.anti_hcaptcha.core import ArmorCaptcha
-from .armor.anti_hcaptcha.solutions.yolo import YOLO
-from .armor.anti_hcaptcha.solutions.ski_river import RiverChallenger
 from .armor.anti_hcaptcha.exceptions import (
     LabelNotFoundException,
     ChallengeReset,
     ChallengeTimeout,
 )
+from .armor.anti_hcaptcha.solutions.sk_recognition import (
+    RiverChallenger,
+    DetectionChallenger,
+)
+from .armor.anti_hcaptcha.solutions.yolo import YOLO
 from .toolbox.toolbox import ToolBox, get_ctx, get_challenge_ctx
 
 __all__ = [
@@ -26,4 +29,5 @@ __all__ = [
     "ChallengeTimeout",
     "YOLO",
     "RiverChallenger",
+    "DetectionChallenger",
 ]

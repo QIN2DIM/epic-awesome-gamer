@@ -33,6 +33,7 @@ from services.settings import (
 from services.utils import (
     YOLO,
     RiverChallenger,
+    DetectionChallenger,
     ToolBox,
     ArmorCaptcha,
     AshFramework,
@@ -115,6 +116,8 @@ class ArmorUtils(ArmorCaptcha):
 
         if label in ["垂直河流"]:
             return RiverChallenger()
+        if label in ["天空中向左飞行的飞机"]:
+            return DetectionChallenger()
         return mirror
 
     def download_images(self) -> None:
