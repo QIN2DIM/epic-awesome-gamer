@@ -116,10 +116,13 @@ class CookieManager(AwesomeFreeMan):
             return True
         return False
 
-    def refresh_ctx_cookies(self, silence: bool = True) -> Optional[bool]:
+    def refresh_ctx_cookies(
+        self, silence: bool = True, _ctx_session=None
+    ) -> Optional[bool]:
         """
         更新上下文身份信息
 
+        :param _ctx_session: 泛型开发者参数
         :param silence:
         :return:
         """
@@ -136,7 +139,9 @@ class CookieManager(AwesomeFreeMan):
         # {{< Done >}}
 
         # {{< Insert Challenger Context >}}
-        ctx = get_challenge_ctx(silence=silence)
+        ctx = (
+            get_challenge_ctx(silence=silence) if _ctx_session is None else _ctx_session
+        )
         try:
             for _ in range(8):
                 # Enter the account information and jump to the man-machine challenge page.
@@ -179,7 +184,8 @@ class CookieManager(AwesomeFreeMan):
             self.save_ctx_cookies(ctx_cookies=ctx.get_cookies())
             return self.is_available_cookie(ctx_cookies=ctx.get_cookies())
         finally:
-            ctx.quit()
+            if _ctx_session is None:
+                ctx.quit()
         # {{< Done >}}
 
         return True
@@ -196,17 +202,22 @@ class Bricklayer(AwesomeFreeMan):
 
         self.cookie_manager = CookieManager()
 
+        # 游戏获取结果的状态
+        self.result = ""
+
     def get_free_game(
         self,
         page_link: str = None,
         ctx_cookies: List[dict] = None,
         refresh: bool = True,
         challenge: Optional[bool] = None,
+        _ctx_session=None,
     ) -> Optional[bool]:
         """
         获取免费游戏
 
         部署后必须传输有效的 `page_link` 参数。
+        :param _ctx_session:
         :param challenge:
         :param page_link: 游戏购买页链接 zh-CN
         :param refresh: 当 COOKIE 失效时主动刷新 COOKIE
@@ -239,9 +250,17 @@ class Bricklayer(AwesomeFreeMan):
                 return False
 
         # [🚀] 常驻免费（General）周免（Challenge）
-        ctx = get_challenge_ctx(self.silence) if challenge else get_ctx(self.silence)
+        if _ctx_session is None:
+            ctx = (
+                get_challenge_ctx(self.silence) if challenge else get_ctx(self.silence)
+            )
+        else:
+            ctx = _ctx_session
+
         try:
-            self._get_free_game(page_link=page_link, api_cookies=ctx_cookies, ctx=ctx)
+            self.result = self._get_free_game(
+                page_link=page_link, api_cookies=ctx_cookies, ctx=ctx
+            )
         except AssertTimeout:
             logger.debug(
                 ToolBox.runtime_report(
@@ -285,6 +304,5 @@ class Bricklayer(AwesomeFreeMan):
             )
             return False
         finally:
-            ctx.quit()
-
-        return True
+            if _ctx_session is None:
+                ctx.quit()

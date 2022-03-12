@@ -4,8 +4,9 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import asyncio
-import os.path
+import os
 import time
+import sys
 import urllib.request
 from typing import List, Optional, NoReturn
 
@@ -29,6 +30,7 @@ from services.settings import (
     DIR_MODEL,
     EPIC_EMAIL,
     EPIC_PASSWORD,
+    PATH_RAINBOW,
 )
 from services.utils import (
     YOLO,
@@ -115,9 +117,9 @@ class ArmorUtils(ArmorCaptcha):
         label = self.label if label is None else label
 
         if label in ["垂直河流"]:
-            return RiverChallenger()
+            return RiverChallenger(path_rainbow=PATH_RAINBOW)
         if label in ["天空中向左飞行的飞机"]:
-            return DetectionChallenger()
+            return DetectionChallenger(path_rainbow=PATH_RAINBOW)
         return mirror
 
     def download_images(self) -> None:
@@ -153,12 +155,15 @@ class ArmorUtils(ArmorCaptcha):
             self.alias2path.update({alias_: path_challenge_img_})
             docker_.append((path_challenge_img_, url_))
 
-        # 初始化图片下载器
-        downloader = ImageDownloader(docker=docker_)
-
         # 启动最高功率的协程任务
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(downloader.subvert(workers="fast"))
+        if "win" in sys.platform:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+            asyncio.run(ImageDownloader(docker=docker_).subvert(workers="fast"))
+        else:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(
+                ImageDownloader(docker=docker_).subvert(workers="fast")
+            )
 
         self.runtime_workspace = workspace_
 
@@ -317,10 +322,12 @@ class AssertUtils:
     """处理穿插在认领过程中意外出现的遮挡信息"""
 
     # 特征指令/简易错误
-    COOKIE_EXPIRED = "饼干过期了"
-    ASSERT_OBJECT_EXCEPTION = "无效的断言对象"
-    GAME_OK = "游戏在库"
-    GAME_FETCH = "游戏未在库/可获取"
+    # 此部分状态作为消息模板的一部分，尽量简短易理解
+    COOKIE_EXPIRED = "💥 饼干过期了"
+    ASSERT_OBJECT_EXCEPTION = "🚫 无效的断言对象"
+    GAME_OK = "🛴 已在库"
+    GAME_PENDING = "👀 待认领"
+    GAME_CLAIM = "💰 领取成功"
 
     @staticmethod
     def wrong_driver(ctx, msg: str):
@@ -513,7 +520,7 @@ class AssertUtils:
             )
             return AssertUtils.ASSERT_OBJECT_EXCEPTION
 
-        if "已在游戏库中" in assert_info:
+        if "已在" in assert_info:
             _message = "🛴 游戏已在库" if init else "🥂 领取成功"
             logger.info(
                 ToolBox.runtime_report(
@@ -523,7 +530,7 @@ class AssertUtils:
                     game=f"『{game_name}』",
                 )
             )
-            return AssertUtils.GAME_OK
+            return AssertUtils.GAME_OK if init else AssertUtils.GAME_CLAIM
 
         if "获取" in assert_info:
             deadline: Optional[str] = None
@@ -550,7 +557,7 @@ class AssertUtils:
                 )
             )
 
-            return AssertUtils.GAME_FETCH
+            return AssertUtils.GAME_PENDING
 
         if "购买" in assert_info:
             logger.warning(
@@ -609,7 +616,7 @@ class AwesomeFreeMan:
 
         # 注册拦截机
         self._armor = ArmorUtils()
-        self._assert = AssertUtils()
+        self.assert_ = AssertUtils()
 
     @staticmethod
     def _reset_page(ctx: Chrome, page_link: str, api_cookies):
@@ -665,7 +672,7 @@ class AwesomeFreeMan:
             # 出现弹窗遮挡
             except ElementClickInterceptedException:
                 try:
-                    if self._assert.surprise_warning_purchase(api) is True:
+                    if self.assert_.surprise_warning_purchase(api) is True:
                         continue
                 except UnableToGet:
                     return False
@@ -709,7 +716,7 @@ class AwesomeFreeMan:
                 pass
 
         # [🍜] 判断游戏锁区
-        self._assert.payment_blocked(ctx)
+        self.assert_.payment_blocked(ctx)
 
         # [🍜] Ignore: Click the [Accept Agreement] confirmation box.
         try:
@@ -739,11 +746,11 @@ class AwesomeFreeMan:
             return
 
         # [🍜] 处理 UK 地区账号的「退款及撤销权信息」。
-        self._assert.refund_info(ctx)
+        self.assert_.refund_info(ctx)
 
         # [🍜] 捕获隐藏在订单中的人机挑战，仅在周免游戏中出现。
         if self._armor.fall_in_captcha_runtime(ctx):
-            self._assert.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
+            self.assert_.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
                 self._armor.anti_hcaptcha(ctx, door="free")
             except (ChallengeReset, TimeoutException):
@@ -755,7 +762,7 @@ class AwesomeFreeMan:
 
     def _get_free_game(
         self, page_link: str, api_cookies: List[dict], ctx: Chrome
-    ) -> None:
+    ) -> Optional[str]:
         """
         获取免费游戏
 
@@ -766,7 +773,7 @@ class AwesomeFreeMan:
         :return:
         """
         if not api_cookies:
-            raise CookieExpired(self._assert.COOKIE_EXPIRED)
+            raise CookieExpired(self.assert_.COOKIE_EXPIRED)
 
         _loop_start = time.time()
         init = True
@@ -776,11 +783,11 @@ class AwesomeFreeMan:
             self._reset_page(ctx=ctx, page_link=page_link, api_cookies=api_cookies)
 
             # [🚀] 断言游戏的在库状态
-            self._assert.surprise_warning_purchase(ctx)
-            result = self._assert.purchase_status(
+            self.assert_.surprise_warning_purchase(ctx)
+            result = self.assert_.purchase_status(
                 ctx, page_link, self.action_name, init=init
             )
-            if result != self._assert.GAME_FETCH:
+            if result != self.assert_.GAME_PENDING:
                 break
 
             # [🚀] 激活游戏订单
@@ -789,17 +796,19 @@ class AwesomeFreeMan:
 
             # [🚀] 新用户首次购买游戏需要处理许可协议书
             # Maximum sleep time -> 3s
-            if self._assert.surprise_license(ctx):
+            if self.assert_.surprise_license(ctx):
                 ctx.refresh()
                 continue
 
             # [🚀] 订单消失
             # Maximum sleep time -> 5s
-            self._assert.payment_auto_submit(ctx)
+            self.assert_.payment_auto_submit(ctx)
 
             # [🚀] 处理游戏订单
             self._handle_payment(ctx)
 
             # [🚀] 更新上下文状态
             init = False
-            self._assert.timeout(_loop_start, self.loop_timeout)
+            self.assert_.timeout(_loop_start, self.loop_timeout)
+
+        return result

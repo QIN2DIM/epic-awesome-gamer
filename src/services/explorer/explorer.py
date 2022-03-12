@@ -244,15 +244,25 @@ class Explorer(AwesomeFreeGirl):
         return free_game_objs
 
     def get_the_absolute_free_game(
-        self, ctx_cookies: Optional[List[dict]]
+        self, ctx_cookies: Optional[List[dict]], _ctx_session=None
     ) -> Dict[str, Any]:
         """使用应力表达式萃取商品链接"""
 
         free_game_objs = {"urls": []}
 
         # 使用应力表达式萃取商品链接
-        with get_ctx(silence=self.silence) as ctx:
-            pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx)
+        if _ctx_session:
+            critical_memory = _ctx_session.current_window_handle
+            try:
+                _ctx_session.switch_to.new_window("tab")
+                pending_games: Dict[str, str] = self.stress_expressions(
+                    ctx=_ctx_session
+                )
+            finally:
+                _ctx_session.switch_to.window(critical_memory)
+        else:
+            with get_ctx(silence=self.silence) as ctx:
+                pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx)
 
         # 中断空对象的工作流
         if not pending_games:

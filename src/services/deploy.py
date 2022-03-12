@@ -6,6 +6,7 @@
 import random
 from datetime import datetime, timedelta
 from typing import Optional
+
 import apprise
 import pytz
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -14,7 +15,7 @@ from apscheduler.triggers.cron import CronTrigger
 from services.bricklayer import Bricklayer
 from services.explorer import Explorer
 from services.settings import logger, MESSAGE_PUSHER_SETTINGS
-from services.utils import ToolBox
+from services.utils import ToolBox, get_challenge_ctx
 
 
 class ClaimerScheduler:
@@ -27,7 +28,7 @@ class ClaimerScheduler:
         self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(
             days=180
         )
-
+        self.silence = silence
         # 服务注册
         self.scheduler = BlockingScheduler()
         self.bricklayer = Bricklayer(silence=silence)
@@ -111,7 +112,7 @@ class ClaimerScheduler:
             ]
         else:
             _inline_textbox += [
-                f"[{game_obj[self.SPAWN_TIME]}] {game_obj['flag']} {game_obj['name']}"
+                f"[{game_obj[self.SPAWN_TIME]}] {game_obj['name']} {game_obj['status']}"
                 for game_obj in inline_docker
             ]
         _inline_textbox += [
@@ -168,6 +169,7 @@ class ClaimerScheduler:
         elif platform == "qing-long":
             return self.job_loop_claim()
 
+    @logger.catch()
     def job_loop_claim(self):
         """单步子任务 认领周免游戏"""
 
@@ -194,14 +196,13 @@ class ClaimerScheduler:
                 )
 
                 # 反复生产挑战者领取周免游戏
-                response = self.bricklayer.get_free_game(
-                    page_link=url, ctx_cookies=ctx_cookies, challenge=True
+                self.bricklayer.get_free_game(
+                    page_link=url, ctx_cookies=ctx_cookies, _ctx_session=challenger
                 )
-
                 # 编制运行缓存 用于生成业务报告
                 _runtime = {
                     self.SPAWN_TIME: ToolBox.date_format_now(),
-                    "flag": "💰" if response else "🚫",
+                    "status": self.bricklayer.result,
                     "name": limited_free_game_objs[url],
                 }
                 inline_docker.append(_runtime)
@@ -217,19 +218,27 @@ class ClaimerScheduler:
                 )
             )
 
-        # 更新身份令牌
-        if not self.bricklayer.cookie_manager.refresh_ctx_cookies():
-            return
-        ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
-
-        # 扫描商城促销活动，返回“0折”商品的名称与商城链接
-        limited_free_game_objs = self.explorer.get_the_absolute_free_game(ctx_cookies)
-
         # 初始化内联数据容器 临时存储运行缓存
         inline_docker = []
 
-        # 释放 Claimer 认领周免游戏
-        _release_power(limited_free_game_objs["urls"])
+        challenger = get_challenge_ctx(silence=self.silence)
+        try:
+            # 更新身份令牌
+            if not self.bricklayer.cookie_manager.refresh_ctx_cookies(
+                _ctx_session=challenger
+            ):
+                return
+            ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
+
+            # 扫描商城促销活动，返回“0折”商品的名称与商城链接
+            limited_free_game_objs = self.explorer.get_the_absolute_free_game(
+                ctx_cookies, _ctx_session=challenger
+            )
+
+            # 释放 Claimer 认领周免游戏
+            _release_power(limited_free_game_objs["urls"])
+        finally:
+            challenger.quit()
 
         # 缓存卸载 发送运行日志
         self._push(inline_docker)

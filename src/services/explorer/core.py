@@ -146,7 +146,7 @@ class AwesomeFreeGirl:
         应力表达式的主要实现
 
         :param ctx: 浏览器驱动上下文
-        :return:
+        :return: 不需要 quit()
         """
         logger.debug(
             ToolBox.runtime_report(

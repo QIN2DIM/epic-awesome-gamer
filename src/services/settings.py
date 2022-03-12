@@ -21,6 +21,7 @@ __all__ = [
     "DIR_EXPLORER",
     "PATH_USR_COOKIES",
     "DIR_MODEL",
+    "PATH_RAINBOW",
     # ------------------------------
     # CONFIG
     # ------------------------------
@@ -45,6 +46,8 @@ PROJECT_ROOT = dirname(dirname(__file__))
 PROJECT_DATABASE = join(PROJECT_ROOT, "database")
 # YOLO模型
 DIR_MODEL = join(PROJECT_ROOT, "model")
+# Reinforcement of memory
+PATH_RAINBOW = join(DIR_MODEL, "rainbow.yaml")
 # Cookie 工作目录
 DIR_COOKIES = join(PROJECT_DATABASE, "cookies")
 PATH_USR_COOKIES = join(DIR_COOKIES, "user_cookies.txt")
