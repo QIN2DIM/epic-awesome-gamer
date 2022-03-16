@@ -5,8 +5,8 @@
 # Description:
 import asyncio
 import os
-import time
 import sys
+import time
 import urllib.request
 from typing import List, Optional, NoReturn
 
@@ -17,6 +17,7 @@ from selenium.common.exceptions import (
     ElementClickInterceptedException,
     NoSuchElementException,
     StaleElementReferenceException,
+    InvalidCookieDomainException,
 )
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -72,7 +73,7 @@ class ArmorUtils(ArmorCaptcha):
         :param ctx:
         :return: True：已进入人机验证页面，False：跳转到个人主页
         """
-        threshold_timeout = 35
+        threshold_timeout = 32
         start = time.time()
         flag_ = ctx.current_url
         while True:
@@ -307,13 +308,17 @@ class ArmorUtils(ArmorCaptcha):
                     break
                 # 断言超时
                 if index == 1 and result is False:
-                    ctx.switch_to.default_content()
-                    return False
+                    raise TimeoutException
+        # 提交结果断言超时或 mark_samples() 等待超时
+        except TimeoutException:
+            ctx.switch_to.default_content()
+            return False
+        # 捕获重置挑战的请求信号
         except ChallengeReset:
             ctx.switch_to.default_content()
             return self.anti_hcaptcha(ctx, door=door)
+        # 回到主线剧情
         else:
-            # 回到主线剧情
             ctx.switch_to.default_content()
             return True
 
@@ -328,6 +333,47 @@ class AssertUtils:
     GAME_OK = "🛴 已在库"
     GAME_PENDING = "👀 待认领"
     GAME_CLAIM = "💰 领取成功"
+
+    @staticmethod
+    def login_error(ctx: Chrome) -> bool:
+        """登录失败 可能原因为账号或密码错误"""
+
+        threshold_timeout = 3
+        start = time.time()
+
+        while True:
+            # "任务超时：网络响应过慢"
+            if time.time() - start > threshold_timeout:
+                return False
+
+            # 提交按钮正在响应或界面弹出人机挑战
+            try:
+                submit_button = ctx.find_element(By.ID, "sign-in")
+                status_obj = submit_button.get_attribute("tabindex")
+                if status_obj == "-1":
+                    continue
+            except (AttributeError, WebDriverException):
+                pass
+
+            # 登录页面遭遇 Alert，可能原因为：
+            # - 账号或密码无效；
+            # - Auth Response 异常；
+            # - 账号被锁定；
+            try:
+                h6_tags = ctx.find_elements(By.TAG_NAME, "h6")
+                if len(h6_tags) > 1:
+                    return True
+                return False
+            except NoSuchElementException:
+                pass
+
+    @staticmethod
+    def get_login_error_msg(ctx) -> Optional[str]:
+        """获取登录页面的错误信息"""
+        try:
+            return ctx.find_element(By.XPATH, "//form//h6").text.strip()
+        except (WebDriverException, AttributeError):
+            return "null"
 
     @staticmethod
     def wrong_driver(ctx, msg: str):
@@ -482,24 +528,20 @@ class AssertUtils:
         :return:
         """
         time.sleep(2)
+
         # 捕获按钮对象，根据按钮上浮动的提示信息断言游戏在库状态 超时的空对象主动抛出异常
-        assert_obj = WebDriverWait(
-            ctx,
-            30,
-            ignored_exceptions=[
-                ElementNotVisibleException,
-                StaleElementReferenceException,
-            ],
-        ).until(
-            EC.element_to_be_clickable(
-                (
-                    By.XPATH,
-                    "//span[@data-component='PurchaseCTA']//span[@data-component='Message']",
+        try:
+            assert_obj = WebDriverWait(ctx, 30, WebDriverException).until(
+                EC.element_to_be_clickable(
+                    (
+                        By.XPATH,
+                        "//span[@data-component='PurchaseCTA']//span[@data-component='Message']",
+                    )
                 )
             )
-        )
-        if not assert_obj:
+        except TimeoutException:
             return AssertUtils.ASSERT_OBJECT_EXCEPTION
+
         assert_info = assert_obj.text
 
         # 游戏名 超时的空对象主动抛出异常
@@ -597,10 +639,6 @@ class AwesomeFreeMan:
 
     # 操作对象参数
     URL_LOGIN = "https://www.epicgames.com/id/login/epic?lang=zh-CN"
-    URL_FREE_GAME_TEST = (
-        "https://www.epicgames.com/store/zh-CN/p/galactic-civilizations-iii"
-    )
-    URL_CHECK_COOKIE = "https://www.epicgames.com/store/zh-CN/"
     URL_ACCOUNT_PERSONAL = "https://www.epicgames.com/account/personal"
 
     def __init__(self):
@@ -618,11 +656,21 @@ class AwesomeFreeMan:
         self._armor = ArmorUtils()
         self.assert_ = AssertUtils()
 
-    @staticmethod
-    def _reset_page(ctx: Chrome, page_link: str, api_cookies):
-        ctx.get(page_link)
+    def _reset_page(self, ctx: Chrome, page_link: str, api_cookies):
+        ctx.get(self.URL_ACCOUNT_PERSONAL)
         for cookie_dict in api_cookies:
-            ctx.add_cookie(cookie_dict)
+            try:
+                ctx.add_cookie(cookie_dict)
+            except InvalidCookieDomainException as err:
+                logger.error(
+                    ToolBox.runtime_report(
+                        motive="SKIP",
+                        action_name=self.action_name,
+                        error=err.msg,
+                        domain=cookie_dict.get("domain", "null"),
+                        name=cookie_dict.get("name", "null"),
+                    )
+                )
         ctx.get(page_link)
 
     def _login(self, email: str, password: str, ctx: Chrome) -> None:
@@ -645,9 +693,9 @@ class AwesomeFreeMan:
             EC.presence_of_element_located((By.ID, "password"))
         ).send_keys(password)
 
-        WebDriverWait(
-            ctx, 60, ignored_exceptions=ElementClickInterceptedException
-        ).until(EC.element_to_be_clickable((By.ID, "sign-in"))).click()
+        WebDriverWait(ctx, 60, ignored_exceptions=ElementClickInterceptedException).until(
+            EC.element_to_be_clickable((By.ID, "sign-in"))
+        ).click()
 
     def _activate_payment(self, api: Chrome) -> Optional[bool]:
         """
@@ -778,16 +826,23 @@ class AwesomeFreeMan:
         _loop_start = time.time()
         init = True
         while True:
-            # [🚀] 重载COOKIE
-            # InvalidCookieDomainException：需要两次 GET 重载 cookie relative domain
+            # [🚀] 重载身份令牌
+            # InvalidCookieDomainException：需要 2 次 GET 重载 cookie relative domain
+            # InvalidCookieDomainException：跨域认证，访问主域名或过滤异站域名信息
             self._reset_page(ctx=ctx, page_link=page_link, api_cookies=api_cookies)
 
             # [🚀] 断言游戏的在库状态
             self.assert_.surprise_warning_purchase(ctx)
-            result = self.assert_.purchase_status(
-                ctx, page_link, self.action_name, init=init
+            self.result = self.assert_.purchase_status(
+                ctx, page_link, self.action_name, init
             )
-            if result != self.assert_.GAME_PENDING:
+            # 当游戏不处于<待认领>状态时跳过后续业务
+            if self.result != self.assert_.GAME_PENDING:
+                # <游戏状态断言超时>或<检测到异常的实体对象>
+                # 在超时阈值内尝试重新拉起服务
+                if self.result == self.assert_.ASSERT_OBJECT_EXCEPTION:
+                    continue
+                # 否则游戏状态处于<领取成功>或<已在库>
                 break
 
             # [🚀] 激活游戏订单
@@ -811,4 +866,4 @@ class AwesomeFreeMan:
             init = False
             self.assert_.timeout(_loop_start, self.loop_timeout)
 
-        return result
+        return self.result

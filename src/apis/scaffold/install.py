@@ -9,21 +9,22 @@ import webbrowser
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.utils import get_browser_version_from_os
 
-from services.settings import DIR_MODEL, logger
+from services.settings import DIR_MODEL, logger, PATH_RAINBOW
+from services.utils import SKRecognition
 from services.utils import YOLO
 from services.utils import get_challenge_ctx
 
 
 def _download_model(onnx_prefix: str = None):
     """下载 YOLOv4 目标检测模型"""
-    logger.debug("下载 YOLOv4 目标检测模型...")
+    logger.debug("Downloading YOLOv5(ONNX) object detection model...")
 
     YOLO(dir_model=DIR_MODEL, onnx_prefix=onnx_prefix).download_model()
 
 
 def _download_driver():
     """下载浏览器驱动"""
-    logger.debug("适配 ChromeDriver...")
+    logger.debug("Downloading ChromeDriver...")
 
     # 自动下载并授权对应版本的 ChromeDriver
     browser_version = get_browser_version_from_os("google-chrome")
@@ -44,11 +45,18 @@ def _download_driver():
     logger.info("安装完毕后重新执行 `install` 脚手架指令。")
 
 
+def _download_rainbow():
+    logger.debug("Downloading Reinforcement of Memory | Rainbow Table...")
+
+    SKRecognition.sync_rainbow(path_rainbow=PATH_RAINBOW, convert=True)
+
+
 def run(onnx_prefix: str = None):
     """下载项目运行所需的各项依赖"""
     logger.debug("正在下载系统依赖")
     _download_driver()
     _download_model(onnx_prefix=onnx_prefix)
+    _download_rainbow()
     logger.success("系统依赖下载完毕")
 
 

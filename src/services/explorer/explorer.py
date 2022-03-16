@@ -255,9 +255,7 @@ class Explorer(AwesomeFreeGirl):
             critical_memory = _ctx_session.current_window_handle
             try:
                 _ctx_session.switch_to.new_window("tab")
-                pending_games: Dict[str, str] = self.stress_expressions(
-                    ctx=_ctx_session
-                )
+                pending_games: Dict[str, str] = self.stress_expressions(ctx=_ctx_session)
             finally:
                 _ctx_session.switch_to.window(critical_memory)
         else:

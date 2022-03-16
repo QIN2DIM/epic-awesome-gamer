@@ -4,6 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os.path
+import time
 from hashlib import sha256
 from typing import List, Optional
 
@@ -25,6 +26,7 @@ from .exceptions import (
     PaymentException,
     AuthException,
     UnableToGet,
+    LoginException,
 )
 
 
@@ -139,13 +141,17 @@ class CookieManager(AwesomeFreeMan):
         # {{< Done >}}
 
         # {{< Insert Challenger Context >}}
-        ctx = (
-            get_challenge_ctx(silence=silence) if _ctx_session is None else _ctx_session
-        )
+        ctx = get_challenge_ctx(silence=silence) if _ctx_session is None else _ctx_session
         try:
             for _ in range(8):
                 # Enter the account information and jump to the man-machine challenge page.
                 self._login(self.email, self.password, ctx=ctx)
+
+                # Determine whether the account information is filled in correctly.
+                if self.assert_.login_error(ctx):
+                    raise LoginException(
+                        f"登录异常 Alert『{self.assert_.get_login_error_msg(ctx)}』"
+                    )
 
                 # Assert if you are caught in a man-machine challenge.
                 try:
@@ -207,7 +213,7 @@ class Bricklayer(AwesomeFreeMan):
 
     def get_free_game(
         self,
-        page_link: str = None,
+        page_link: str,
         ctx_cookies: List[dict] = None,
         refresh: bool = True,
         challenge: Optional[bool] = None,
@@ -224,11 +230,8 @@ class Bricklayer(AwesomeFreeMan):
         :param ctx_cookies:
         :return:
         """
-        page_link = self.URL_FREE_GAME_TEST if page_link is None else page_link
         ctx_cookies = (
-            self.cookie_manager.load_ctx_cookies()
-            if ctx_cookies is None
-            else ctx_cookies
+            self.cookie_manager.load_ctx_cookies() if ctx_cookies is None else ctx_cookies
         )
 
         # [🚀] 验证 COOKIE
@@ -251,12 +254,11 @@ class Bricklayer(AwesomeFreeMan):
 
         # [🚀] 常驻免费（General）周免（Challenge）
         if _ctx_session is None:
-            ctx = (
-                get_challenge_ctx(self.silence) if challenge else get_ctx(self.silence)
-            )
+            ctx = get_challenge_ctx(self.silence) if challenge else get_ctx(self.silence)
         else:
             ctx = _ctx_session
 
+        # [🚀] 认领游戏
         try:
             self.result = self._get_free_game(
                 page_link=page_link, api_cookies=ctx_cookies, ctx=ctx

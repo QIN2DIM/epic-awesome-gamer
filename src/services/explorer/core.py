@@ -24,15 +24,14 @@ class AwesomeFreeGirl:
     """游戏商店探索者 获取免费游戏数据以及促销信息"""
 
     # 平台对象参数
-    URL_STORE_HOME = "https://www.epicgames.com/store/zh-CN/"
-    URL_FREE_GAMES = "https://www.epicgames.com/store/zh-CN/free-games"
-    URL_STORE_PREFIX = "https://www.epicgames.com/store/zh-CN/browse?"
+    URL_STORE_HOME = "https://store.epicgames.com/zh-CN/"
+    URL_FREE_GAMES = "https://store.epicgames.com/zh-CN/free-games"
+    URL_STORE_PREFIX = "https://store.epicgames.com/zh-CN/browse?"
     URL_STORE_FREE = (
         f"{URL_STORE_PREFIX}sortBy=releaseDate&sortDir=DESC&priceTier=tierFree&count=40"
     )
-    URL_HOME = "https://www.epicgames.com"
     URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=zh-CN"
-    URL_PRODUCT_PAGE = "https://www.epicgames.com/store/zh-CN/p/"
+    URL_PRODUCT_PAGE = "https://store.epicgames.com/zh-CN/p/"
 
     def __init__(self, silence: bool = None):
         self.silence = True if silence is None else silence
@@ -50,12 +49,8 @@ class AwesomeFreeGirl:
 
     def _init_workspace(self) -> None:
         """初始化工作目录 缓存游戏商店数据"""
-        self.runtime_workspace = (
-            "." if not os.path.exists(DIR_EXPLORER) else DIR_EXPLORER
-        )
-        self.path_free_games = os.path.join(
-            self.runtime_workspace, self.path_free_games
-        )
+        self.runtime_workspace = "." if not os.path.exists(DIR_EXPLORER) else DIR_EXPLORER
+        self.path_free_games = os.path.join(self.runtime_workspace, self.path_free_games)
 
     def _discovery_free_games(
         self, ctx: Union[ContextManager, Chrome], ctx_cookies: List[dict]
@@ -116,12 +111,7 @@ class AwesomeFreeGirl:
                 name = game_obj.get_attribute("aria-label")
                 url = game_obj.get_attribute("href")
                 self.game_objs.update(
-                    {
-                        self.game_objs.__len__(): {
-                            "name": name.strip(),
-                            "url": url.strip(),
-                        }
-                    }
+                    {self.game_objs.__len__(): {"name": name.strip(), "url": url.strip()}}
                 )
 
             # 页面跳转判断

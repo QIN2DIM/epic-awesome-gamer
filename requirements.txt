@@ -20,7 +20,7 @@ aiohttp>=3.8.1
 # {{< Object Detection >}}
 opencv-python>=4.5.5.62
 scikit-image>=0.19.2
-numpy>=1.21.5
+numpy==1.21.5
 
 # {{< Challenger Drive >}}
 gevent>=21.12.0

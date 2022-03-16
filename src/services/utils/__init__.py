@@ -15,6 +15,7 @@ from .armor.anti_hcaptcha.solutions.sk_recognition import (
     DetectionChallenger,
 )
 from .armor.anti_hcaptcha.solutions.yolo import YOLO
+from .armor.anti_hcaptcha.solutions.sk_recognition import SKRecognition
 from .toolbox.toolbox import ToolBox, get_ctx, get_challenge_ctx
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "ChallengeReset",
     "ChallengeTimeout",
     "YOLO",
+    "SKRecognition",
     "RiverChallenger",
     "DetectionChallenger",
 ]

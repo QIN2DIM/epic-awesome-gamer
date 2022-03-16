@@ -25,9 +25,7 @@ class ClaimerScheduler:
 
     def __init__(self, silence: Optional[bool] = None):
         self.action_name = "AwesomeScheduler"
-        self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(
-            days=180
-        )
+        self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(days=180)
         self.silence = silence
         # 服务注册
         self.scheduler = BlockingScheduler()
@@ -100,25 +98,16 @@ class ClaimerScheduler:
         # -------------------------
         # [📧]消息推送
         # -------------------------
-        _inline_textbox = [
-            f"当前玩家：{ToolBox.secret_email(self.bricklayer.email)}",
-        ]
-        _inline_textbox += [
-            "运行日志".center(20, "-"),
-        ]
+        _inline_textbox = [f"当前玩家：{ToolBox.secret_email(self.bricklayer.email)}"]
+        _inline_textbox += ["运行日志".center(20, "-")]
         if not inline_docker:
-            _inline_textbox += [
-                f"[{ToolBox.date_format_now()}] 🛴 暂无待认领的周免游戏",
-            ]
+            _inline_textbox += [f"[{ToolBox.date_format_now()}] 🛴 暂无待认领的周免游戏"]
         else:
             _inline_textbox += [
                 f"[{game_obj[self.SPAWN_TIME]}] {game_obj['name']} {game_obj['status']}"
                 for game_obj in inline_docker
             ]
-        _inline_textbox += [
-            "生命周期统计".center(20, "-"),
-            f"total:{inline_docker.__len__()}",
-        ]
+        _inline_textbox += ["生命周期统计".center(20, "-"), f"total:{inline_docker.__len__()}"]
 
         # 注册 Apprise 消息推送框架
         active_pusher = pusher_settings["pusher"]
@@ -127,10 +116,7 @@ class ClaimerScheduler:
             surprise.add(server)
 
         # 发送模版消息
-        surprise.notify(
-            body="\n".join(_inline_textbox),
-            title="EpicAwesomeGamer 运行报告",
-        )
+        surprise.notify(body="\n".join(_inline_textbox), title="EpicAwesomeGamer 运行报告")
 
         self.logger.success(
             ToolBox.runtime_report(
@@ -169,7 +155,6 @@ class ClaimerScheduler:
         elif platform == "qing-long":
             return self.job_loop_claim()
 
-    @logger.catch()
     def job_loop_claim(self):
         """单步子任务 认领周免游戏"""
 

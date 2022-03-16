@@ -16,15 +16,14 @@ from loguru import logger
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.utils import get_browser_version_from_os
 
 
 class ToolBox:
     """可移植的工具箱"""
 
     @staticmethod
-    def check_sample_yaml(
-        path_output: str, path_sample: str
-    ) -> Optional[Dict[str, Any]]:
+    def check_sample_yaml(path_output: str, path_sample: str) -> Optional[Dict[str, Any]]:
         """
         检查模板文件是否存在，检查配置文件是否存在，读取系统配置返回
 
@@ -173,7 +172,7 @@ def _set_ctx(language: Optional[str] = None) -> ChromeOptions:
 
     # 统一挑战语言
     os.environ["LANGUAGE"] = "zh" if language is None else language
-    options.add_argument(f"--lang={os.getenv('LANGUAGE','')}")
+    options.add_argument(f"--lang={os.getenv('LANGUAGE', '')}")
 
     return options
 
@@ -195,9 +194,12 @@ def get_ctx(silence: Optional[bool] = None):
 
 def get_challenge_ctx(silence: Optional[bool] = None):
     """挑战者驱动 用于处理人机挑战"""
+    logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
 
     silence = True if silence is None or "linux" in sys.platform else silence
 
     # 控制挑战者驱动版本，避免过于超前
-    logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
-    return uc.Chrome(options=_set_ctx(), headless=silence)
+    browser_version = get_browser_version_from_os("google-chrome")
+    version_main = browser_version.split(".")[0] if "." in browser_version else None
+
+    return uc.Chrome(options=_set_ctx(), headless=silence, version_main=version_main)

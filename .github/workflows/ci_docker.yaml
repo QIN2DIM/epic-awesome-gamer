@@ -7,6 +7,9 @@ on:
       - main
     paths-ignore:
       - ".github/**"
+      - "README.md"
+      - "LICENSE"
+      - ".gitignore"
 env:
   IMAGE_TAG: ${{ secrets.DOCKERHUB_USERNAME }}/awesome-epic:daddy
 

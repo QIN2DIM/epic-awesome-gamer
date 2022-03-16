@@ -61,7 +61,7 @@ class ArmorCaptcha:
 
         self._headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62",
+            "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62"
         }
 
     def log(self, message: str, **params) -> None:
@@ -102,9 +102,7 @@ class ArmorCaptcha:
 
         # 等待图片加载完成
         WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
-            EC.presence_of_all_elements_located(
-                (By.XPATH, "//div[@class='task-image']")
-            )
+            EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
         )
         time.sleep(1)
 
@@ -135,9 +133,7 @@ class ArmorCaptcha:
             label_obj = WebDriverWait(
                 ctx, 30, ignored_exceptions=ElementNotVisibleException
             ).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//div[@class='prompt-text']")
-                )
+                EC.presence_of_element_located((By.XPATH, "//div[@class='prompt-text']"))
             )
         except TimeoutException:
             raise ChallengeReset("人机挑战意外通过")
