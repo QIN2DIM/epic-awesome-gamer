@@ -7,7 +7,6 @@
 	<a href=""><img src="https://img.shields.io/github/workflow/status/QIN2DIM/epic-awesome-gamer/scaffold_claim?style=for-the-badge"></a>
 	<br>
     <a href="https://github.com/QIN2DIM/epic-awesome-gamer/"><img src="https://img.shields.io/github/stars/QIN2DIM/epic-awesome-gamer?style=social"></a>
-	<a href="https://twitter.com/Alkaid20860233"><img src="https://img.shields.io/twitter/follow/QIN2DIM?label=Tweet&style=social"></a>
 	<a href="https://t.me/joinchat/HlB9SQJubb5VmNU5"><img src="https://img.shields.io/static/v1?style=social&logo=telegram&label=chat&message=studio" ></a>
 	<br>
 	<br>
