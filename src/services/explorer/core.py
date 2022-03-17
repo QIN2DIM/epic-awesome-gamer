@@ -7,7 +7,7 @@ import os.path
 import time
 from typing import List, ContextManager, Union, Dict
 
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import WebDriverException,InvalidCookieDomainException
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
@@ -61,7 +61,10 @@ class AwesomeFreeGirl:
         if ctx_cookies:
             ctx.get(self.URL_STORE_FREE)
             for cookie_dict in ctx_cookies:
-                ctx.add_cookie(cookie_dict)
+                try:
+                    ctx.add_cookie(cookie_dict)
+                except InvalidCookieDomainException:
+                    pass
 
         _mode = "（深度搜索）" if ctx_cookies else "（广度搜索）"
         logger.debug(
