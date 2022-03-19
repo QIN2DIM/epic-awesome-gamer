@@ -74,7 +74,7 @@ class ArmorUtils(ArmorCaptcha):
         :return: True：已进入人机验证页面，False：跳转到个人主页
         """
 
-        threshold_timeout = 32
+        threshold_timeout = 69
         start = time.time()
         flag_ = ctx.current_url
         while True:
@@ -808,7 +808,7 @@ class AwesomeFreeMan:
             self.assert_.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
                 self._armor.anti_hcaptcha(ctx, door="free")
-            except (ChallengeReset, TimeoutException):
+            except (ChallengeReset, WebDriverException):
                 pass
 
         # [🍜] Switch to default iframe.

@@ -152,7 +152,10 @@ class CookieManager(AwesomeFreeMan):
         )
 
         try:
-            for _ in range(8):
+            balance_operator = -1
+            while balance_operator < 8:
+                balance_operator += 1
+
                 # Enter the account information and jump to the man-machine challenge page.
                 self._login(self.email, self.password, ctx=ctx)
 
@@ -173,6 +176,7 @@ class CookieManager(AwesomeFreeMan):
                     )
                     fallen = self._armor.fall_in_captcha_login(ctx=ctx)
                 except AssertTimeout:
+                    balance_operator += 1
                     continue
                 else:
                     # Approved.
@@ -190,6 +194,7 @@ class CookieManager(AwesomeFreeMan):
                     response = self._armor.anti_hcaptcha(ctx, door="login")
                     if response:
                         break
+                    balance_operator -= 0.5
             else:
                 logger.critical(
                     ToolBox.runtime_report(
