@@ -199,7 +199,8 @@ def get_challenge_ctx(silence: Optional[bool] = None):
     silence = True if silence is None or "linux" in sys.platform else silence
 
     # 控制挑战者驱动版本，避免过于超前
-    browser_version = get_browser_version_from_os("google-chrome")
-    version_main = browser_version.split(".")[0] if "." in browser_version else None
-
-    return uc.Chrome(options=_set_ctx(), headless=silence, version_main=version_main)
+    return uc.Chrome(
+        headless=silence,
+        options=_set_ctx(),
+        driver_executable_path=ChromeDriverManager(log_level=0).install(),
+    )

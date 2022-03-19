@@ -7,7 +7,7 @@ import os.path
 import time
 from typing import List, ContextManager, Union, Dict
 
-from selenium.common.exceptions import WebDriverException,InvalidCookieDomainException
+from selenium.common.exceptions import WebDriverException, InvalidCookieDomainException
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
