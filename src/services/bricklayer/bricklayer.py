@@ -142,6 +142,15 @@ class CookieManager(AwesomeFreeMan):
 
         # {{< Insert Challenger Context >}}
         ctx = get_challenge_ctx(silence=silence) if _ctx_session is None else _ctx_session
+        logger.success(
+            ToolBox.runtime_report(
+                motive="MATCH",
+                action_name="__Context__",
+                message="🎮 启动挑战者上下文",
+                ctx_session=bool(_ctx_session),
+            )
+        )
+
         try:
             for _ in range(8):
                 # Enter the account information and jump to the man-machine challenge page.
@@ -155,12 +164,26 @@ class CookieManager(AwesomeFreeMan):
 
                 # Assert if you are caught in a man-machine challenge.
                 try:
+                    logger.debug(
+                        ToolBox.runtime_report(
+                            action_name=self.action_name,
+                            motive="ARMOR",
+                            message="正在检测隐藏在登录界面的人机挑战...",
+                        )
+                    )
                     fallen = self._armor.fall_in_captcha_login(ctx=ctx)
                 except AssertTimeout:
                     continue
                 else:
                     # Approved.
                     if not fallen:
+                        logger.debug(
+                            ToolBox.runtime_report(
+                                action_name=self.action_name,
+                                motive="ARMOR",
+                                message="跳过人机挑战",
+                            )
+                        )
                         break
 
                     # Winter is coming, so hear me roar!

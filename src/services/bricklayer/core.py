@@ -73,6 +73,7 @@ class ArmorUtils(ArmorCaptcha):
         :param ctx:
         :return: True：已进入人机验证页面，False：跳转到个人主页
         """
+
         threshold_timeout = 32
         start = time.time()
         flag_ = ctx.current_url
@@ -696,6 +697,12 @@ class AwesomeFreeMan:
         WebDriverWait(ctx, 60, ignored_exceptions=ElementClickInterceptedException).until(
             EC.element_to_be_clickable((By.ID, "sign-in"))
         ).click()
+
+        logger.debug(
+            ToolBox.runtime_report(
+                motive="MATCH", action_name=self.action_name, message="实体信息注入完毕"
+            )
+        )
 
     def _activate_payment(self, api: Chrome) -> Optional[bool]:
         """

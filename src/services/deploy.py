@@ -206,22 +206,24 @@ class ClaimerScheduler:
         # 初始化内联数据容器 临时存储运行缓存
         inline_docker = []
 
+        # 集成统一的驱动上下文，减少内存占用
         challenger = get_challenge_ctx(silence=self.silence)
+
         try:
-            # 更新身份令牌
-            if not self.bricklayer.cookie_manager.refresh_ctx_cookies(
+            # 检查并更新身份令牌
+            if self.bricklayer.cookie_manager.refresh_ctx_cookies(
                 _ctx_session=challenger
             ):
-                return
-            ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
+                # 读取有效的身份令牌
+                ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
 
-            # 扫描商城促销活动，返回“0折”商品的名称与商城链接
-            limited_free_game_objs = self.explorer.get_the_absolute_free_game(
-                ctx_cookies, _ctx_session=challenger
-            )
+                # 扫描商城促销活动，返回“0折”商品的名称与商城链接
+                limited_free_game_objs = self.explorer.get_the_absolute_free_game(
+                    ctx_cookies, _ctx_session=challenger
+                )
 
-            # 释放 Claimer 认领周免游戏
-            _release_power(limited_free_game_objs["urls"])
+                # 释放 Claimer 认领周免游戏
+                _release_power(limited_free_game_objs["urls"])
         finally:
             challenger.quit()
 
