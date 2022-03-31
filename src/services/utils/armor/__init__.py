@@ -4,8 +4,9 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
-import sys
 import random
+import sys
+
 import requests
 
 if os.getenv("RUNNER_TOOL_CACHE"):

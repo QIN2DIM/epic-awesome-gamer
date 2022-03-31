@@ -10,8 +10,8 @@ from .armor.anti_hcaptcha.exceptions import (
     ChallengeReset,
     ChallengeTimeout,
 )
-from .armor.anti_hcaptcha.solutions.yolo import YOLO
 from .armor.anti_hcaptcha.solutions import sk_recognition
+from .armor.anti_hcaptcha.solutions.yolo import YOLO
 from .toolbox.toolbox import ToolBox, get_ctx, get_challenge_ctx
 
 __all__ = [

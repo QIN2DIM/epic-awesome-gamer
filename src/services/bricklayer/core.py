@@ -4,12 +4,14 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import asyncio
+import json.decoder
 import os
 import sys
 import time
 import urllib.request
 from typing import List, Optional, NoReturn
 
+import cloudscraper
 from selenium.common.exceptions import (
     TimeoutException,
     ElementNotVisibleException,
@@ -73,16 +75,46 @@ class ArmorUtils(ArmorCaptcha):
         :return: True：已进入人机验证页面，False：跳转到个人主页
         """
 
+        def _ajax_cookie_check_need_login(beat_dance: int = 0) -> Optional[bool]:
+            """
+            检验 AJAX COOKIE 是否有效
+            :return: True无效 | False有效
+            """
+            # 防止过失操作
+            time.sleep(0.3 + beat_dance)
+
+            _api = "https://www.epicgames.com/account/v2/ajaxCheckLogin"
+            scraper = cloudscraper.create_scraper()
+            try:
+                response = scraper.get(
+                    _api, headers={"cookie": ToolBox.transfer_cookies(ctx.get_cookies())}
+                )
+                return response.json()["needLogin"]
+            except (json.decoder.JSONDecodeError, KeyError):
+                return True
+            except Exception as err:  # noqa
+                logger.warning(err)
+                return None
+
         threshold_timeout = 69
         start = time.time()
-        flag_ = ctx.current_url
+        flag_ = "https://www.epicgames.com/id/login/epic?lang=zh-CN"
+        retry_times = -1
+
         while True:
-            if ctx.current_url != flag_:
+            retry_times += 1
+
+            # 判断上下文身份令牌是否已生效
+            if ctx.current_url != flag_ or _ajax_cookie_check_need_login(
+                beat_dance=retry_times
+            ):
                 return False
 
+            # 任务超时中断循环
             if time.time() - start > threshold_timeout:
                 raise AssertTimeout("任务超时：判断是否陷入人机验证")
 
+            # 启发式搜索::令牌暂未生效，任务仍未超时，检测隐藏在登录界面的人机挑战。
             try:
                 ctx.switch_to.frame(
                     ctx.find_element(By.XPATH, "//iframe[contains(@title,'content')]")

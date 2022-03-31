@@ -16,7 +16,6 @@ from loguru import logger
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.utils import get_browser_version_from_os
 
 
 class ToolBox:
@@ -199,8 +198,13 @@ def get_challenge_ctx(silence: Optional[bool] = None):
     silence = True if silence is None or "linux" in sys.platform else silence
 
     # 控制挑战者驱动版本，避免过于超前
-    return uc.Chrome(
-        headless=silence,
-        options=_set_ctx(),
-        driver_executable_path=ChromeDriverManager(log_level=0).install(),
-    )
+    options = _set_ctx()
+    try:
+        return uc.Chrome(
+            headless=silence,
+            options=options,
+            driver_executable_path=ChromeDriverManager(log_level=0).install(),
+        )
+    # 避免核心并行
+    except OSError:
+        return uc.Chrome(headless=silence, options=options)
