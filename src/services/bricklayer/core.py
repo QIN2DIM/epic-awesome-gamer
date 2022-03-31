@@ -35,8 +35,7 @@ from services.settings import (
 )
 from services.utils import (
     YOLO,
-    RiverChallenger,
-    DetectionChallenger,
+    sk_recognition,
     ToolBox,
     ArmorCaptcha,
     AshFramework,
@@ -119,9 +118,12 @@ class ArmorUtils(ArmorCaptcha):
         label = self.label if label is None else label
 
         if label in ["垂直河流"]:
-            return RiverChallenger(path_rainbow=PATH_RAINBOW)
+            return sk_recognition.RiverChallenger(path_rainbow=PATH_RAINBOW)
         if label in ["天空中向左飞行的飞机"]:
-            return DetectionChallenger(path_rainbow=PATH_RAINBOW)
+            return sk_recognition.DetectionChallenger(path_rainbow=PATH_RAINBOW)
+        if label in ["请选择天空中所有向右飞行的飞机"]:
+            return sk_recognition.RightPlane(path_rainbow=PATH_RAINBOW)
+
         return mirror
 
     def download_images(self) -> None:
@@ -846,7 +848,7 @@ class AwesomeFreeMan:
             # 当游戏不处于<待认领>状态时跳过后续业务
             if self.result != self.assert_.GAME_PENDING:
                 # <游戏状态断言超时>或<检测到异常的实体对象>
-                # 在超时阈值内尝试重新拉起服务
+                #                 # 在超时阈值内尝试重新拉起服务
                 if self.result == self.assert_.ASSERT_OBJECT_EXCEPTION:
                     continue
                 # 否则游戏状态处于<领取成功>或<已在库>

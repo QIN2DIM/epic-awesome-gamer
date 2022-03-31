@@ -3,8 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import os.path
-import time
+import os
 from hashlib import sha256
 from typing import List, Optional
 

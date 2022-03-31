@@ -44,6 +44,7 @@ class ArmorCaptcha:
             "摩托车": "motorbike",
             "垂直河流": "vertical river",
             "天空中向左飞行的飞机": "airplane in the sky flying left",
+            "请选择天空中所有向右飞行的飞机": "airplanes in the sky that are flying to the right",
         }
 
         # 样本标签映射 {挑战图片1: locator1, ...}
@@ -138,7 +139,10 @@ class ArmorCaptcha:
         except TimeoutException:
             raise ChallengeReset("人机挑战意外通过")
         try:
-            _label = re.split(r"[包含 图片]", label_obj.text)[2][:-1]
+            if "包含" in label_obj.text:
+                _label = re.split(r"[包含 图片]", label_obj.text)[2][:-1]
+            else:
+                _label = label_obj.text
         except (AttributeError, IndexError):
             raise LabelNotFoundException("获取到异常的标签对象。")
         else:
