@@ -105,7 +105,7 @@ class ArmorUtils(ArmorCaptcha):
             retry_times += 1
 
             # 判断上下文身份令牌是否已生效
-            if ctx.current_url != flag_ or _ajax_cookie_check_need_login(
+            if ctx.current_url != flag_ or not _ajax_cookie_check_need_login(
                 beat_dance=retry_times
             ):
                 return False
