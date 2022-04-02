@@ -11,6 +11,7 @@ import apprise
 import pytz
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
+from gevent.queue import Queue
 
 from services.bricklayer import Bricklayer
 from services.explorer import Explorer
@@ -27,10 +28,12 @@ class ClaimerScheduler:
         self.action_name = "AwesomeScheduler"
         self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(days=180)
         self.silence = silence
+
         # 服务注册
         self.scheduler = BlockingScheduler()
         self.bricklayer = Bricklayer(silence=silence)
         self.explorer = Explorer(silence=silence)
+        self.task_queue = Queue()
         self.logger = logger
 
     def deploy_on_vps(self):
@@ -103,10 +106,17 @@ class ClaimerScheduler:
         if not inline_docker:
             _inline_textbox += [f"[{ToolBox.date_format_now()}] 🛴 暂无待认领的周免游戏"]
         else:
-            _inline_textbox += [
-                f"[{game_obj[self.SPAWN_TIME]}] {game_obj['name']} {game_obj['status']}"
-                for game_obj in inline_docker
-            ]
+            _game_textbox = []
+            _dlc_textbox = []
+            for game_obj in inline_docker:
+                if not game_obj.get("dlc"):
+                    _game_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
+                else:
+                    _dlc_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
+            _inline_textbox.extend(_game_textbox)
+            if _dlc_textbox:
+                _inline_textbox += ["附加内容".center(20, "-")]
+                _inline_textbox.extend(_dlc_textbox)
         _inline_textbox += ["生命周期统计".center(20, "-"), f"total:{inline_docker.__len__()}"]
 
         # 注册 Apprise 消息推送框架
@@ -180,10 +190,15 @@ class ClaimerScheduler:
                     )
                 )
 
+                # 更新任务队列
+                challenger.switch_to.new_window("tab")
+                self.task_queue.put({"game": challenger.current_window_handle})
+
                 # 反复生产挑战者领取周免游戏
                 self.bricklayer.get_free_game(
                     page_link=url, ctx_cookies=ctx_cookies, _ctx_session=challenger
                 )
+
                 # 编制运行缓存 用于生成业务报告
                 _runtime = {
                     self.SPAWN_TIME: ToolBox.date_format_now(),
@@ -191,6 +206,33 @@ class ClaimerScheduler:
                     "name": limited_free_game_objs[url],
                 }
                 inline_docker.append(_runtime)
+
+        def _release_follower():
+            while not self.task_queue.empty():
+                context = self.task_queue.get()
+
+                # {"game": WebDriver Window}
+                if isinstance(context, dict) and context.get("game"):
+                    challenger.switch_to.window(context["game"])
+                    dlc_details = self.bricklayer.get_free_dlc_details(
+                        _ctx_session=challenger
+                    )
+                    for dlc in dlc_details:
+                        self.task_queue.put(dlc)
+                # {"url": link of dlc , "name": alia-label of dlc}
+                elif isinstance(context, dict) and context.get("url"):
+                    result = self.bricklayer.get_free_dlc(
+                        dlc_page_link=context["url"],
+                        ctx_cookies=ctx_cookies,
+                        _ctx_session=challenger,
+                    )
+                    _runtime = {
+                        self.SPAWN_TIME: ToolBox.date_format_now(),
+                        "status": result,
+                        "name": context["name"],
+                        "dlc": True,
+                    }
+                    inline_docker.append(_runtime)
 
         # 标记运行时刻
         if self.scheduler.running:
@@ -224,8 +266,11 @@ class ClaimerScheduler:
 
                 # 释放 Claimer 认领周免游戏
                 _release_power(limited_free_game_objs["urls"])
+                self._push(inline_docker)
+
+                # 释放 Claimer 认领游戏DLC
+                _release_follower()
+                self._push(inline_docker)
+
         finally:
             challenger.quit()
-
-        # 缓存卸载 发送运行日志
-        self._push(inline_docker)

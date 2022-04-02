@@ -86,11 +86,13 @@ class SpawnBooster(CoroutineSpeedup):
         )
 
 
-def join(trace: bool = False, cache: bool = True):
+@logger.catch()
+def join(trace: bool = False, cache: bool = True, category: str = "game"):
     """
     一键搬空免费商店
 
     需要确保上下文身份令牌有效，可通过 `challenge` 脚手架强制刷新。
+    :param category:
     :param cache:
     :param trace:
     :return:
@@ -101,7 +103,7 @@ def join(trace: bool = False, cache: bool = True):
 
     logger.info(
         ToolBox.runtime_report(
-            motive="STARTUP", action_name="ScaffoldGet", message="🔨 正在为玩家领取免费游戏"
+            motive="STARTUP", action_name="ScaffoldGet", message="🔨 正在为玩家领取免费资源"
         )
     )
 
@@ -118,9 +120,11 @@ def join(trace: bool = False, cache: bool = True):
         return
 
     # [🔨] 缓存免费商城数据
-    urls = explorer.game_manager.load_game_objs(only_url=True)
+    urls = explorer.game_manager.load_game_objs(category=category, only_url=True)
     if not cache or not urls:
-        urls = explorer.discovery_free_games(ctx_cookies=ctx_cookies, cover=True)
+        urls = explorer.discovery_free_games(
+            ctx_cookies=ctx_cookies, cover=True, category=category
+        )
 
     # [🔨] 启动 Bricklayer 搬空免费商店
     # 启动一轮协程任务，执行效率受限于本地网络带宽

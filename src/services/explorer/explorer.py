@@ -3,11 +3,11 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import csv
 import json.decoder
 from typing import List, Optional, Union, Dict, Any
 
 import cloudscraper
+import yaml
 from lxml import etree
 
 from services.settings import logger
@@ -24,44 +24,42 @@ class GameLibManager(AwesomeFreeGirl):
 
         self.action_name = "GameLibManager"
 
-    def save_game_objs(self, game_objs: List[Dict[str, str]]) -> None:
+    def save_game_objs(self, game_objs: List[Dict[str, str]], category: str) -> None:
         """缓存免费商城数据"""
         if not game_objs:
             return
 
+        content = {game_obj["url"]: game_obj["name"] for game_obj in game_objs}
         with open(self.path_free_games, "w", encoding="utf8", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(["name", "url"])
-            for game_obj in game_objs:
-                cell = (game_obj["name"], game_obj["url"])
-                writer.writerow(cell)
+            yaml.dump({category: content}, file, allow_unicode=True)
 
         logger.success(
             ToolBox.runtime_report(
                 motive="SAVE",
                 action_name=self.action_name,
-                message="Cache free game information.",
+                message="Cache Epic store information.",
             )
         )
 
-    def load_game_objs(self, only_url: bool = True) -> Optional[List[str]]:
+    def load_game_objs(self, category: str, only_url: bool = True) -> Optional[List[str]]:
         """
         加载缓存在本地的免费游戏对象
 
+        :param category:
         :param only_url:
         :return:
         """
         try:
             with open(self.path_free_games, "r", encoding="utf8") as file:
-                data = list(csv.reader(file))
+                content: Dict[str, Dict[str, str]] = yaml.load(file, Loader=yaml.Loader)
         except FileNotFoundError:
             return []
         else:
-            if not data:
+            if not content or not isinstance(content, dict) or not content.get(category):
                 return []
             if only_url:
-                return [i[-1] for i in data[1:]]
-            return data[1:]
+                return list(content[category].keys())
+            return list(content[category].items())
 
     def is_my_game(
         self, ctx_cookies: Union[List[dict], str], page_link: str
@@ -149,7 +147,10 @@ class Explorer(AwesomeFreeGirl):
         self.game_manager = GameLibManager()
 
     def discovery_free_games(
-        self, ctx_cookies: Optional[List[dict]] = None, cover: bool = True
+        self,
+        ctx_cookies: Optional[List[dict]] = None,
+        cover: bool = True,
+        category: str = "game",
     ) -> Optional[List[str]]:
         """
         发现免费游戏。
@@ -160,23 +161,32 @@ class Explorer(AwesomeFreeGirl):
         2. 但如果要查看免费游戏的在库状态，需要传 COOKIE 区分用户。
             - 有些游戏不同地区的玩家不一定都能玩。这个限制和账户地区信息有关，和当前访问的（代理）IP 无关。
             - 请确保传入的 COOKIE 是有效的。
+        :param category: 搜索模式 self.category.keys()
         :param cover:
         :param ctx_cookies: ToolBox.transfer_cookies(api.get_cookies())
         :return:
         """
+        category = (
+            "game" if category not in list(self.category_details.keys()) else category
+        )
+
         # 创建驱动上下文
         with get_ctx(silence=self.silence) as ctx:
             try:
-                self._discovery_free_games(ctx=ctx, ctx_cookies=ctx_cookies)
+                self._discovery_free_games(
+                    ctx=ctx, ctx_cookies=ctx_cookies, category=category
+                )
             except DiscoveryTimeoutException:
-                return self.discovery_free_games(ctx_cookies=None, cover=cover)
+                return self.discovery_free_games(
+                    ctx_cookies=None, cover=cover, category=category
+                )
 
         # 提取游戏平台对象
         game_objs = self.game_objs.values()
 
         # 运行缓存持久化
         if cover:
-            self.game_manager.save_game_objs(game_objs)
+            self.game_manager.save_game_objs(game_objs, category=category)
 
         # 返回链接
         return [game_obj.get("url") for game_obj in game_objs]

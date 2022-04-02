@@ -27,9 +27,10 @@ class AwesomeFreeGirl:
     URL_STORE_HOME = "https://store.epicgames.com/zh-CN/"
     URL_FREE_GAMES = "https://store.epicgames.com/zh-CN/free-games"
     URL_STORE_PREFIX = "https://store.epicgames.com/zh-CN/browse?"
-    URL_STORE_FREE = (
+    URL_STORE_FREE_GAME = (
         f"{URL_STORE_PREFIX}sortBy=releaseDate&sortDir=DESC&priceTier=tierFree&count=40"
     )
+    URL_STORE_FREE_DLC = f"{URL_STORE_PREFIX}sortBy=releaseDate&sortDir=DESC&priceTier=tierFree&category=GameAddOn&count=40&start=0"
     URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=zh-CN"
     URL_PRODUCT_PAGE = "https://store.epicgames.com/zh-CN/p/"
 
@@ -41,8 +42,12 @@ class AwesomeFreeGirl:
 
         # 运行缓存
         self.runtime_workspace = None
-        self.path_free_games = "ctx_games.csv"
+        self.path_free_games = "ctx_store.yaml"
         self.game_objs = {}  # {index0:{name:value url:value}, }
+        self.category_details = {
+            "game": {"url": self.URL_STORE_FREE_GAME, "flag": "免费游戏"},
+            "dlc": {"url": self.URL_STORE_FREE_DLC, "flag": "免费附加内容"},
+        }
 
         # 初始化工作空间
         self._init_workspace()
@@ -53,13 +58,18 @@ class AwesomeFreeGirl:
         self.path_free_games = os.path.join(self.runtime_workspace, self.path_free_games)
 
     def _discovery_free_games(
-        self, ctx: Union[ContextManager, Chrome], ctx_cookies: List[dict]
+        self,
+        ctx: Union[ContextManager, Chrome],
+        ctx_cookies: List[dict],
+        category: str = "game",
     ) -> None:
         """发现玩家所属地区可视的常驻免费游戏数据"""
+        url = self.category_details[category]["url"]
+        flag = self.category_details[category]["flag"]
 
         # 重载玩家令牌
         if ctx_cookies:
-            ctx.get(self.URL_STORE_FREE)
+            ctx.get(self.URL_STORE_FREE_GAME)
             for cookie_dict in ctx_cookies:
                 try:
                     ctx.add_cookie(cookie_dict)
@@ -71,13 +81,13 @@ class AwesomeFreeGirl:
             ToolBox.runtime_report(
                 motive="DISCOVERY",
                 action_name=self.action_name,
-                message=f"📡 正在为玩家搜集免费游戏{_mode}...",
+                message=f"📡 正在为玩家搜集{flag}{_mode}...",
             )
         )
 
         # 获取免费游戏链接
         _start = time.time()
-        _url_store_free = self.URL_STORE_FREE
+        _url_store_free = url
         while True:
             ctx.get(_url_store_free)
             time.sleep(1)
@@ -96,7 +106,7 @@ class AwesomeFreeGirl:
             if "tierFree" not in ctx.current_url:
                 break
             if time.time() - _start > 80:
-                raise DiscoveryTimeoutException("获取免费游戏链接超时")
+                raise DiscoveryTimeoutException(f"获取{flag}链接超时")
 
             # 断言最后一页
             WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
@@ -114,7 +124,12 @@ class AwesomeFreeGirl:
                 name = game_obj.get_attribute("aria-label")
                 url = game_obj.get_attribute("href")
                 self.game_objs.update(
-                    {self.game_objs.__len__(): {"name": name.strip(), "url": url.strip()}}
+                    {
+                        self.game_objs.__len__(): {
+                            "name": name.split(",")[0].replace("\n", "").strip(),
+                            "url": url.strip(),
+                        }
+                    }
                 )
 
             # 页面跳转判断
@@ -129,7 +144,7 @@ class AwesomeFreeGirl:
             ToolBox.runtime_report(
                 motive="DISCOVERY",
                 action_name=self.action_name,
-                message="免费游戏搜集完毕",
+                message=f"{flag}搜集完毕",
                 qsize=len(self.game_objs),
             )
         )
@@ -152,7 +167,7 @@ class AwesomeFreeGirl:
         # 访问链接 游戏名称
         pending_games = {}
 
-        for _ in range(2):
+        for i in range(2):
             try:
                 ctx.get(self.URL_STORE_HOME)
                 time.sleep(3)
@@ -168,15 +183,20 @@ class AwesomeFreeGirl:
                 stress_operator = ctx.find_elements(
                     By.XPATH, "//a[contains(string(),'当前免费')]"
                 )
-                img_seq = ctx.find_elements(
-                    By.XPATH, "//a[contains(string(),'当前免费')]//img"
+                title_seq = ctx.find_elements(
+                    By.XPATH,
+                    "//a[contains(string(),'当前免费')]//span[@data-testid='offer-title-info-title']",
                 )
 
                 # 重组周免游戏信息
                 for index, _ in enumerate(stress_operator):
                     href = stress_operator[index].get_attribute("href")
-                    alias = img_seq[index].get_attribute("alt")
-                    pending_games[href] = alias
+                    try:
+                        pending_games[href] = f"{title_seq[index].text}".strip()
+                    except AttributeError as err:
+                        if i == 0:
+                            raise AttributeError from err
+                        pending_games[href] = "null"
 
                 break
             except (WebDriverException, AttributeError):

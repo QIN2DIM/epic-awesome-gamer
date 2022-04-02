@@ -9,7 +9,7 @@ import os
 import sys
 import time
 import urllib.request
-from typing import List, Optional, NoReturn
+from typing import List, Optional, NoReturn, Dict
 
 import cloudscraper
 from selenium.common.exceptions import (
@@ -908,3 +908,56 @@ class AwesomeFreeMan:
             self.assert_.timeout(_loop_start, self.loop_timeout)
 
         return self.result
+
+    @staticmethod
+    def _get_free_dlc_details(ctx: Chrome) -> Optional[List[Dict[str, str]]]:
+        # 检测当前商品是否有附加内容
+        try:
+            dlc_tag = ctx.find_element(
+                By.XPATH,
+                "//li[@data-component='PDPTertiaryNavigation']//a[contains(@href,'dlc')]",
+            )
+        except NoSuchElementException:
+            return
+
+        # 检测当前商品是否有免费的DLC
+        dlc_page = f"{dlc_tag.get_attribute('href')}?sortBy=relevancy&sortDir=DESC&priceTier=tierFree&count=40&start=0"
+        ctx.get(dlc_page)
+        try:
+            ctx.find_element(By.XPATH, "//span[text()='未找到结果']")
+            return
+        except NoSuchElementException:
+            pass
+
+        # 返回当前商品所有免费DLC链接
+        try:
+            time.sleep(3)
+            WebDriverWait(ctx, 70).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//div[@data-component='DiscoverCard']//a")
+                )
+            )
+            dlc_tags = ctx.find_elements(
+                By.XPATH, "//div[@data-component='DiscoverCard']//a"
+            )
+        # 超时/元素不存在或被修改/New Case
+        except WebDriverException:
+            return
+        else:
+            dlc_details = []
+            for tag in dlc_tags:
+                # 获取 DLC 名称
+                aria_label = tag.get_attribute("aria-label")
+                try:
+                    name = aria_label.split(",")[0]
+                except (IndexError, AttributeError):
+                    name = ctx.current_url.split("/")[-1]
+
+                # 编织缓存
+                dlc_detail = {"url": tag.get_attribute("href"), "name": name}
+                dlc_details.append(dlc_detail)
+
+            return dlc_details
+
+    def _get_free_dlc(self, page_link: str, ctx_cookies: List[dict], ctx: Chrome):
+        return self._get_free_game(page_link=page_link, api_cookies=ctx_cookies, ctx=ctx)
