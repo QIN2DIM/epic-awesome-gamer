@@ -963,9 +963,22 @@ class AwesomeFreeMan:
                 except (IndexError, AttributeError):
                     name = ctx.current_url.split("/")[-1]
 
+                # 部分地区账号会被重定向至附加内容的默认页面
+                # 此页面未触发筛选器，混杂着付费/免费的附加内容
+                is_free = True
+                try:
+                    # 重新判断当前游戏的状态，清洗付费游戏
+                    if "tierFree" not in ctx.current_url:
+                        is_free = aria_label.split(",")[-1].strip() == "0"
+                # 当出现意外的标签时将此实例视为免费游戏送入任务队列
+                # 下层驱动中有更加明确的游戏状态用以剔除杂质
+                except (IndexError, AttributeError):
+                    pass
+
                 # 编织缓存
-                dlc_detail = {"url": tag.get_attribute("href"), "name": name}
-                dlc_details.append(dlc_detail)
+                if is_free:
+                    dlc_detail = {"url": tag.get_attribute("href"), "name": name}
+                    dlc_details.append(dlc_detail)
 
             return dlc_details
 

@@ -64,11 +64,7 @@ class ToolBox:
 
     @staticmethod
     def runtime_report(
-        action_name: str,
-        motive: str = "RUN",
-        message: str = "",
-        record: bool = False,
-        **params,
+        action_name: str, motive: str = "RUN", message: str = "", **params
     ) -> str:
         """格式化输出"""
         flag_ = f">> {motive} [{action_name}]"
@@ -79,8 +75,7 @@ class ToolBox:
             flag_ += " ".join([f"{i[0]}={i[1]}" for i in params.items()])
 
         # 将系统级日志按序插入消息队列
-        if bool(record) is True:
-            ToolBox.logger_tracer.put_nowait(flag_)
+        ToolBox.logger_tracer.put_nowait(flag_)
 
         return flag_
 
