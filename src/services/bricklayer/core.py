@@ -12,6 +12,7 @@ import urllib.request
 from typing import List, Optional, NoReturn, Dict
 
 import cloudscraper
+from requests.exceptions import RequestException
 from selenium.common.exceptions import (
     TimeoutException,
     ElementNotVisibleException,
@@ -87,10 +88,15 @@ class ArmorUtils(ArmorCaptcha):
             scraper = cloudscraper.create_scraper()
             try:
                 response = scraper.get(
-                    _api, headers={"cookie": ToolBox.transfer_cookies(ctx.get_cookies())}
+                    _api,
+                    headers={"cookie": ToolBox.transfer_cookies(ctx.get_cookies())},
+                    timeout=2,
                 )
                 return response.json()["needLogin"]
             except (json.decoder.JSONDecodeError, KeyError):
+                return True
+            # Timeout/ConnectionError
+            except RequestException:
                 return True
             except Exception as err:  # noqa
                 logger.warning(err)
@@ -131,11 +137,11 @@ class ArmorUtils(ArmorCaptcha):
         """
         判断在下单时是否遇到人机挑战
 
+        # "//div[@id='talon_frame_checkout_free_prod']"
         :param ctx:
         :return:
         """
         try:
-            # "//div[@id='talon_frame_checkout_free_prod']"
             WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//iframe[contains(@title,'content')]")
@@ -368,6 +374,7 @@ class AssertUtils:
     GAME_OK = "🛴 已在库"
     GAME_PENDING = "👀 待认领"
     GAME_CLAIM = "💰 领取成功"
+    GAME_NOT_FREE = "🦽 付费游戏"
 
     @staticmethod
     def login_error(ctx: Chrome) -> bool:
@@ -645,7 +652,7 @@ class AssertUtils:
                     game=f"『{game_name}』",
                 )
             )
-            return AssertUtils.ASSERT_OBJECT_EXCEPTION
+            return AssertUtils.GAME_NOT_FREE
 
         return AssertUtils.ASSERT_OBJECT_EXCEPTION
 
@@ -686,6 +693,9 @@ class AwesomeFreeMan:
         # 驱动参数
         self.path_ctx_cookies = os.path.join(DIR_COOKIES, "ctx_cookies.yaml")
         self.loop_timeout = 300
+
+        # 游戏获取结果的状态
+        self.result = ""
 
         # 注册拦截机
         self._armor = ArmorUtils()
@@ -880,10 +890,10 @@ class AwesomeFreeMan:
             # 当游戏不处于<待认领>状态时跳过后续业务
             if self.result != self.assert_.GAME_PENDING:
                 # <游戏状态断言超时>或<检测到异常的实体对象>
-                #                 # 在超时阈值内尝试重新拉起服务
+                # 在超时阈值内尝试重新拉起服务
                 if self.result == self.assert_.ASSERT_OBJECT_EXCEPTION:
                     continue
-                # 否则游戏状态处于<领取成功>或<已在库>
+                # 否则游戏状态处于<领取成功>或<已在库>或<付费游戏>
                 break
 
             # [🚀] 激活游戏订单

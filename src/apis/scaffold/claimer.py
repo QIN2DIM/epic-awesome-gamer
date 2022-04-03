@@ -5,7 +5,7 @@
 # Description:
 from typing import Optional
 
-from services.deploy import ClaimerScheduler
+from services.deploy import ClaimerScheduler, ClaimerInstance
 from services.settings import logger
 
 
@@ -16,6 +16,7 @@ def deploy(platform: Optional[str] = None):
 
 
 @logger.catch()
-def run(silence: Optional[bool] = None):
+def run(silence: Optional[bool] = None, log_ignore: Optional[bool] = None):
     """运行 `claim` 单步子任务，认领周免游戏"""
-    ClaimerScheduler(silence=silence).job_loop_claim()
+    with ClaimerInstance(silence=silence, log_ignore=log_ignore) as claimer:
+        claimer.just_do_it()

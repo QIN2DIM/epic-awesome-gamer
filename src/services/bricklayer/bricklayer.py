@@ -235,9 +235,6 @@ class Bricklayer(AwesomeFreeMan):
 
         self.cookie_manager = CookieManager()
 
-        # 游戏获取结果的状态
-        self.result = ""
-
     def get_free_game(
         self,
         page_link: str,

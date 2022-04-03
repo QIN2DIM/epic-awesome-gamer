@@ -82,7 +82,7 @@ class Scaffold:
         get.join(trace=debug, cache=cache, category=category)
 
     @staticmethod
-    def claim(silence: Optional[bool] = True):
+    def claim(silence: Optional[bool] = True, ignore: Optional[bool] = False):
         """
         认领周免游戏。
 
@@ -92,9 +92,11 @@ class Scaffold:
 
         `claim` 是系统级指令 `deploy` 的单步子任务，在上述业务结束后，会根据你配置的 `pusher` 推送追踪日志（若配置无效则不发）。
 
+        :param silence:
+        :param ignore: 忽略已在库的推送数据。
         :return:
         """
-        claimer.run(silence=silence)
+        claimer.run(silence=silence, log_ignore=ignore)
 
     @staticmethod
     def deploy(platform: Optional[str] = None):

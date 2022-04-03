@@ -12,6 +12,7 @@ from typing import List, Union, Dict, Optional, Any
 import pytz
 import undetected_chromedriver as uc
 import yaml
+from gevent.queue import Queue
 from loguru import logger
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
@@ -20,6 +21,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 class ToolBox:
     """可移植的工具箱"""
+
+    logger_tracer = Queue()
 
     @staticmethod
     def check_sample_yaml(path_output: str, path_sample: str) -> Optional[Dict[str, Any]]:
@@ -61,7 +64,11 @@ class ToolBox:
 
     @staticmethod
     def runtime_report(
-        action_name: str, motive: str = "RUN", message: str = "", **params
+        action_name: str,
+        motive: str = "RUN",
+        message: str = "",
+        record: bool = False,
+        **params,
     ) -> str:
         """格式化输出"""
         flag_ = f">> {motive} [{action_name}]"
@@ -70,6 +77,11 @@ class ToolBox:
         if params:
             flag_ += " - "
             flag_ += " ".join([f"{i[0]}={i[1]}" for i in params.items()])
+
+        # 将系统级日志按序插入消息队列
+        if bool(record) is True:
+            ToolBox.logger_tracer.put_nowait(flag_)
+
         return flag_
 
     @staticmethod
