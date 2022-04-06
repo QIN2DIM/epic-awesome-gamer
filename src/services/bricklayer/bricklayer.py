@@ -32,14 +32,17 @@ from .exceptions import (
 class CookieManager(AwesomeFreeMan):
     """管理上下文身份令牌"""
 
-    def __init__(self):
+    def __init__(self, auth_str="games"):
         super().__init__()
 
         self.action_name = "CookieManager"
+        self.service_mode = auth_str
 
     def _t(self) -> str:
         return (
-            sha256(self.email[-3::-1].encode("utf-8")).hexdigest() if self.email else ""
+            sha256(f"{self.email[-3::-1]}{self.service_mode}".encode("utf-8")).hexdigest()
+            if self.email
+            else ""
         )
 
     def load_ctx_cookies(self) -> Optional[List[dict]]:
@@ -156,7 +159,9 @@ class CookieManager(AwesomeFreeMan):
                 balance_operator += 1
 
                 # Enter the account information and jump to the man-machine challenge page.
-                self._login(self.email, self.password, ctx=ctx)
+                self._login(
+                    self.email, self.password, ctx=ctx, _auth_str=self.service_mode
+                )
 
                 # Determine whether the account information is filled in correctly.
                 if self.assert_.login_error(ctx):
@@ -214,6 +219,8 @@ class CookieManager(AwesomeFreeMan):
             return False
         else:
             # Store contextual authentication information.
+            if self.service_mode != "games":
+                ctx.get(self.URL_LOGIN_UNREAL)
             self.save_ctx_cookies(ctx_cookies=ctx.get_cookies())
             return self.is_available_cookie(ctx_cookies=ctx.get_cookies())
         finally:
@@ -227,13 +234,13 @@ class CookieManager(AwesomeFreeMan):
 class Bricklayer(AwesomeFreeMan):
     """常驻免费游戏的认领逻辑"""
 
-    def __init__(self, silence: bool = None):
+    def __init__(self, silence: bool = None, auth_str: str = "games"):
         super().__init__()
         self.silence = True if silence is None else silence
 
         self.action_name = "AwesomeFreeMan"
 
-        self.cookie_manager = CookieManager()
+        self.cookie_manager = CookieManager(auth_str)
 
     def get_free_game(
         self,

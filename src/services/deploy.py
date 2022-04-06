@@ -14,6 +14,7 @@ from apscheduler.triggers.cron import CronTrigger
 from gevent.queue import Queue
 
 from services.bricklayer import Bricklayer
+from services.bricklayer import UnrealClaimer
 from services.explorer import Explorer
 from services.settings import logger, MESSAGE_PUSHER_SETTINGS
 from services.utils import ToolBox, get_challenge_ctx
@@ -22,10 +23,11 @@ from services.utils import ToolBox, get_challenge_ctx
 class ClaimerScheduler:
     """系统任务调度器"""
 
-    def __init__(self, silence: Optional[bool] = None):
+    def __init__(self, silence: Optional[bool] = None, unreal: Optional[bool] = False):
         self.action_name = "AwesomeScheduler"
         self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(days=180)
         self.silence = silence
+        self.unreal = unreal
 
         # 服务注册
         self.scheduler = BlockingScheduler()
@@ -107,14 +109,18 @@ class ClaimerScheduler:
 
     def job_loop_claim(self):
         """wrap function for claimer instance"""
-        with ClaimerInstance(silence=self.silence) as claimer:
-            claimer.just_do_it()
+        if not self.unreal:
+            with ClaimerInstance(silence=self.silence) as claimer:
+                claimer.just_do_it()
+        else:
+            with UnrealClaimerInstance(silence=self.silence) as claimer:
+                claimer.just_do_it()
 
 
 class ClaimerInstance:
     """单步子任务 认领周免游戏"""
 
-    def __init__(self, silence: bool, log_ignore: Optional[bool] = False):
+    def __init__(self, silence: bool, log_ignore: Optional[bool] = False, _auth_str=None):
         """
 
         :param silence:
@@ -126,7 +132,8 @@ class ClaimerInstance:
         self.log_ignore = log_ignore
 
         # 服务注册
-        self.bricklayer = Bricklayer(silence=silence)
+        auth_str = "games" if _auth_str is None else _auth_str
+        self.bricklayer = Bricklayer(silence=silence, auth_str=auth_str)
         self.explorer = Explorer(silence=silence)
 
         # 任务队列 按顺缓存周免游戏及其免费附加内容的认领任务
@@ -319,3 +326,31 @@ class ClaimerInstance:
 
             # 释放 Claimer 认领游戏DLC
             self.claim_free_dlc(challenger=self.challenger, ctx_cookies=ctx_cookies)
+
+
+class UnrealClaimerInstance(ClaimerInstance):
+    """虚幻商城月供砖家"""
+
+    def __init__(self, silence: bool, log_ignore: Optional[bool] = False):
+        super().__init__(silence=silence, log_ignore=log_ignore)
+
+        self.bricklayer = UnrealClaimer(silence=silence)
+
+    def just_do_it(self):
+        """虚幻商城月供砖家"""
+        # 检查并更新身份令牌
+        if self.bricklayer.cookie_manager.refresh_ctx_cookies(
+            _ctx_session=self.challenger
+        ):
+            # 读取有效的身份令牌
+            ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
+
+            # 释放 Claimer 认领免费内容
+            self.bricklayer.get_free_resource(
+                ctx=self.challenger, ctx_cookies=ctx_cookies
+            )
+
+            # 检查运行结果
+            details = self.bricklayer.get_claimer_response(ctx_cookies)
+            for detail in details:
+                self.message_queue.put_nowait(detail)

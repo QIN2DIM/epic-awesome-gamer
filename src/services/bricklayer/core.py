@@ -104,7 +104,7 @@ class ArmorUtils(ArmorCaptcha):
 
         threshold_timeout = 69
         start = time.time()
-        flag_ = "https://www.epicgames.com/id/login/epic?lang=zh-CN"
+        flag_ = ctx.current_url
         retry_times = -1
 
         while True:
@@ -675,13 +675,53 @@ class AssertUtils:
         except TimeoutException:
             pass
 
+    @staticmethod
+    def unreal_resource_load(ctx: Chrome):
+        """等待虚幻商店月供资源加载"""
+        pending_locator = [
+            "//i[text()='添加到购物车']",
+            "//i[text()='购物车内']",
+            "//span[text()='撰写评论']",
+        ] * 10
+
+        time.sleep(3)
+        for locator in pending_locator:
+            try:
+                WebDriverWait(ctx, 1).until(
+                    EC.element_to_be_clickable((By.XPATH, locator))
+                )
+                return True
+            except TimeoutException:
+                continue
+
+    @staticmethod
+    def unreal_surprise_license(ctx: Chrome):
+        try:
+            WebDriverWait(ctx, 5).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//span[text()='我已阅读并同意《最终用户许可协议》']")
+                )
+            ).click()
+        except TimeoutException:
+            pass
+        else:
+            WebDriverWait(ctx, 3).until(
+                EC.element_to_be_clickable((By.XPATH, "//span[text()='接受']"))
+            ).click()
+
 
 class AwesomeFreeMan:
     """白嫖人的基础设施"""
 
     # 操作对象参数
-    URL_LOGIN = "https://www.epicgames.com/id/login/epic?lang=zh-CN"
+    URL_LOGIN_GAMES = "https://www.epicgames.com/id/login/epic?lang=zh-CN"
+    URL_LOGIN_UNREAL = "https://www.unrealengine.com/id/login/epic?lang=zh-CN"
     URL_ACCOUNT_PERSONAL = "https://www.epicgames.com/account/personal"
+
+    URL_UNREAL_STORE = "https://www.unrealengine.com/marketplace/zh-CN/assets"
+    URL_UNREAL_MONTH = (
+        f"{URL_UNREAL_STORE}?count=20&sortBy=effectiveDate&sortDir=DESC&start=0&tag=4910"
+    )
 
     def __init__(self):
         """定义了一系列领取免费游戏所涉及到的浏览器操作。"""
@@ -701,9 +741,12 @@ class AwesomeFreeMan:
         self._armor = ArmorUtils()
         self.assert_ = AssertUtils()
 
-    def _reset_page(self, ctx: Chrome, page_link: str, api_cookies):
-        ctx.get(self.URL_ACCOUNT_PERSONAL)
-        for cookie_dict in api_cookies:
+    def _reset_page(self, ctx: Chrome, page_link: str, ctx_cookies, _auth_str="games"):
+        if _auth_str == "games":
+            ctx.get(self.URL_ACCOUNT_PERSONAL)
+        elif _auth_str == "unreal":
+            ctx.get(self.URL_UNREAL_STORE)
+        for cookie_dict in ctx_cookies:
             try:
                 ctx.add_cookie(cookie_dict)
             except InvalidCookieDomainException as err:
@@ -718,7 +761,7 @@ class AwesomeFreeMan:
                 )
         ctx.get(page_link)
 
-    def _login(self, email: str, password: str, ctx: Chrome) -> None:
+    def _login(self, email: str, password: str, ctx: Chrome, _auth_str="games") -> None:
         """
         作为被动方式，登陆账号，刷新 identity token。
 
@@ -728,7 +771,10 @@ class AwesomeFreeMan:
         :param password:
         :return:
         """
-        ctx.get(self.URL_LOGIN)
+        if _auth_str == "games":
+            ctx.get(self.URL_LOGIN_GAMES)
+        elif _auth_str == "unreal":
+            ctx.get(self.URL_LOGIN_UNREAL)
 
         WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
             EC.presence_of_element_located((By.ID, "email"))
@@ -880,7 +926,7 @@ class AwesomeFreeMan:
             # [🚀] 重载身份令牌
             # InvalidCookieDomainException：需要 2 次 GET 重载 cookie relative domain
             # InvalidCookieDomainException：跨域认证，访问主域名或过滤异站域名信息
-            self._reset_page(ctx=ctx, page_link=page_link, api_cookies=api_cookies)
+            self._reset_page(ctx=ctx, page_link=page_link, ctx_cookies=api_cookies)
 
             # [🚀] 断言游戏的在库状态
             self.assert_.surprise_warning_purchase(ctx)
@@ -984,3 +1030,174 @@ class AwesomeFreeMan:
 
     def _get_free_dlc(self, page_link: str, ctx_cookies: List[dict], ctx: Chrome):
         return self._get_free_game(page_link=page_link, api_cookies=ctx_cookies, ctx=ctx)
+
+    def _unreal_activate_payment(
+        self, ctx: Chrome, action_name="UnrealClaimer", init=True
+    ):
+        """从虚幻商店购物车激活订单"""
+        # =======================================================
+        # [🍜] 将月供内容添加到购物车
+        # =======================================================
+        try:
+            offer_objs = ctx.find_elements(By.XPATH, "//i[text()='添加到购物车']")
+            if len(offer_objs) == 0:
+                raise NoSuchElementException
+        # 不存在可添加内容
+        except NoSuchElementException:
+            # 商品在购物车
+            try:
+                hook_objs = ctx.find_elements(By.XPATH, "//i[text()='购物车内']")
+                if len(hook_objs) == 0:
+                    raise NoSuchElementException
+                logger.debug(
+                    ToolBox.runtime_report(
+                        motive="PENDING", action_name=action_name, message="正在清空购物车"
+                    )
+                )
+            # 购物车为空
+            except NoSuchElementException:
+                # 月供内容均已在库
+                try:
+                    ctx.find_element(By.XPATH, "//span[text()='撰写评论']")
+                    _message = "本月免费内容均已在库" if init else "🥂 领取成功"
+                    logger.success(
+                        ToolBox.runtime_report(
+                            motive="GET", action_name=action_name, message=_message
+                        )
+                    )
+                    return AssertUtils.GAME_OK if init else AssertUtils.GAME_CLAIM
+                # 异常情况：需要处理特殊情况，递归可能会导致无意义的死循环
+                except NoSuchElementException:
+                    return self._unreal_activate_payment(ctx, action_name, init=init)
+        # 存在可添加的月供内容
+        else:
+            # 商品名
+            offer_names = ctx.find_elements(By.XPATH, "//article//h3//a")
+            # 商品状态：添加到购入车/购物车内/撰写评论(已在库)
+            offer_buttons = ctx.find_elements(
+                By.XPATH, "//div[@class='asset-list-group']//article//i"
+            )
+            offer_labels = [offer_button.text for offer_button in offer_buttons]
+            # 逐级遍历将可添加的月供内容移入购物车
+            for i, offer_label in enumerate(offer_labels):
+                if offer_label == "添加到购物车":
+                    offer_name = "null"
+                    try:
+                        offer_name = offer_names[i].text
+                    except (IndexError, AttributeError):
+                        pass
+                    logger.debug(
+                        ToolBox.runtime_report(
+                            motive="PENDING",
+                            action_name=action_name,
+                            message="添加到购物车",
+                            hook=f"『{offer_name}』",
+                        )
+                    )
+                    offer_buttons[i].click()
+
+        # [🍜] 激活购物车
+        try:
+            ctx.find_element(By.XPATH, "//div[@class='shopping-cart']").click()
+            logger.debug(
+                ToolBox.runtime_report(
+                    motive="HANDLE", action_name=action_name, message="激活购物车"
+                )
+            )
+        except NoSuchElementException:
+            ctx.refresh()
+            time.sleep(2)
+            return self._activate_payment(ctx)
+
+        # [🍜] 激活订单
+        try:
+            WebDriverWait(ctx, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[text()='去支付']"))
+            ).click()
+            logger.debug(
+                ToolBox.runtime_report(
+                    motive="HANDLE", action_name=action_name, message="激活订单"
+                )
+            )
+        except TimeoutException:
+            ctx.refresh()
+            time.sleep(2)
+            return self._unreal_activate_payment(ctx, action_name, init=init)
+
+        # [🍜] 处理首次下单的许可协议
+        self.assert_.unreal_surprise_license(ctx)
+
+        return AssertUtils.GAME_PENDING
+
+    def _unreal_handle_payment(self, ctx: Chrome):
+        # [🍜] Switch to the [Purchase Container] iframe.
+        try:
+            payment_frame = WebDriverWait(
+                ctx, 5, ignored_exceptions=ElementNotVisibleException
+            ).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//div[@id='webPurchaseContainer']//iframe")
+                )
+            )
+            ctx.switch_to.frame(payment_frame)
+        except TimeoutException:
+            pass
+
+        # [🍜] Click the [order] button.
+        try:
+            time.sleep(0.5)
+            WebDriverWait(
+                ctx, 20, ignored_exceptions=ElementClickInterceptedException
+            ).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//button[contains(@class,'payment-btn')]")
+                )
+            ).click()
+        except TimeoutException:
+            ctx.switch_to.default_content()
+            return
+
+        # [🍜] 捕获隐藏在订单中的人机挑战，仅在周免游戏中出现。
+        if self._armor.fall_in_captcha_runtime(ctx):
+            self.assert_.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
+            try:
+                self._armor.anti_hcaptcha(ctx, door="free")
+            except (ChallengeReset, WebDriverException):
+                pass
+
+        # [🍜] Switch to default iframe.
+        ctx.switch_to.default_content()
+        ctx.refresh()
+
+    def _unreal_get_free_resource(self, ctx, ctx_cookies):
+        """获取虚幻商城的本月免费内容"""
+        if not ctx_cookies:
+            raise CookieExpired(self.assert_.COOKIE_EXPIRED)
+
+        _loop_start = time.time()
+        init = True
+        while True:
+            # [🚀] 重载身份令牌
+            self._reset_page(
+                ctx=ctx,
+                page_link=self.URL_UNREAL_MONTH,
+                ctx_cookies=ctx_cookies,
+                _auth_str="unreal",
+            )
+
+            # [🚀] 等待资源加载
+            self.assert_.unreal_resource_load(ctx)
+
+            # [🚀] 从虚幻商店购物车激活订单
+            self.result = self._unreal_activate_payment(ctx, init=init)
+            if self.result != self.assert_.GAME_PENDING:
+                if self.result == self.assert_.ASSERT_OBJECT_EXCEPTION:
+                    continue
+                break
+
+            # [🚀] 处理商品订单
+            self._unreal_handle_payment(ctx)
+
+            # [🚀] 更新上下文状态
+            init = False
+            self.assert_.timeout(_loop_start, self.loop_timeout)

@@ -43,9 +43,9 @@ class Scaffold:
 
     @staticmethod
     def get(
-        debug: Optional[bool] = None,
-        cache: Optional[bool] = True,
-        dlc: Optional[bool] = False,
+            debug: Optional[bool] = None,
+            cache: Optional[bool] = True,
+            dlc: Optional[bool] = False,
     ):
         """
         「我可以不玩但不能没有。」—— 鲁·克莱摩·迅
@@ -82,7 +82,11 @@ class Scaffold:
         get.join(trace=debug, cache=cache, category=category)
 
     @staticmethod
-    def claim(silence: Optional[bool] = True, ignore: Optional[bool] = False):
+    def claim(
+            silence: Optional[bool] = True,
+            ignore: Optional[bool] = False,
+            unreal: Optional[bool] = False,
+    ):
         """
         认领周免游戏。
 
@@ -92,18 +96,25 @@ class Scaffold:
 
         `claim` 是系统级指令 `deploy` 的单步子任务，在上述业务结束后，会根据你配置的 `pusher` 推送追踪日志（若配置无效则不发）。
 
+        :param unreal: 虚幻商城月供砖家
         :param silence:
         :param ignore: 忽略已在库的推送数据。
         :return:
         """
-        claimer.run(silence=silence, log_ignore=ignore)
+        claimer.run(silence=silence, log_ignore=ignore, unreal=unreal)
 
     @staticmethod
-    def deploy(platform: Optional[str] = None):
+    def unreal(silence: Optional[bool] = True, ignore: Optional[bool] = False):
+        """虚幻商城月供砖家 贤者专用"""
+        Scaffold.claim(silence=silence, ignore=ignore, unreal=True)
+
+    @staticmethod
+    def deploy(platform: Optional[str] = None, unreal: Optional[bool] = False):
         """
         部署系统定时任务。
 
+        :param unreal: 虚幻商城月供砖家
         :param platform: 可选项 [vps serverless qing-long]
         :return:
         """
-        claimer.deploy(platform)
+        claimer.deploy(platform, unreal=unreal)
