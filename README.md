@@ -19,9 +19,9 @@
 
 [Epic AwesomeGamer](https://github.com/QIN2DIM/epic-awesome-gamer) 帮助玩家优雅地领取 Epic 免费游戏。
 
-## 快速上手 🛴
+使用 「Epic免费人」可以实现如下需求：
 
-- :gear: [技术文档](https://www.wolai.com/vAiu9mSp6G15xhWeoEPUn2)
-- :small_red_triangle: 注意事项
-- :loudspeaker: 更新日志
-- :world_map: [开源计划](https://github.com/QIN2DIM/epic-awesome-gamer/issues/1)
+- `get`：搬空游戏商店，获取所有常驻免费游戏与免费附加内容；
+- `claim`：领取周免游戏及其免费附加内容；
+- `unreal`：搬空虚幻商店的常驻免费资源，领取本月免费内容；
+- `deploy`：部署系统定时任务。
