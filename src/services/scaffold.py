@@ -43,9 +43,9 @@ class Scaffold:
 
     @staticmethod
     def get(
-            debug: Optional[bool] = None,
-            cache: Optional[bool] = True,
-            dlc: Optional[bool] = False,
+        debug: Optional[bool] = None,
+        cache: Optional[bool] = True,
+        dlc: Optional[bool] = False,
     ):
         """
         「我可以不玩但不能没有。」—— 鲁·克莱摩·迅
@@ -83,9 +83,9 @@ class Scaffold:
 
     @staticmethod
     def claim(
-            silence: Optional[bool] = True,
-            ignore: Optional[bool] = False,
-            unreal: Optional[bool] = False,
+        silence: Optional[bool] = True,
+        ignore: Optional[bool] = False,
+        unreal: Optional[bool] = False,
     ):
         """
         认领周免游戏。

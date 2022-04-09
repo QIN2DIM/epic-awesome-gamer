@@ -4,10 +4,11 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
+import random
 import sys
 from os.path import join, dirname
 from typing import Dict, Any, Optional
-
+from datetime import datetime
 from services.utils import ToolBox
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "EPIC_PASSWORD",
     "EPIC_EMAIL",
     "MESSAGE_PUSHER_SETTINGS",
+    "PLAYER",
 ]
 __version__ = "0.3.3.dev"
 
@@ -104,8 +106,10 @@ EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD", "")
 MESSAGE_PUSHER_SETTINGS: Optional[Dict[str, Any]] = config_.get(
     "message_pusher_settings", {}
 )
+# Apprise Server 泛映射
 PUSHER: Optional[Dict[str, Optional[str]]] = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
-
+# 匿名设置
+PLAYER: Optional[str] = MESSAGE_PUSHER_SETTINGS.get("player", "")
 # --------------------------------
 # [※] 补全语法模板
 # --------------------------------
@@ -121,6 +125,13 @@ try:
 except KeyError as e:
     print(f"[进程退出] 核心配置文件被篡改 error={e}")
     sys.exit()
+
+_CONVERTER = ["沫雯喂", "辰丽", "荪彦孜", "有坷唯", "郑姊祺", "弹蓶蓶", "王飛"]
+try:
+    if not PLAYER:
+        PLAYER = os.environ["PLAYER"]
+except KeyError:
+    PLAYER = f"{random.choice(_CONVERTER)}({datetime.now().day})"
 # --------------------------------
 # [√] 阻止缺省配置
 # --------------------------------

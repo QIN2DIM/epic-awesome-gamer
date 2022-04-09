@@ -16,7 +16,7 @@ from gevent.queue import Queue
 from services.bricklayer import Bricklayer
 from services.bricklayer import UnrealClaimer
 from services.explorer import Explorer
-from services.settings import logger, MESSAGE_PUSHER_SETTINGS
+from services.settings import logger, MESSAGE_PUSHER_SETTINGS, PLAYER
 from services.utils import ToolBox, get_challenge_ctx
 
 
@@ -200,8 +200,7 @@ class ClaimerInstance:
         # -------------------------
         # [📧]消息推送
         # -------------------------
-        _inline_textbox = [f"当前玩家：{ToolBox.secret_email(self.bricklayer.email)}"]
-        _inline_textbox += ["周免游戏".center(20, "-")]
+        _inline_textbox = ["<周免游戏>".center(20, "=")]
         if not inline_docker:
             _inline_textbox += [f"[{ToolBox.date_format_now()}] 🛴 暂无待认领的周免游戏"]
         else:
@@ -214,9 +213,13 @@ class ClaimerInstance:
                     _dlc_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
             _inline_textbox.extend(_game_textbox)
             if _dlc_textbox:
-                _inline_textbox += ["附加内容".center(20, "-")]
+                _inline_textbox += ["<附加内容>".center(20, "=")]
                 _inline_textbox.extend(_dlc_textbox)
-        _inline_textbox += ["生命周期统计".center(20, "-"), f"total:{inline_docker.__len__()}"]
+        _inline_textbox += [
+            "<操作统计>".center(20, "="),
+            f"Player: {PLAYER}",
+            f"Total: {inline_docker.__len__()}",
+        ]
 
         # 注册 Apprise 消息推送框架
         active_pusher = pusher_settings["pusher"]
