@@ -9,9 +9,10 @@ import os
 import sys
 import time
 import urllib.request
-from typing import List, Optional, NoReturn, Dict
+from typing import List, Optional, NoReturn, Dict, Union
 
 import cloudscraper
+from lxml import etree
 from requests.exceptions import RequestException
 from selenium.common.exceptions import (
     TimeoutException,
@@ -714,6 +715,7 @@ class AwesomeFreeMan:
     """白嫖人的基础设施"""
 
     # 操作对象参数
+    URL_MASTER_HOST = "https://store.epicgames.com"
     URL_LOGIN_GAMES = "https://www.epicgames.com/id/login/epic?lang=zh-CN"
     URL_LOGIN_UNREAL = "https://www.unrealengine.com/id/login/epic?lang=zh-CN"
     URL_ACCOUNT_PERSONAL = "https://www.epicgames.com/account/personal"
@@ -965,70 +967,79 @@ class AwesomeFreeMan:
 
         return self.result
 
-    @staticmethod
-    def _get_free_dlc_details(ctx: Chrome) -> Optional[List[Dict[str, str]]]:
-        # 检测当前商品是否有附加内容
-        try:
-            dlc_tag = ctx.find_element(
-                By.XPATH,
-                "//li[@data-component='PDPTertiaryNavigation']//a[contains(@href,'dlc')]",
-            )
-        except NoSuchElementException:
+    def _get_free_dlc_details(
+        self, ctx_url: str, ctx_cookies: List[dict]
+    ) -> Optional[List[Dict[str, Union[str, bool]]]]:
+        """
+        1. 检测一个游戏实体是否存在免费附加内容
+        2. 将可领取的免费附加内容编织成任务对象并返回
+        3. 一个游戏实体可能存在多个可领取的免费DLC
+        :param ctx_url: 游戏本体商城链接
+        :param ctx_cookies:
+        :return: [{"url": url of dlc, "name": name of dlc, "dlc": True}, ... ]
+        """
+
+        def handle_html(url_):
+            headers = {
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
+                "cookie": ToolBox.transfer_cookies(ctx_cookies),
+            }
+            scraper = cloudscraper.create_scraper()
+            response_ = scraper.get(url_, headers=headers, allow_redirects=False)
+            tree_ = etree.HTML(response_.content)
+
+            return tree_, response_
+
+        # [🚀] 检测当前商品是否有附加内容
+        tree, response = handle_html(ctx_url)
+        dlc_tag = tree.xpath(
+            "//li[@data-component='PDPTertiaryNavigation']//a[contains(@href,'dlc')]"
+        )
+        if not dlc_tag:
             return
 
-        # 检测当前商品是否有免费的DLC
-        dlc_page = f"{dlc_tag.get_attribute('href')}?sortBy=relevancy&sortDir=DESC&priceTier=tierFree&count=40&start=0"
-        ctx.get(dlc_page)
-        try:
-            ctx.find_element(By.XPATH, "//span[text()='未找到结果']")
+        # [🚀] 检测当前商品是否有免费的DLC
+        dlc_page = (
+            f"{self.URL_MASTER_HOST}{dlc_tag[0].attrib.get('href')}?"
+            f"sortBy=relevancy&sortDir=DESC&priceTier=tierFree&count=40&start=0"
+        )
+        dlc_tree, response = handle_html(dlc_page)
+        if dlc_tree.xpath("//span[text()='未找到结果']"):
             return
-        except NoSuchElementException:
-            pass
 
-        # 返回当前商品所有免费DLC链接
-        try:
-            time.sleep(3)
-            WebDriverWait(ctx, 70).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//div[@data-component='DiscoverCard']//a")
-                )
-            )
-            dlc_tags = ctx.find_elements(
-                By.XPATH, "//div[@data-component='DiscoverCard']//a"
-            )
-        # 超时/元素不存在或被修改/New Case
-        except WebDriverException:
-            return
-        else:
-            dlc_details = []
-            for tag in dlc_tags:
-                # 获取 DLC 名称
-                aria_label = tag.get_attribute("aria-label")
-                try:
-                    name = aria_label.split(",")[0]
-                except (IndexError, AttributeError):
-                    name = ctx.current_url.split("/")[-1]
+        # [🚀] 返回当前商品所有免费DLC链接
+        dlc_tags: list = dlc_tree.xpath("//div[@data-component='DiscoverCard']//a")
+        dlc_details = {}
+        for tag in dlc_tags:
+            # [📝] 获取 DLC 名称
+            aria_label = tag.attrib.get("aria-label")
+            try:
+                name = aria_label.split(",")[0]
+            except (IndexError, AttributeError):
+                name = response.url.split("/")[-1]
 
-                # 部分地区账号会被重定向至附加内容的默认页面
-                # 此页面未触发筛选器，混杂着付费/免费的附加内容
-                is_free = True
-                try:
-                    # 重新判断当前游戏的状态，清洗付费游戏
-                    if "tierFree" not in ctx.current_url:
-                        is_free = aria_label.split(",")[-1].strip() == "0"
-                # 当出现意外的标签时将此实例视为免费游戏送入任务队列
-                # 下层驱动中有更加明确的游戏状态用以剔除杂质
-                except (IndexError, AttributeError):
-                    pass
+            # 部分地区账号会被重定向至附加内容的默认页面
+            # 此页面未触发筛选器，混杂着付费/免费的附加内容
+            is_free = True
+            try:
+                # 重新判断当前游戏的状态，清洗付费游戏
+                if "tierFree" not in response.url or response.status_code == 302:
+                    is_free = aria_label.split(",")[-1].strip() == "0"
+            # 当出现意外的标签时将此实例视为免费游戏送入任务队列
+            # 下层驱动中有更加明确的游戏状态用以剔除杂质
+            except (IndexError, AttributeError):
+                pass
 
-                # 编织缓存
-                if is_free:
-                    dlc_detail = {"url": tag.get_attribute("href"), "name": name}
-                    dlc_details.append(dlc_detail)
+            # 编织缓存
+            if is_free:
+                url = f"{self.URL_MASTER_HOST}{tag.attrib.get('href')}"
+                dlc_detail = {"url": url, "name": name, "dlc": True}
+                dlc_details.update({url: dlc_detail})
 
-            return dlc_details
+        return list(dlc_details.values())
 
-    def _get_free_dlc(self, page_link: str, ctx_cookies: List[dict], ctx: Chrome):
+    def _get_free_resources(self, page_link: str, ctx_cookies: List[dict], ctx: Chrome):
         return self._get_free_game(page_link=page_link, api_cookies=ctx_cookies, ctx=ctx)
 
     def _unreal_activate_payment(

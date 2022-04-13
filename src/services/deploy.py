@@ -5,7 +5,7 @@
 # Description:
 import random
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 import apprise
 import pytz
@@ -239,70 +239,69 @@ class ClaimerInstance:
             )
         )
 
-    def claim_free_game(
-        self,
-        challenger,
-        ctx_cookies: List[dict],
-        game_objs: dict,
-        urls: Optional[List[str]] = None,
-    ):
-        """认领周免游戏"""
-        if not urls:
-            self.logger.debug(
+    def promotions_filter(
+        self, promotions: Optional[Dict[str, Any]], ctx_cookies: List[dict]
+    ) -> Optional[List[Dict[str, Any]]]:
+        """
+        促销实体过滤器
+
+        1. 判断游戏本体是否在库
+        2. 判断是否存在免费附加内容
+        3. 识别并弹出已在库资源
+        4. 返回待认领的实体资源
+        :param promotions:
+        :param ctx_cookies:
+        :return:
+        """
+
+        def in_library(page_link: str, name: str):
+            response = self.explorer.game_manager.is_my_game(
+                ctx_cookies=ctx_cookies, page_link=page_link
+            )
+            # 资源待认领
+            if not response["status"] and response["assert"] != "AssertObjectNotFound":
+                self.logger.debug(
+                    ToolBox.runtime_report(
+                        motive="STARTUP",
+                        action_name="ScaffoldClaim",
+                        message="🍜 正在为玩家领取周免游戏",
+                        game=f"『{name}』",
+                    )
+                )
+                return False
+            self.logger.info(
                 ToolBox.runtime_report(
-                    motive="SKIP",
+                    motive="GET",
                     action_name=self.action_name,
-                    message="🛴 当前玩家暂无待认领的周免游戏。",
+                    message="🛴 资源已在库",
+                    game=f"『{name}』",
                 )
             )
-            return
+            return True
 
-        # 优先处理常规情况 urls.__len__() == 1
-        for url in urls:
-            self.logger.debug(
-                ToolBox.runtime_report(
-                    motive="STARTUP",
-                    action_name="ScaffoldClaim",
-                    message="🍜 正在为玩家领取周免游戏",
-                    game=f"『{game_objs[url]}』",
-                )
+        if not isinstance(promotions, dict) or not promotions["urls"]:
+            return promotions
+
+        # 过滤资源实体
+        pending_objs = []
+        for url in promotions["urls"]:
+            # 标记已在库游戏本体
+            job_name = promotions[url]
+            pending_objs.append(
+                {"url": url, "name": job_name, "in_library": in_library(url, job_name)}
             )
 
-            # 更新任务队列
-            challenger.switch_to.new_window("tab")
-            self.task_queue.put({"game": challenger.current_window_handle})
-
-            # 反复生产挑战者领取周免游戏
-            self.bricklayer.get_free_game(
-                page_link=url, ctx_cookies=ctx_cookies, _ctx_session=challenger
+            # 识别免费附加内容
+            dlc_details = self.bricklayer.get_free_dlc_details(
+                ctx_url=url, ctx_cookies=ctx_cookies
             )
 
-            # 编制运行缓存 用于生成业务报告
-            _runtime = {"status": self.bricklayer.result, "name": game_objs[url]}
-            self.message_queue.put_nowait(_runtime)
+            # 标记已在库的免费附加内容
+            for dlc in dlc_details:
+                dlc.update({"in_library": in_library(dlc["url"], dlc["name"])})
+                pending_objs.append(dlc)
 
-    def claim_free_dlc(self, challenger, ctx_cookies):
-        """认领周免游戏的免费附加内容"""
-        while not self.task_queue.empty():
-            context = self.task_queue.get()
-
-            # {"game": WebDriver Window}
-            if isinstance(context, dict) and context.get("game"):
-                challenger.switch_to.window(context["game"])
-                dlc_details = self.bricklayer.get_free_dlc_details(
-                    _ctx_session=challenger
-                )
-                for dlc in dlc_details:
-                    self.task_queue.put(dlc)
-            # {"url": link of dlc , "name": alia-label of dlc}
-            elif isinstance(context, dict) and context.get("url"):
-                result = self.bricklayer.get_free_dlc(
-                    dlc_page_link=context["url"],
-                    ctx_cookies=ctx_cookies,
-                    _ctx_session=challenger,
-                )
-                _runtime = {"status": result, "name": context["name"], "dlc": True}
-                self.message_queue.put_nowait(_runtime)
+        return pending_objs
 
     def just_do_it(self):
         """单步子任务 认领周免游戏"""
@@ -314,21 +313,27 @@ class ClaimerInstance:
             ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
 
             # 扫描商城促销活动，返回“0折”商品的名称与商城链接
-            limited_free_game_objs = self.explorer.get_the_absolute_free_game(
-                ctx_cookies, _ctx_session=self.challenger
-            )
+            promotions = self.explorer.get_promotions(ctx_cookies)
 
-            # 释放 Claimer 认领周免游戏
-            urls = limited_free_game_objs["urls"]
-            self.claim_free_game(
-                challenger=self.challenger,
-                ctx_cookies=ctx_cookies,
-                game_objs=limited_free_game_objs,
-                urls=urls,
-            )
+            # 资源聚合过滤 从顶级接口剔除已在库资源
+            game_objs = self.promotions_filter(promotions, ctx_cookies)
 
-            # 释放 Claimer 认领游戏DLC
-            self.claim_free_dlc(challenger=self.challenger, ctx_cookies=ctx_cookies)
+            # 启动任务队列
+            for game in game_objs:
+                if game["in_library"]:
+                    result = self.bricklayer.assert_.GAME_OK
+                else:
+                    result = self.bricklayer.get_free_resources(
+                        page_link=game["url"],
+                        ctx_cookies=ctx_cookies,
+                        ctx_session=self.challenger,
+                    )
+                _runtime = {
+                    "status": result,
+                    "name": game["name"],
+                    "dlc": game.get("dlc", False),
+                }
+                self.message_queue.put_nowait(_runtime)
 
 
 class UnrealClaimerInstance(ClaimerInstance):

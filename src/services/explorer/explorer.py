@@ -76,7 +76,7 @@ class GameLibManager(AwesomeFreeGirl):
         """
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62",
+            "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
             "cookie": ctx_cookies
             if isinstance(ctx_cookies, str)
             else ToolBox.transfer_cookies(ctx_cookies),
@@ -100,11 +100,12 @@ class GameLibManager(AwesomeFreeGirl):
             )
             return {"assert": "AssertObjectNotFound", "status": None}
 
+        # [购买|获取|已在库中|即将推出]
         assert_message = assert_obj[0].text
         response_obj = {"assert": assert_message, "warning": "", "status": None}
 
         # 🚧 跳过 `无法认领` 的日志信息
-        if assert_message in ["已在游戏库中", "立即购买", "即将推出"]:
+        if assert_message in ["已在游戏库中", "已在库中", "立即购买", "购买", "即将推出"]:
             response_obj["status"] = True
         # 🚧 惰性加载，前置节点不处理动态加载元素
         elif assert_message in ["正在载入"]:
@@ -191,24 +192,23 @@ class Explorer(AwesomeFreeGirl):
         # 返回链接
         return [game_obj.get("url") for game_obj in game_objs]
 
-    def get_the_limited_free_game(
-        self, ctx_cookies: Optional[List[dict]] = None
-    ) -> Dict[str, Any]:
+    def get_promotions(self, ctx_cookies: List[dict]) -> Dict[str, Any]:
         """
-        获取周免游戏
+        获取周免游戏数据
 
+        <即将推出> promotion["promotions"]["upcomingPromotionalOffers"]
+        <本周免费> promotion["promotions"]["promotionalOffers"]
         :param ctx_cookies:
         :return:
         """
-
-        def _update_limited_free_game_objs(element_: dict):
-            free_game_objs[url] = element_["title"]
-            free_game_objs["urls"].append(url)
-
         free_game_objs = {"urls": []}
-
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
+            "cookie": ToolBox.transfer_cookies(ctx_cookies),
+        }
         scraper = cloudscraper.create_scraper()
-        response = scraper.get(self.URL_PROMOTIONS)
+        response = scraper.get(self.URL_PROMOTIONS, headers=headers)
 
         try:
             data = response.json()
@@ -216,75 +216,17 @@ class Explorer(AwesomeFreeGirl):
             pass
         else:
             elements = data["data"]["Catalog"]["searchStore"]["elements"]
-            for element in elements:
-                promotions = element.get("promotions")
+            promotions = [e for e in elements if e.get("promotions")]
 
-                # 剔除掉过期的折扣实体
-                if not promotions:
-                    continue
-
-                # 提取商品页slug
-                url = self.URL_PRODUCT_PAGE + element["urlSlug"]
-
-                # 健壮工程，预判数据类型的变更
-                if not ctx_cookies:
-                    # 获取实体的促销折扣值 discount_percentage
-                    discount_setting = promotions["promotionalOffers"][0][
-                        "promotionalOffers"
-                    ][0]["discountSetting"]
-                    discount_percentage = discount_setting["discountPercentage"]
-                    if (
-                        not isinstance(discount_percentage, str)
-                        and not discount_percentage
-                    ) or (
-                        isinstance(discount_percentage, str)
-                        and not float(discount_percentage)
-                    ):
-                        _update_limited_free_game_objs(element)
-                else:
-                    response = self.game_manager.is_my_game(
-                        ctx_cookies=ctx_cookies, page_link=url
+            # 获取商城促销数据
+            for promotion in promotions:
+                # 获取<本周免费>的游戏对象
+                if promotion["promotions"]["promotionalOffers"]:
+                    url = (
+                        self.URL_PRODUCT_PAGE
+                        + promotion["catalogNs"]["mappings"][0]["pageSlug"]
                     )
-                    if (
-                        not response["status"]
-                        and response["assert"] != "AssertObjectNotFound"
-                    ):
-                        _update_limited_free_game_objs(element)
-
-        return free_game_objs
-
-    def get_the_absolute_free_game(
-        self, ctx_cookies: Optional[List[dict]], _ctx_session=None
-    ) -> Dict[str, Any]:
-        """使用应力表达式萃取商品链接"""
-
-        free_game_objs = {"urls": []}
-
-        # 使用应力表达式萃取商品链接
-        if _ctx_session:
-            critical_memory = _ctx_session.current_window_handle
-            try:
-                _ctx_session.switch_to.new_window("tab")
-                pending_games: Dict[str, str] = self.stress_expressions(ctx=_ctx_session)
-            finally:
-                _ctx_session.switch_to.window(critical_memory)
-        else:
-            with get_ctx(silence=self.silence) as ctx:
-                pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx)
-
-        # 中断空对象的工作流
-        if not pending_games:
-            return free_game_objs
-
-        # 任务批处理
-        for url, title in pending_games.items():
-            # 带入身份令牌判断周免游戏的在库状态
-            response = self.game_manager.is_my_game(
-                ctx_cookies=ctx_cookies, page_link=url
-            )
-            if not response["status"] and response["assert"] != "AssertObjectNotFound":
-                # 将待认领的周免游戏送入任务队列
-                free_game_objs[url] = title
-                free_game_objs["urls"].append(url)
+                    free_game_objs["urls"].append(url)
+                    free_game_objs[url] = promotion["title"]
 
         return free_game_objs

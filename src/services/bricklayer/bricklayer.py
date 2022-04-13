@@ -5,7 +5,7 @@
 # Description:
 import os
 from hashlib import sha256
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 
 import cloudscraper
 import yaml
@@ -340,25 +340,28 @@ class Bricklayer(AwesomeFreeMan):
             if _ctx_session is None:
                 ctx.quit()
 
-    def get_free_dlc_details(self, _ctx_session) -> Optional[List[Dict[str, str]]]:
-        """
-
-        :param _ctx_session: {"url":访问链接 "name":DLC名称 }
-        :return:
-        """
-        urls = self._get_free_dlc_details(_ctx_session)
-        if not urls:
-            return []
-        return urls
-
-    def get_free_dlc(self, dlc_page_link: str, ctx_cookies: List[dict], _ctx_session):
+    def get_free_dlc_details(
+        self, ctx_url: str, ctx_cookies: List[dict]
+    ) -> Optional[List[Dict[str, Union[str, bool]]]]:
         """
 
         :param ctx_cookies:
-        :param dlc_page_link:
-        :param _ctx_session:
+        :param ctx_url: 游戏本体链接
         :return:
         """
-        return self._get_free_dlc(
-            page_link=dlc_page_link, ctx_cookies=ctx_cookies, ctx=_ctx_session
+        dlc_details = self._get_free_dlc_details(ctx_url, ctx_cookies)
+        if not dlc_details:
+            return []
+        return dlc_details
+
+    def get_free_resources(self, page_link: str, ctx_cookies: List[dict], ctx_session):
+        """
+
+        :param ctx_cookies:
+        :param page_link:
+        :param ctx_session:
+        :return:
+        """
+        return self._get_free_resources(
+            page_link=page_link, ctx_cookies=ctx_cookies, ctx=ctx_session
         )
