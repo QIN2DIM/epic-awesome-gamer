@@ -37,6 +37,7 @@ class CookieManager(AwesomeFreeMan):
 
         self.action_name = "CookieManager"
         self.service_mode = auth_str
+        self.ctx_session = None
 
     def _t(self) -> str:
         return (
@@ -121,11 +122,12 @@ class CookieManager(AwesomeFreeMan):
         return False
 
     def refresh_ctx_cookies(
-        self, silence: bool = True, _ctx_session=None
+        self, silence: bool = True, _ctx_session=None, _keep_live=None
     ) -> Optional[bool]:
         """
         更新上下文身份信息
 
+        :param _keep_live: keep actively to the challenger context
         :param _ctx_session: 泛型开发者参数
         :param silence:
         :return:
@@ -225,7 +227,10 @@ class CookieManager(AwesomeFreeMan):
             return self.is_available_cookie(ctx_cookies=ctx.get_cookies())
         finally:
             if _ctx_session is None:
-                ctx.quit()
+                if not _keep_live:
+                    ctx.quit()
+                else:
+                    self.ctx_session = ctx
         # {{< Done >}}
 
         return True
@@ -248,13 +253,13 @@ class Bricklayer(AwesomeFreeMan):
         ctx_cookies: List[dict] = None,
         refresh: bool = True,
         challenge: Optional[bool] = None,
-        _ctx_session=None,
+        ctx_session=None,
     ) -> Optional[bool]:
         """
         获取免费游戏
 
         部署后必须传输有效的 `page_link` 参数。
-        :param _ctx_session:
+        :param ctx_session:
         :param challenge:
         :param page_link: 游戏购买页链接 zh-CN
         :param refresh: 当 COOKIE 失效时主动刷新 COOKIE
@@ -284,10 +289,10 @@ class Bricklayer(AwesomeFreeMan):
                 return False
 
         # [🚀] 常驻免费（General）周免（Challenge）
-        if _ctx_session is None:
+        if ctx_session is None:
             ctx = get_challenge_ctx(self.silence) if challenge else get_ctx(self.silence)
         else:
-            ctx = _ctx_session
+            ctx = ctx_session
 
         # [🚀] 认领游戏
         try:
@@ -337,31 +342,20 @@ class Bricklayer(AwesomeFreeMan):
             )
             return False
         finally:
-            if _ctx_session is None:
+            if ctx_session is None:
                 ctx.quit()
 
     def get_free_dlc_details(
         self, ctx_url: str, ctx_cookies: List[dict]
     ) -> Optional[List[Dict[str, Union[str, bool]]]]:
-        """
-
-        :param ctx_cookies:
-        :param ctx_url: 游戏本体链接
-        :return:
-        """
+        """获取免费附加内容信息"""
         dlc_details = self._get_free_dlc_details(ctx_url, ctx_cookies)
         if not dlc_details:
             return []
         return dlc_details
 
-    def get_free_resources(self, page_link: str, ctx_cookies: List[dict], ctx_session):
-        """
-
-        :param ctx_cookies:
-        :param page_link:
-        :param ctx_session:
-        :return:
-        """
-        return self._get_free_resources(
+    def get_free_games(self, page_link: str, ctx_cookies: List[dict], ctx_session):
+        """获取周免资源 游戏本体/附加内容 集成接口"""
+        return self._get_free_resource(
             page_link=page_link, ctx_cookies=ctx_cookies, ctx=ctx_session
         )

@@ -3,7 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 
 from bs4 import BeautifulSoup
 from cloudscraper import create_scraper
@@ -31,7 +31,9 @@ class UnrealClaimer(Bricklayer):
     def __init__(self, silence: Optional[bool] = None):
         super().__init__(silence=silence, auth_str="unreal")
 
-    def get_claimer_response(self, ctx_cookies: List[dict]) -> List[Dict[str, str]]:
+    def get_claimer_response(
+        self, ctx_cookies: List[dict]
+    ) -> List[Dict[str, Union[str, bool]]]:
         """领取任务后审查资源的在库状态"""
         headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
         scraper = create_scraper()
@@ -51,9 +53,9 @@ class UnrealClaimer(Bricklayer):
 
         return details
 
-    def get_free_resource(self, ctx, ctx_cookies):
+    def get_free_unreal_content(self, ctx_session, ctx_cookies):
         try:
-            self._unreal_get_free_resource(ctx=ctx, ctx_cookies=ctx_cookies)
+            self._unreal_get_free_resource(ctx=ctx_session, ctx_cookies=ctx_cookies)
         except AssertTimeout:
             logger.debug(
                 ToolBox.runtime_report(

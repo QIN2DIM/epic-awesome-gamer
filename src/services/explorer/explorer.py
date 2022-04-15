@@ -4,7 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import json.decoder
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict
 
 import cloudscraper
 import yaml
@@ -192,14 +192,14 @@ class Explorer(AwesomeFreeGirl):
         # 返回链接
         return [game_obj.get("url") for game_obj in game_objs]
 
-    def get_promotions(self, ctx_cookies: List[dict]) -> Dict[str, Any]:
+    def get_promotions(self, ctx_cookies: List[dict]) -> Dict[str, Union[List[str], str]]:
         """
         获取周免游戏数据
 
         <即将推出> promotion["promotions"]["upcomingPromotionalOffers"]
         <本周免费> promotion["promotions"]["promotionalOffers"]
         :param ctx_cookies:
-        :return:
+        :return: {"urls": [], "pageLink1": "pageTitle1", "pageLink2": "pageTitle2", ...}
         """
         free_game_objs = {"urls": []}
         headers = {
@@ -229,4 +229,26 @@ class Explorer(AwesomeFreeGirl):
                     free_game_objs["urls"].append(url)
                     free_game_objs[url] = promotion["title"]
 
+        return free_game_objs
+
+    def get_promotions_by_stress_expressions(
+        self, _ctx_session=None
+    ) -> Dict[str, Union[List[str], str]]:
+        """使用应力表达式萃取商品链接"""
+        free_game_objs = {"urls": []}
+        if _ctx_session:
+            critical_memory = _ctx_session.current_window_handle
+            try:
+                _ctx_session.switch_to.new_window("tab")
+                pending_games: Dict[str, str] = self.stress_expressions(ctx=_ctx_session)
+            finally:
+                _ctx_session.switch_to.window(critical_memory)
+        else:
+            with get_ctx(silence=self.silence) as ctx:
+                pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx)
+
+        if pending_games:
+            for url, title in pending_games.items():
+                free_game_objs[url] = title
+                free_game_objs["urls"].append(url)
         return free_game_objs

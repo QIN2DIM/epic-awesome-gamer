@@ -6,9 +6,10 @@
 import os
 import random
 import sys
+from datetime import datetime
 from os.path import join, dirname
 from typing import Dict, Any, Optional
-from datetime import datetime
+
 from services.utils import ToolBox
 
 __all__ = [
@@ -127,10 +128,8 @@ except KeyError as e:
     sys.exit()
 
 _CONVERTER = ["沫雯喂", "辰丽", "荪彦孜", "有坷唯", "郑姊祺", "弹蓶蓶", "王飛"]
-try:
-    if not PLAYER:
-        PLAYER = os.environ["PLAYER"]
-except KeyError:
+PLAYER = os.getenv("PLAYER", "") if not PLAYER else PLAYER
+if PLAYER in ["", None]:
     PLAYER = f"{random.choice(_CONVERTER)}({datetime.now().day})"
 # --------------------------------
 # [√] 阻止缺省配置

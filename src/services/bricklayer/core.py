@@ -1039,7 +1039,7 @@ class AwesomeFreeMan:
 
         return list(dlc_details.values())
 
-    def _get_free_resources(self, page_link: str, ctx_cookies: List[dict], ctx: Chrome):
+    def _get_free_resource(self, page_link: str, ctx_cookies: List[dict], ctx: Chrome):
         return self._get_free_game(page_link=page_link, api_cookies=ctx_cookies, ctx=ctx)
 
     def _unreal_activate_payment(
