@@ -8,14 +8,14 @@ from typing import Optional
 
 from selenium.common.exceptions import WebDriverException
 
-from services.bricklayer import Bricklayer
+from services.bricklayer import GameClaimer
 from services.explorer import Explorer
 from services.settings import logger
-from services.utils import CoroutineSpeedup, ToolBox
+from services.utils import CoroutineSpeedup, ToolBox, get_ctx
 
 SILENCE = True
 
-bricklayer = Bricklayer(silence=SILENCE)
+bricklayer = GameClaimer(silence=SILENCE, claim_mode=GameClaimer.CLAIM_MODE_GET)
 explorer = Explorer(silence=SILENCE)
 
 
@@ -62,9 +62,12 @@ class SpawnBooster(CoroutineSpeedup):
 
             # 启动 Bricklayer 获取免费游戏
             try:
-                bricklayer.get_free_game(
-                    page_link=url, ctx_cookies=self.ctx_cookies, refresh=False
-                )
+                with get_ctx(silence=SILENCE) as ctx_session:
+                    bricklayer.claim_stabilizer(
+                        page_link=url,
+                        ctx_cookies=self.ctx_cookies,
+                        ctx_session=ctx_session,
+                    )
             except WebDriverException as error:
                 if self.debug:
                     logger.exception(error)

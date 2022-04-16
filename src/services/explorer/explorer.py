@@ -3,148 +3,22 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import json.decoder
+from json.decoder import JSONDecodeError
 from typing import List, Optional, Union, Dict
 
 import cloudscraper
-import yaml
-from lxml import etree
 
-from services.settings import logger
 from services.utils import ToolBox, get_ctx
-from .core import AwesomeFreeGirl
+from .core import EpicAwesomeExplorer, GameLibManager
 from .exceptions import DiscoveryTimeoutException
 
 
-class GameLibManager(AwesomeFreeGirl):
-    """游戏对象管理 缓存商城数据以及判断游戏在库状态"""
-
-    def __init__(self):
-        super().__init__()
-
-        self.action_name = "GameLibManager"
-
-    def save_game_objs(self, game_objs: List[Dict[str, str]], category: str) -> None:
-        """缓存免费商城数据"""
-        if not game_objs:
-            return
-
-        content = {game_obj["url"]: game_obj["name"] for game_obj in game_objs}
-        with open(self.path_free_games, "w", encoding="utf8", newline="") as file:
-            yaml.dump({category: content}, file, allow_unicode=True)
-
-        logger.success(
-            ToolBox.runtime_report(
-                motive="SAVE",
-                action_name=self.action_name,
-                message="Cache Epic store information.",
-            )
-        )
-
-    def load_game_objs(self, category: str, only_url: bool = True) -> Optional[List[str]]:
-        """
-        加载缓存在本地的免费游戏对象
-
-        :param category:
-        :param only_url:
-        :return:
-        """
-        try:
-            with open(self.path_free_games, "r", encoding="utf8") as file:
-                content: Dict[str, Dict[str, str]] = yaml.load(file, Loader=yaml.Loader)
-        except FileNotFoundError:
-            return []
-        else:
-            if not content or not isinstance(content, dict) or not content.get(category):
-                return []
-            if only_url:
-                return list(content[category].keys())
-            return list(content[category].items())
-
-    def is_my_game(
-        self, ctx_cookies: Union[List[dict], str], page_link: str
-    ) -> Optional[dict]:
-        """
-        判断游戏在库状态
-
-        :param ctx_cookies:
-        :param page_link:
-        :return:
-            None 异常状态
-            True 跳过任务
-            False 继续任务
-        """
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
-            "cookie": ctx_cookies
-            if isinstance(ctx_cookies, str)
-            else ToolBox.transfer_cookies(ctx_cookies),
-        }
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(page_link, headers=headers)
-        tree = etree.HTML(response.content)
-        assert_obj = tree.xpath(
-            "//span[@data-component='PurchaseCTA']//span[@data-component='Message']"
-        )
-
-        # 🚧 异常状态
-        if not assert_obj:
-            logger.debug(
-                ToolBox.runtime_report(
-                    motive="IGNORE",
-                    action_name=self.action_name,
-                    message="忽略尚未发布的游戏对象",
-                    url=page_link,
-                )
-            )
-            return {"assert": "AssertObjectNotFound", "status": None}
-
-        # [购买|获取|已在库中|即将推出]
-        assert_message = assert_obj[0].text
-        response_obj = {"assert": assert_message, "warning": "", "status": None}
-
-        # 🚧 跳过 `无法认领` 的日志信息
-        if assert_message in ["已在游戏库中", "已在库中", "立即购买", "购买", "即将推出"]:
-            response_obj["status"] = True
-        # 🚧 惰性加载，前置节点不处理动态加载元素
-        elif assert_message in ["正在载入"]:
-            response_obj["status"] = False
-        # 🍟 未领取的免费游戏
-        elif assert_message in ["获取"]:
-            warning_obj = tree.xpath("//h1[@class='css-1gty6cv']//span")
-            # 出现遮挡警告
-            if warning_obj:
-                warning_message = warning_obj[0].text
-                response_obj["warning"] = warning_message
-                # 成人内容可获取
-                if "成人内容" in warning_message:
-                    response_obj["status"] = False
-                else:
-                    logger.warning(
-                        ToolBox.runtime_report(
-                            motive="SKIP",
-                            action_name=self.action_name,
-                            message=warning_message,
-                            url=page_link,
-                        )
-                    )
-                    response_obj["status"] = None
-            # 继续任务
-            else:
-                response_obj["status"] = False
-
-        return response_obj
-
-
-class Explorer(AwesomeFreeGirl):
+class Explorer(EpicAwesomeExplorer):
     """商城探索者 发现常驻免费游戏以及周免游戏"""
 
     def __init__(self, silence: Optional[bool] = None):
         super().__init__(silence=silence)
-
         self.action_name = "Explorer"
-
         self.game_manager = GameLibManager()
 
     def discovery_free_games(
@@ -212,7 +86,7 @@ class Explorer(AwesomeFreeGirl):
 
         try:
             data = response.json()
-        except json.decoder.JSONDecodeError:
+        except JSONDecodeError:
             pass
         else:
             elements = data["data"]["Catalog"]["searchStore"]["elements"]
@@ -232,17 +106,17 @@ class Explorer(AwesomeFreeGirl):
         return free_game_objs
 
     def get_promotions_by_stress_expressions(
-        self, _ctx_session=None
+        self, ctx_session=None
     ) -> Dict[str, Union[List[str], str]]:
         """使用应力表达式萃取商品链接"""
         free_game_objs = {"urls": []}
-        if _ctx_session:
-            critical_memory = _ctx_session.current_window_handle
+        if ctx_session:
+            critical_memory = ctx_session.current_window_handle
             try:
-                _ctx_session.switch_to.new_window("tab")
-                pending_games: Dict[str, str] = self.stress_expressions(ctx=_ctx_session)
+                ctx_session.switch_to.new_window("tab")
+                pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx_session)
             finally:
-                _ctx_session.switch_to.window(critical_memory)
+                ctx_session.switch_to.window(critical_memory)
         else:
             with get_ctx(silence=self.silence) as ctx:
                 pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx)

@@ -9,11 +9,13 @@ import sys
 from datetime import datetime, timedelta
 from typing import List, Union, Dict, Optional, Any
 
+import cloudscraper
 import pytz
 import undetected_chromedriver as uc
 import yaml
 from gevent.queue import Queue
 from loguru import logger
+from lxml import etree
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
@@ -167,6 +169,19 @@ class ToolBox:
                 diagnose=False,
             )
         return logger
+
+    @staticmethod
+    def handle_html(url_, cookie: str = None, allow_redirects=False):
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36"
+        }
+        if cookie is not None and isinstance(cookie, str):
+            headers.update({"cookie": cookie})
+        scraper = cloudscraper.create_scraper()
+        response_ = scraper.get(url_, headers=headers, allow_redirects=allow_redirects)
+        tree_ = etree.HTML(response_.content)
+        return tree_, response_
 
 
 def _set_ctx(language: Optional[str] = None) -> ChromeOptions:

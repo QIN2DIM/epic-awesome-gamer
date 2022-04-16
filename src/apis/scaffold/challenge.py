@@ -5,11 +5,11 @@
 # Description:
 from typing import Optional
 
-from services.bricklayer import Bricklayer
+from services.bricklayer import GameClaimer
 from services.settings import PATH_USR_COOKIES, logger
 from services.utils import ToolBox
 
-bricklayer = Bricklayer()
+bricklayer = GameClaimer()
 
 
 def run(silence: Optional[bool] = None):
