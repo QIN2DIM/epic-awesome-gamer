@@ -15,7 +15,7 @@
 
 ![scaffold-get-demo-output-small](https://github.com/QIN2DIM/img_pool/blob/main/img/scaffold-get-demo-output-small.gif)
 
-## 项目简介 👋
+## Introduction 👋
 
 [Epic AwesomeGamer](https://github.com/QIN2DIM/epic-awesome-gamer) 帮助玩家优雅地领取 Epic 免费游戏。
 
@@ -25,3 +25,20 @@
 - `claim`：领取周免游戏及其免费附加内容；
 - `unreal`：搬空虚幻商店的常驻免费资源，领取本月免费内容；
 - `deploy`：部署系统定时任务。
+
+## Features
+
+| Demand               | Support |
+| :------------------- | :------ |
+| Game Claimer         | ✔       |
+| DLC Claimer          | ✔       |
+| Unreal Claimer       | ✔       |
+| hCaptcha Solver      | ✔       |
+| Docker CI            | ✔       |
+| Object Storage       |   ✔      |
+| Multi User           | ✔       |
+| Message Pusher       | ✔       |
+| Data Desensitization | ✔       |
+| Context Scheduler    | ✔       |
+| Rolling Upgrade      | 🚧       |
+| ...                  |         |
