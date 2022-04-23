@@ -6,16 +6,19 @@
 import time
 from typing import List, Optional, Dict, Union
 
+from lxml import etree
+
 from services.settings import logger
 from services.utils import ToolBox
 from .core import EpicAwesomeGamer, CookieManager
 from .exceptions import (
     AssertTimeout,
     SwitchContext,
-    PaymentException,
+    PaymentBlockedWarning,
     AuthException,
     UnableToGet,
     CookieExpired,
+    PaymentAutoSubmit,
 )
 
 
@@ -36,34 +39,30 @@ class GameClaimer(EpicAwesomeGamer):
         self.action_name = "GameClaimer"
         self.cookie_manager = CookieManager(auth_str=self.AUTH_STR_GAMES)
 
-    def get_free_dlc_details(
-        self, ctx_url: str, ctx_cookies: List[dict]
-    ) -> List[Dict[str, Union[str, bool]]]:
-        """
-        1. 检测一个游戏实体是否存在免费附加内容
-        2. 将可领取的免费附加内容编织成任务对象并返回
-        3. 一个游戏实体可能存在多个可领取的免费DLC
-        :param ctx_url: 游戏本体商城链接
-        :param ctx_cookies:
-        :return: [{"url": url of dlc, "name": name of dlc, "dlc": True}, ... ]
-        """
-        # [🚀] 检测当前商品是否有DLC
-        cookie = ToolBox.transfer_cookies(ctx_cookies)
-        tree, response = ToolBox.handle_html(ctx_url, cookie)
+    def has_attach(self, content: bytes = None, tree=None) -> Optional[str]:
+        """检测当前游戏商品是否有DLC urlIn游戏页"""
+        tree = etree.HTML(content) if tree is None else tree
         dlc_tag = tree.xpath(
             "//li[@data-component='PDPTertiaryNavigation']//a[contains(@href,'dlc')]"
         )
         if not dlc_tag:
-            return []
-
-        # [🚀] 检测当前商品是否有免费的DLC
+            return
         dlc_page = (
             f"{self.URL_MASTER_HOST}{dlc_tag[0].attrib.get('href')}?"
             f"sortBy=relevancy&sortDir=DESC&priceTier=tierFree&count=40&start=0"
         )
-        dlc_tree, response = ToolBox.handle_html(dlc_page, cookie)
-        if dlc_tree.xpath("//span[text()='未找到结果']"):
-            return []
+        return dlc_page
+
+    @staticmethod
+    def has_free_dlc(content: bytes = None, tree=None) -> bool:
+        """检测游戏是否有免费DLC urlIn附加内容筛选免费内容页"""
+        tree = etree.HTML(content) if tree is None else tree
+        if tree.xpath("//span[text()='未找到结果']"):
+            return False
+        return True
+
+    def parse_free_dlc_details(self, url, status_code, content=None, tree=None):
+        dlc_tree = etree.HTML(content) if tree is None else tree
 
         # [🚀] 获取当前商品所有免费DLC链接
         dlc_tags: list = dlc_tree.xpath("//div[@data-component='DiscoverCard']//a")
@@ -74,14 +73,14 @@ class GameClaimer(EpicAwesomeGamer):
             try:
                 name = aria_label.split(",")[0]
             except (IndexError, AttributeError):
-                name = response.url.split("/")[-1]
+                name = url.split("/")[-1]
 
             # 部分地区账号会被重定向至附加内容的默认页面
             # 此页面未触发筛选器，混杂着付费/免费的附加内容
             is_free = True
             try:
                 # 重新判断当前游戏的状态，清洗付费游戏
-                if "tierFree" not in response.url or response.status_code == 302:
+                if "tierFree" not in url or status_code == 302:
                     is_free = aria_label.split(",")[-1].strip() == "0"
             # 当出现意外的标签时将此实例视为免费游戏送入任务队列
             # 下层驱动中有更加明确的游戏状态用以剔除杂质
@@ -97,6 +96,31 @@ class GameClaimer(EpicAwesomeGamer):
         # [🚀] 清洗返回值 使之符合接口规则
         return list(dlc_details.values())
 
+    def get_free_dlc_details(
+        self, ctx_url: str, cookie: str
+    ) -> List[Dict[str, Union[str, bool]]]:
+        """
+        1. 检测一个游戏实体是否存在免费附加内容
+        2. 将可领取的免费附加内容编织成任务对象并返回
+        3. 一个游戏实体可能存在多个可领取的免费DLC
+        :param ctx_url: 游戏本体商城链接
+        :param cookie:
+        :return: [{"url": url of dlc, "name": name of dlc, "dlc": True}, ... ]
+        """
+        # [🚀] 检测当前商品是否有DLC
+        tree, response = ToolBox.handle_html(ctx_url, cookie)
+        dlc_page = self.has_attach(tree=tree)
+        if not dlc_page:
+            return []
+
+        # [🚀] 检测当前商品是否有免费的DLC
+        dlc_tree, response = ToolBox.handle_html(dlc_page, cookie)
+        if not self.has_free_dlc(tree=dlc_tree):
+            return []
+
+        # [🚀] 获取当前商品所有免费DLC链接
+        return self.parse_free_dlc_details(dlc_page, response.status_code, tree=dlc_tree)
+
     def is_empty_cart(self, ctx_cookies: List[dict], init=True) -> Optional[bool]:
         """判断商城购物车是否为空"""
         cookie = ToolBox.transfer_cookies(ctx_cookies)
@@ -104,16 +128,10 @@ class GameClaimer(EpicAwesomeGamer):
 
         assert_obj = tree.xpath("//span[text()='您的购物车是空的。']")
         if len(assert_obj) != 0:
-            if init:
-                logger.debug(
-                    ToolBox.runtime_report(
-                        motive="SKIP", action_name=self.action_name, message="购物车为空"
-                    )
-                )
-            else:
+            if not init:
                 logger.success(
                     ToolBox.runtime_report(
-                        motive="SKIP", action_name=self.action_name, message="购物车已清空"
+                        motive="ADVANCE", action_name=self.action_name, message="✔ 购物车已清空"
                     )
                 )
             return True
@@ -122,6 +140,7 @@ class GameClaimer(EpicAwesomeGamer):
     def cart_balancing(self, ctx_cookies: List[dict], ctx_session, init=True):
         """
         购物车|愿望清单的内容转移
+
         1. 查看购物车是否为空
         2. 将<付费内容>&&<后置资源>移至愿望清单
 
@@ -172,26 +191,31 @@ class GameClaimer(EpicAwesomeGamer):
         init = True
         while True:
             # [🚀] 判断购物车状态
+            logger.debug("[🛵] 判断购物车状态")
             if self.is_empty_cart(ctx_cookies, init=init):
                 break
 
             # [🚀] 重载身份令牌
+            logger.debug("[🛵] 重载身份令牌")
             self._reset_page(
                 ctx=ctx_session,
                 ctx_cookies=ctx_cookies,
                 page_link=self.URL_GAME_CART,
                 auth_str=self.AUTH_STR_GAMES,
             )
+
             # [🚀] 激活游戏订单
+            logger.debug("[🛵] 激活游戏订单")
             self._activate_payment(ctx_session, mode=self.ACTIVE_BINGO)
 
             # [🚀] 新用户首次购买游戏需要处理许可协议书
-            # Maximum sleep time -> 3s
             if self.assert_.surprise_license(ctx_session):
+                logger.debug("[🛵] 新用户首次购买游戏需要处理许可协议书")
                 ctx_session.refresh()
                 continue
 
             # [🚀] 处理游戏订单
+            logger.debug("[🛵] 处理游戏订单...")
             self.cart_handle_payment(ctx_session)
 
             # [🚀] 更新上下文状态
@@ -234,19 +258,17 @@ class GameClaimer(EpicAwesomeGamer):
                 break
 
             # [🚀] 激活游戏订单
-            # Maximum sleep time -> 12s
             self._activate_payment(ctx_session, mode=self.claim_mode)
+            # 上下文切换
             if self.claim_mode == self.CLAIM_MODE_ADD:
                 break
 
             # [🚀] 新用户首次购买游戏需要处理许可协议书
-            # Maximum sleep time -> 3s
             if self.assert_.surprise_license(ctx_session):
                 ctx_session.refresh()
                 continue
 
             # [🚀] 订单消失
-            # Maximum sleep time -> 5s
             self.assert_.payment_auto_submit(ctx_session)
 
             # [🚀] 处理游戏订单
@@ -259,7 +281,11 @@ class GameClaimer(EpicAwesomeGamer):
         return self.result
 
     def claim_stabilizer(
-        self, page_link: str, ctx_cookies: List[dict], ctx_session
+        self,
+        page_link: str,
+        ctx_cookies: List[dict],
+        ctx_session,
+        get_blocked_warning=None,
     ) -> Optional[str]:
         """获取周免资源 游戏本体/附加内容 集成接口"""
         try:
@@ -291,7 +317,9 @@ class GameClaimer(EpicAwesomeGamer):
                     url=page_link,
                 )
             )
-        except PaymentException as error:
+        except PaymentAutoSubmit:
+            pass
+        except PaymentBlockedWarning as error:
             logger.debug(
                 ToolBox.runtime_report(
                     motive="QUIT",
@@ -301,6 +329,8 @@ class GameClaimer(EpicAwesomeGamer):
                     url=page_link,
                 )
             )
+            if get_blocked_warning:
+                raise PaymentBlockedWarning from error
         except AuthException as error:
             logger.critical(
                 ToolBox.runtime_report(

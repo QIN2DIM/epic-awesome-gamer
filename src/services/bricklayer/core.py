@@ -52,7 +52,7 @@ from .exceptions import (
     AssertTimeout,
     UnableToGet,
     SwitchContext,
-    PaymentException,
+    PaymentBlockedWarning,
     AuthException,
     PaymentAutoSubmit,
 )
@@ -236,9 +236,13 @@ class ArmorUtils(ArmorCaptcha):
 
         def _continue_action():
             try:
-                time.sleep(3)
-                ctx.find_element(By.XPATH, "//div[@class='task-image']")
-            except NoSuchElementException:
+                time.sleep(1)
+                WebDriverWait(ctx, 2).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//div[@class='task-image']")
+                    )
+                )
+            except TimeoutException:
                 return True
             else:
                 return False
@@ -374,9 +378,9 @@ class AssertUtils:
     # 此部分状态作为消息模板的一部分，尽量简短易理解
     COOKIE_EXPIRED = "💥 饼干过期了"
     ASSERT_OBJECT_EXCEPTION = "🚫 无效的断言对象"
-    GAME_OK = "🛴 已在库"
+    GAME_OK = "🎮 已在库"
     GAME_PENDING = "👀 待认领"
-    GAME_CLAIM = "💰 领取成功"
+    GAME_CLAIM = "🛒 领取成功"
     GAME_NOT_FREE = "🦽 付费游戏"
 
     @staticmethod
@@ -428,12 +432,7 @@ class AssertUtils:
 
     @staticmethod
     def surprise_license(ctx: Chrome) -> Optional[bool]:
-        """
-        新用户首次购买游戏需要处理许可协议书
-
-        :param ctx:
-        :return:
-        """
+        """新用户首次购买游戏需要处理许可协议书"""
         try:
             surprise_obj = WebDriverWait(
                 ctx, 3, ignored_exceptions=ElementNotVisibleException
@@ -527,7 +526,7 @@ class AssertUtils:
                 .text
             )
             if warning_text == "感谢您的购买":
-                raise PaymentAutoSubmit
+                raise PaymentAutoSubmit(warning_text)
         except TimeoutException:
             pass
 
@@ -546,7 +545,7 @@ class AssertUtils:
                 .text
             )
             if warning_text:
-                raise PaymentException(warning_text)
+                raise PaymentBlockedWarning(warning_text)
         except TimeoutException:
             pass
 
@@ -578,7 +577,7 @@ class AssertUtils:
 
         # 捕获按钮对象，根据按钮上浮动的提示信息断言游戏在库状态 超时的空对象主动抛出异常
         try:
-            assert_obj = WebDriverWait(ctx, 30, WebDriverException).until(
+            assert_obj = WebDriverWait(ctx, 30).until(
                 EC.element_to_be_clickable(
                     (
                         By.XPATH,
@@ -634,21 +633,25 @@ class AssertUtils:
 
             # 必须使用挑战者驱动领取周免游戏，处理潜在的人机验证
             if deadline:
-                AssertUtils.wrong_driver(ctx, "♻ 使用挑战者上下文领取周免游戏。")
+                AssertUtils.wrong_driver(ctx, "♻ 请使用挑战者上下文领取周免游戏。")
                 if get is True:
                     message = f"💰 正在为玩家领取周免游戏 {deadline}"
                 else:
                     message = f"🛒 添加至购物车 {deadline}"
             else:
-                message = "🚀 正在为玩家领取免费游戏"
-            logger.success(
-                ToolBox.runtime_report(
-                    motive="GET",
-                    action_name=action_name,
-                    message=message,
-                    game=f"『{game_name}』",
+                if get is True:
+                    message = "🚀 正在为玩家领取免费游戏"
+                else:
+                    message = f"🛒 添加至购物车"
+            if init:
+                logger.success(
+                    ToolBox.runtime_report(
+                        motive="GET",
+                        action_name=action_name,
+                        message=message,
+                        game=f"『{game_name}』",
+                    )
                 )
-            )
 
             return AssertUtils.GAME_PENDING
 
@@ -681,6 +684,7 @@ class AssertUtils:
                     (By.XPATH, "//span[text()='我同意']/ancestor::button")
                 )
             ).click()
+            logger.debug("[🍜] 处理 UK 地区账号的「退款及撤销权信息」。")
         except TimeoutException:
             pass
 
@@ -727,6 +731,9 @@ class EpicAwesomeGamer:
     URL_LOGIN_GAMES = "https://www.epicgames.com/id/login/epic?lang=zh-CN"
     URL_LOGIN_UNREAL = "https://www.unrealengine.com/id/login/epic?lang=zh-CN"
     URL_ACCOUNT_PERSONAL = "https://www.epicgames.com/account/personal"
+
+    # 购物车结算成功
+    URL_CART_SUCCESS = "https://store.epicgames.com/zh-CN/cart/success"
 
     URL_UNREAL_STORE = "https://www.unrealengine.com/marketplace/zh-CN/assets"
     URL_UNREAL_MONTH = (
@@ -821,11 +828,11 @@ class EpicAwesomeGamer:
             pass
 
     @staticmethod
-    def _click_order_button(ctx) -> Optional[bool]:
+    def _click_order_button(ctx, timeout: int = 20) -> Optional[bool]:
         try:
             time.sleep(0.5)
             WebDriverWait(
-                ctx, 20, ignored_exceptions=ElementClickInterceptedException
+                ctx, timeout, ignored_exceptions=ElementClickInterceptedException
             ).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[contains(@class,'payment-btn')]")
@@ -837,11 +844,16 @@ class EpicAwesomeGamer:
             ctx.switch_to.default_content()
             return False
 
-    def _duel_with_challenge(self, ctx):
+    def _duel_with_challenge(self, ctx) -> Optional[bool]:
+        """
+        动态处理人机挑战
+        :param ctx:
+        :return: True挑战成功，False挑战失败/需要跳过，None其他信号
+        """
         if self._armor.fall_in_captcha_runtime(ctx):
             self.assert_.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
-                self._armor.anti_hcaptcha(ctx, door="free")
+                return self._armor.anti_hcaptcha(ctx, door="free")
             except (ChallengeReset, WebDriverException):
                 pass
 
@@ -914,7 +926,6 @@ class EpicAwesomeGamer:
         # [🍜] Click the [order] button.
         response = self._click_order_button(ctx)
         if not response:
-            ctx.switch_to.default_content()
             return
 
         # [🍜] 处理 UK 地区账号的「退款及撤销权信息」。
@@ -961,28 +972,89 @@ class EpicAwesomeGamer:
             )
         )
 
+    def cart_success(self, ctx: Chrome):
+        """
+        提高跳过人机挑战的期望，使用轮询的方式检测运行状态
+        确保进入此函数时，已经点击 order 按钮，并已处理欧盟和新手协议，无任何遮挡。
+        :param ctx:
+        :return:
+        """
+
+        def annealing():
+            logger.debug(f"[🎃] 退火成功 - {ctx.current_url=}")
+            return True
+
+        _fall_in_challenge = 0
+        for _ in range(30):
+            ctx.switch_to.default_content()
+            try:
+                payment_iframe = WebDriverWait(ctx, 2).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//div[@id='webPurchaseContainer']//iframe")
+                    )
+                )
+            # 订单消失
+            except TimeoutException:
+                return annealing()
+            else:
+                try:
+                    WebDriverWait(ctx, 2).until(EC.url_to_be(self.URL_CART_SUCCESS))
+                    return annealing()
+                except TimeoutException:
+                    pass
+                # 还原现场
+                try:
+                    ctx.switch_to.frame(payment_iframe)
+                except StaleElementReferenceException:
+                    return annealing()
+                if _fall_in_challenge > 3:
+                    return False
+                # 进入必然存在的人机挑战框架
+                try:
+                    challenge_iframe = ctx.find_element(
+                        By.XPATH, "//iframe[contains(@title,'content')]"
+                    )
+                except NoSuchElementException:
+                    continue
+                else:
+                    ctx.switch_to.frame(challenge_iframe)
+                    try:
+                        ctx.find_element(By.XPATH, "//div[@class='prompt-text']")
+                    except NoSuchElementException:
+                        continue
+                    else:
+                        _fall_in_challenge += 1
+
     def cart_handle_payment(self, ctx: Chrome):
         # [🍜] Switch to the [Purchase Container] iframe.
         try:
             self._switch_to_payment_iframe(ctx)
+            logger.debug("[🌀] 切换至内联订单框架")
         except TimeoutException:
-            pass
+            ctx.switch_to.default_content()
+            return
 
         # [🍜] Click the [order] button.
-        response = self._click_order_button(ctx)
+        logger.debug("[⚔] 激活人机挑战...")
+        response = self._click_order_button(ctx, 12)
         if not response:
-            ctx.switch_to.default_content()
             return
 
         # [🍜] 处理 UK 地区账号的「退款及撤销权信息」。
         self.assert_.refund_info(ctx)
 
-        # [🍜] 捕获隐藏在订单中的人机挑战，仅在周免游戏中出现。
-        self._duel_with_challenge(ctx)
+        # [🍜] 提高跳过人机挑战的期望，使用轮询的方式检测运行状态
+        if not self.cart_success(ctx):
+            # [🍜] 捕获隐藏在订单中的人机挑战，仅在周免游戏中出现。
+            logger.debug("[⚔] 捕获隐藏在订单中的人机挑战...")
+            self._duel_with_challenge(ctx)
 
         # [🍜] Switch to default iframe.
+        logger.debug("[🌀] 弹出内联订单框架...")
         ctx.switch_to.default_content()
         ctx.refresh()
+
+        return True
 
     def unreal_activate_payment(self, ctx: Chrome, init=True):
         """从虚幻商店购物车激活订单"""
@@ -1091,7 +1163,6 @@ class EpicAwesomeGamer:
         # [🍜] Click the [order] button.
         response = self._click_order_button(ctx)
         if not response:
-            ctx.switch_to.default_content()
             return
 
         # [🍜] 处理 UK 地区账号的「退款及撤销权信息」。

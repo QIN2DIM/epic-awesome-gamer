@@ -17,7 +17,7 @@ if os.getenv("RUNNER_TOOL_CACHE"):
     except requests.RequestException:
         print(
             "[Warning] 禁止在 fork 分支上运行工作流，请创建私有工作流。\n"
-            "详见 https://blog.echosec.top/epic-awesome-gamer/zh/docs/player/hosting-deployment/privatisation/"
+            "详见 https://github.com/QIN2DIM/epic-awesome-gamer/issues/24"
         )
         if random.uniform(0, 1) > 0.15:
             sys.exit()

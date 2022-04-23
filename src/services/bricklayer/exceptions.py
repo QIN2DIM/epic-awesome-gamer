@@ -42,6 +42,10 @@ class PaymentException(AwesomeException):
     """订单操作异常"""
 
 
+class PaymentBlockedWarning(PaymentException):
+    """常驻免费游戏锁区，当前账号不可领取"""
+
+
 class PaymentAutoSubmit(PaymentException):
     """点击获取游戏后，订单窗格没有弹出，直接感谢我们购买游戏"""
 

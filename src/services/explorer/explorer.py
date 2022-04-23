@@ -8,6 +8,7 @@ from typing import List, Optional, Union, Dict
 
 import cloudscraper
 
+from services.settings import logger
 from services.utils import ToolBox, get_ctx
 from .core import EpicAwesomeExplorer, GameLibManager
 from .exceptions import DiscoveryTimeoutException
@@ -24,9 +25,9 @@ class Explorer(EpicAwesomeExplorer):
     def discovery_free_games(
         self,
         ctx_cookies: Optional[List[dict]] = None,
-        cover: bool = True,
         category: str = "game",
-    ) -> Optional[List[str]]:
+        silence: bool = None,
+    ) -> Optional[List[dict]]:
         """
         发现免费游戏。
 
@@ -36,35 +37,33 @@ class Explorer(EpicAwesomeExplorer):
         2. 但如果要查看免费游戏的在库状态，需要传 COOKIE 区分用户。
             - 有些游戏不同地区的玩家不一定都能玩。这个限制和账户地区信息有关，和当前访问的（代理）IP 无关。
             - 请确保传入的 COOKIE 是有效的。
+        :param silence:
         :param category: 搜索模式 self.category.keys()
-        :param cover:
         :param ctx_cookies: ToolBox.transfer_cookies(api.get_cookies())
         :return:
         """
         category = (
             "game" if category not in list(self.category_details.keys()) else category
         )
+        silence = self.silence if silence is None else silence
 
         # 创建驱动上下文
-        with get_ctx(silence=self.silence) as ctx:
-            try:
+        try:
+            with get_ctx(silence=silence, fast=True) as ctx:
                 self._discovery_free_games(
                     ctx=ctx, ctx_cookies=ctx_cookies, category=category
                 )
-            except DiscoveryTimeoutException:
-                return self.discovery_free_games(
-                    ctx_cookies=None, cover=cover, category=category
-                )
+        except DiscoveryTimeoutException as err:
+            logger.error(err)
 
         # 提取游戏平台对象
-        game_objs = self.game_objs.values()
+        game_objs = list(self.game_objs.values())
 
         # 运行缓存持久化
-        if cover:
-            self.game_manager.save_game_objs(game_objs, category=category)
+        self.game_manager.save_game_objs(game_objs, category=category)
 
-        # 返回链接
-        return [game_obj.get("url") for game_obj in game_objs]
+        # 返回实例列表
+        return game_objs
 
     def get_promotions(self, ctx_cookies: List[dict]) -> Dict[str, Union[List[str], str]]:
         """
@@ -73,9 +72,9 @@ class Explorer(EpicAwesomeExplorer):
         <即将推出> promotion["promotions"]["upcomingPromotionalOffers"]
         <本周免费> promotion["promotions"]["promotionalOffers"]
         :param ctx_cookies:
-        :return: {"urls": [], "pageLink1": "pageTitle1", "pageLink2": "pageTitle2", ...}
+        :return: {"pageLink1": "pageTitle1", "pageLink2": "pageTitle2", ...}
         """
-        free_game_objs = {"urls": []}
+        free_game_objs = {}
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
@@ -100,7 +99,6 @@ class Explorer(EpicAwesomeExplorer):
                         self.URL_PRODUCT_PAGE
                         + promotion["catalogNs"]["mappings"][0]["pageSlug"]
                     )
-                    free_game_objs["urls"].append(url)
                     free_game_objs[url] = promotion["title"]
 
         return free_game_objs
@@ -109,7 +107,7 @@ class Explorer(EpicAwesomeExplorer):
         self, ctx_session=None
     ) -> Dict[str, Union[List[str], str]]:
         """使用应力表达式萃取商品链接"""
-        free_game_objs = {"urls": []}
+        free_game_objs = {}
         if ctx_session:
             critical_memory = ctx_session.current_window_handle
             try:
@@ -124,5 +122,4 @@ class Explorer(EpicAwesomeExplorer):
         if pending_games:
             for url, title in pending_games.items():
                 free_game_objs[url] = title
-                free_game_objs["urls"].append(url)
         return free_game_objs

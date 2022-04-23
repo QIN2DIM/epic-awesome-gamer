@@ -5,7 +5,7 @@
 # Description:
 from typing import Optional
 
-from services.deploy import ClaimerScheduler, ClaimerInstance, UnrealClaimerInstance
+from services.deploy import ClaimerScheduler
 from services.settings import logger
 
 
@@ -22,9 +22,4 @@ def run(
     unreal: Optional[bool] = False,
 ):
     """运行 `claim` 单步子任务，认领周免游戏"""
-    if not unreal:
-        with ClaimerInstance(silence=silence, log_ignore=log_ignore) as claimer:
-            claimer.just_do_it()
-    else:
-        with UnrealClaimerInstance(silence=silence, log_ignore=log_ignore) as claimer:
-            claimer.just_do_it()
+    ClaimerScheduler(silence=silence, unreal=unreal).job_loop_claim(log_ignore)

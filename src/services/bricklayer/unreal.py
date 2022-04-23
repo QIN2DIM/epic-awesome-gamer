@@ -69,9 +69,8 @@ class UnrealClaimer(EpicAwesomeGamer):
             details = [
                 {
                     "name": article.find("h3").text,
-                    "status": self.assert_.GAME_OK
-                    if "撰写评论" in article.text
-                    else self.assert_.GAME_PENDING,
+                    "url": f"{self.URL_UNREAL_HOME}{article.h3.a['href']}",
+                    "in_library": True if "撰写评论" in article.text else False,
                 }
                 for article in articles
             ]

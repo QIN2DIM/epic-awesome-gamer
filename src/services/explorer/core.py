@@ -5,6 +5,7 @@
 # Description:
 import os.path
 import time
+from hashlib import sha256
 from typing import ContextManager
 
 # -*- coding: utf-8 -*-
@@ -25,10 +26,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from services.settings import DIR_EXPLORER
+from services.settings import DIR_EXPLORER, EPIC_EMAIL
 from services.settings import logger
 from services.utils import ToolBox
-from .exceptions import DiscoveryTimeoutException
+from .exceptions import DiscoveryTimeoutException, ProtocolOutdatedWarning
 
 
 class EpicAwesomeExplorer:
@@ -139,6 +140,7 @@ class EpicAwesomeExplorer:
                         self.game_objs.__len__(): {
                             "name": name.split(",")[0].replace("\n", "").strip(),
                             "url": url.strip(),
+                            "in_library": None,
                         }
                     }
                 )
@@ -223,25 +225,129 @@ class GameLibManager(EpicAwesomeExplorer):
         super().__init__()
 
         self.action_name = "GameLibManager"
+        self.email = EPIC_EMAIL
+        self.auth_str = "explorer"
 
-    def save_game_objs(self, game_objs: List[Dict[str, str]], category: str) -> None:
-        """缓存免费商城数据"""
+    def _z(self) -> str:
+        return (
+            sha256(f"{self.email[-3::-2]}{self.auth_str}".encode("utf-8")).hexdigest()
+            if self.email
+            else ""
+        )
+
+    def _check_protocol(self):
+        """
+        读取协议文件，检查协议头
+        :except ProtocolOutdatedWarning: 缓存文件异常，请返回空数据
+        :return:  stream
+        """
+        try:
+            with open(self.path_free_games, "r", encoding="utf8") as file:
+                ctx_protocol = yaml.safe_load(file)
+        except FileNotFoundError as err:
+            raise ProtocolOutdatedWarning from err
+        else:
+            if not ctx_protocol or not isinstance(ctx_protocol, dict):
+                raise ProtocolOutdatedWarning
+            return ctx_protocol
+
+    @staticmethod
+    def _update_status(game_objs, ctx_content=None, runtime: bool = False):
+        """
+        更新实体信息
+
+        - case1 文件不存在 空文件 过时 协议。 跳过读取，初始化协议对象，创建并写入内容。
+        - case2 缓存协议镜像，扩建实体，并逐条比对更新实体信息 加入新增内容，更新 ``in_library`` 状态
+
+        :param game_objs: 详见 `Game Object`
+        :param ctx_content: 实际上就是上一次保存的 game_objs
+        :param runtime: 默认False，是否为运行时更新实例状态。
+        一个显然的认知是，``IF runtime is False`` 为全量更新，应进行全库实例比对
+        `` IF runtime is True `` 为局部更新，此时 new_objs 数量一般会远少于 memory_objs 的数量，
+        应在比对后将 new_objs 的缺省实例补回。
+        :type game_objs: List[Dict[str, str|bool]]
+        :type ctx_content: List[Dict[str, str|bool]]
+        :return:
+        """
+        if not ctx_content:
+            return game_objs
+        runtime = bool(runtime)
+
+        new_objs_map = {game["url"]: game for game in game_objs}
+        memory_objs_map = {c["url"]: c for c in ctx_content}
+        new_content_objs = []
+
+        # 普遍认为常驻免费游戏随着时间推移只多不少
+        # 对新内容迭代会自动丢弃过期的周免实例
+        for flag in new_objs_map.keys():
+            # 添加上一轮未发现的新游戏
+            if not memory_objs_map.get(flag):
+                new_content_objs.append(new_objs_map[flag])
+            # 逐条对比 更新实体在库状态
+            else:
+                memory = memory_objs_map[flag]
+                new_obj = new_objs_map[flag]
+                if new_obj.get("in_library") is None:
+                    new_obj["in_library"] = memory.get("in_library")
+                # 添加更新在库状态后的实例
+                new_content_objs.append(new_obj)
+
+        # 将 new_objs 的缺省实例补回
+        if runtime is True:
+            for flag in memory_objs_map.keys():
+                if not new_objs_map.get(flag):
+                    new_content_objs.append(memory_objs_map[flag])
+
+        return new_content_objs
+
+    def save_game_objs(self, game_objs, category: str, runtime: Optional[bool] = None):
+        """
+        缓存免费商城数据
+        :param runtime:
+        :param game_objs:
+        :param category:
+        :type game_objs: List[Dict[str, str|bool]]
+        :return:
+        """
         if not game_objs:
             return
 
-        content = {game_obj["url"]: game_obj["name"] for game_obj in game_objs}
-        with open(self.path_free_games, "w", encoding="utf8", newline="") as file:
-            yaml.dump({category: content}, file, allow_unicode=True)
-
-        logger.success(
-            ToolBox.runtime_report(
-                motive="SAVE",
-                action_name=self.action_name,
-                message="Cache Epic store information.",
+        try:
+            ctx_protocol = self._check_protocol()
+        except ProtocolOutdatedWarning:
+            content = {self._z(): {category: game_objs}}
+            with open(self.path_free_games, "w", encoding="utf8") as file:
+                yaml.dump(content, file, allow_unicode=True)
+            logger.success(
+                ToolBox.runtime_report(
+                    motive="SAVE",
+                    action_name=self.action_name,
+                    message="Cache Epic store information.",
+                )
             )
-        )
+        else:
+            # 切换账号 键值补全
+            if not ctx_protocol.get(self._z()):
+                ctx_protocol[self._z()] = {}
+            # 键值比对更新
+            merged_content = self._update_status(
+                game_objs=game_objs,
+                ctx_content=ctx_protocol[self._z()].get(category),
+                runtime=runtime,
+            )
+            ctx_protocol[self._z()].update({category: merged_content})
+            # 缓存更新
+            with open(self.path_free_games, "w", encoding="utf8") as file:
+                yaml.dump(ctx_protocol, file, allow_unicode=True)
+            logger.success(
+                ToolBox.runtime_report(
+                    motive="MERGE",
+                    action_name=self.action_name,
+                    message="Update Epic store information.",
+                )
+            )
 
-    def load_game_objs(self, category: str, only_url: bool = True) -> Optional[List[str]]:
+    def load_game_objs(self, category: str, only_url: bool = None):
         """
         加载缓存在本地的免费游戏对象
 
@@ -250,40 +356,49 @@ class GameLibManager(EpicAwesomeExplorer):
         :return:
         """
         try:
-            with open(self.path_free_games, "r", encoding="utf8") as file:
-                content: Dict[str, Dict[str, str]] = yaml.load(file, Loader=yaml.Loader)
-        except FileNotFoundError:
+            ctx_protocol = self._check_protocol()
+        except ProtocolOutdatedWarning:
             return []
         else:
-            if not content or not isinstance(content, dict) or not content.get(category):
+            ctx_content = ctx_protocol.get(self._z(), {}).get(category, [])
+            if not ctx_content:
                 return []
-            if only_url:
-                return list(content[category].keys())
-            return list(content[category].items())
+            if only_url is True:
+                return [obj["url"] for obj in ctx_content]
+            return ctx_content
 
     def is_my_game(
-        self, ctx_cookies: Union[List[dict], str], page_link: str
+        self, ctx_cookies, page_link: str, pre_assert_content: bytes = None
     ) -> Optional[dict]:
         """
         判断游戏在库状态
 
+        :param pre_assert_content: 前置协同响应流，将耗时的网络请求操作前置，
+          封装成协程任务，而仅将此函数用于解析上游模块的静态返回值。
         :param ctx_cookies:
         :param page_link:
+        :type ctx_cookies: List[dict]|str
         :return:
             None 异常状态
             True 跳过任务
             False 继续任务
+            仅当返回值为 False 时可以继续任务，并可以进一步筛选掉 AjaxLoadingReject 目标。
         """
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
-            "cookie": ctx_cookies
-            if isinstance(ctx_cookies, str)
-            else ToolBox.transfer_cookies(ctx_cookies),
-        }
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(page_link, headers=headers)
-        tree = etree.HTML(response.content)
+        if pre_assert_content is None:
+            headers = {
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
+                "cookie": ctx_cookies
+                if isinstance(ctx_cookies, str)
+                else ToolBox.transfer_cookies(ctx_cookies),
+            }
+            scraper = cloudscraper.create_scraper()
+            response = scraper.get(page_link, headers=headers)
+            content = response.content
+        else:
+            content = pre_assert_content
+
+        tree = etree.HTML(content)
         assert_obj = tree.xpath(
             "//span[@data-component='PurchaseCTA']//span[@data-component='Message']"
         )
@@ -310,6 +425,7 @@ class GameLibManager(EpicAwesomeExplorer):
         # 🚧 惰性加载，前置节点不处理动态加载元素
         elif assert_message in ["正在载入"]:
             response_obj["status"] = False
+            response_obj["assert"] = "AjaxLoadingReject"
         # 🍟 未领取的免费游戏
         elif assert_message in ["获取"]:
             warning_obj = tree.xpath("//h1[@class='css-1gty6cv']//span")
@@ -320,6 +436,7 @@ class GameLibManager(EpicAwesomeExplorer):
                 # 成人内容可获取
                 if "成人内容" in warning_message:
                     response_obj["status"] = False
+                # 如地区限制警告
                 else:
                     logger.warning(
                         ToolBox.runtime_report(
@@ -335,3 +452,31 @@ class GameLibManager(EpicAwesomeExplorer):
                 response_obj["status"] = False
 
         return response_obj
+
+
+class _Game:
+    """基础游戏对象"""
+
+    # 游戏名称
+    name: str = "《堡垒之夜》"
+    # 商城访问链接
+    url: str = "https://store.epicgames.com/zh-CN/p/fortnite"
+    # 在库情况 True在库 False不在 None不到啊(初始化状态)
+    in_library: bool = None
+    # 是否为附加内容
+    _dlc: bool = False
+
+
+class _Dlc:
+    """游戏附加内容对象"""
+
+    # 附加内容名称
+    name: str = "《消逝的光芒》-《求生之路 2》Weapon Pack"
+    # 商城访问链接
+    url: str = (
+        "https://store.epicgames.com/zh-CN/p/dying-light--left-4-dead-2-weapon-pack"
+    )
+    # 在库情况 True在库 False不在 None不到啊(初始化状态)
+    in_library: bool = None
+    # 是否为附加内容
+    _dlc: bool = True
