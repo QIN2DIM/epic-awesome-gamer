@@ -202,7 +202,7 @@ class ArmorUtils(ArmorCaptcha):
             docker_.append((path_challenge_img_, url_))
 
         # 启动最高功率的协程任务
-        if "win" in sys.platform:
+        if sys.platform.startswith("win") or "cygwin" in sys.platform:
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
             asyncio.run(ImageDownloader(docker=docker_).subvert(workers="fast"))
         else:
@@ -358,7 +358,7 @@ class ArmorUtils(ArmorCaptcha):
                 if index == 1 and result is False:
                     raise TimeoutException
         # 提交结果断言超时或 mark_samples() 等待超时
-        except TimeoutException:
+        except WebDriverException:
             ctx.switch_to.default_content()
             return False
         # 捕获重置挑战的请求信号

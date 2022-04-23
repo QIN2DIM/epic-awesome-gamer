@@ -411,6 +411,8 @@ class GameClaimerInstance(BaseInstance):
         self.promotions_context = [
             {"url": p[0], "name": p[-1]} for p in promotions.items()
         ]
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
         self.steel_torrent = SteelTorrent(
             docker=self.promotions_context,
             ctx_cookies=self._ctx_cookies,

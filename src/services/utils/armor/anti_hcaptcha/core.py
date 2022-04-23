@@ -105,7 +105,6 @@ class ArmorCaptcha:
         WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
             EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
         )
-        time.sleep(1)
 
         # DOM 定位元素
         samples = ctx.find_elements(By.XPATH, "//div[@class='task-image']")
