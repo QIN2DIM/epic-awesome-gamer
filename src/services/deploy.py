@@ -224,12 +224,16 @@ class BaseInstance:
             self.tag = "免费资源"
 
     def __enter__(self):
-        if self.bricklayer.cookie_manager.refresh_ctx_cookies(
-            keep_live=True, silence=self.silence
-        ):
-            self._ctx_session = self.bricklayer.cookie_manager.ctx_session
-            self._ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
-        self._bad_omen()
+        try:
+            if self.bricklayer.cookie_manager.refresh_ctx_cookies(
+                keep_live=True, silence=self.silence
+            ):
+                self._ctx_session = self.bricklayer.cookie_manager.ctx_session
+                self._ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
+            if not hasattr(self, "_ctx_cookies"):
+                self._bad_omen(CookieRefreshException.__doc__)
+        except Exception as err:
+            self._bad_omen(err.__doc__)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -281,26 +285,26 @@ class BaseInstance:
                 )
             )
 
-    def _bad_omen(self):
-        if not hasattr(self, "_ctx_cookies"):
-            self.inline_docker = [
-                {
-                    "status": "🎃 领取失败",
-                    "name": CookieRefreshException.__doc__,
-                    "url": "https://github.com/QIN2DIM/epic-awesome-gamer",
-                }
-            ]
-            with MessagePusher(ACTIVE_SERVERS, PLAYER, self.inline_docker):
-                self.logger.error(
-                    ToolBox.runtime_report(
-                        motive="Notify",
-                        action_name=self.action_name,
-                        message="推送运行日志",
-                        active_pusher=ACTIVE_PUSHERS,
-                        err=CookieRefreshException.__doc__,
-                    )
+    def _bad_omen(self, err_message=None):
+        self.inline_docker = [
+            {
+                "status": "🎃 领取失败",
+                "name": f"error={err_message}",
+                "url": "https://images.pexels.com/photos/1888015/pexels-photo-1888015.jpeg?"
+                "auto=compress&cs=tinysrgb&dpr=2&w=500",
+            }
+        ]
+        with MessagePusher(ACTIVE_SERVERS, PLAYER, self.inline_docker):
+            self.logger.error(
+                ToolBox.runtime_report(
+                    motive="Notify",
+                    action_name=self.action_name,
+                    message="推送运行日志",
+                    active_pusher=ACTIVE_PUSHERS,
+                    err=err_message,
                 )
-            sys.exit()
+            )
+        sys.exit()
 
     def is_pending(self) -> Optional[bool]:
         """是否可发起驱动任务 True:执行 False/None:结束"""

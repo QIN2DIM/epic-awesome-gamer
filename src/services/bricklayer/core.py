@@ -8,7 +8,6 @@ import json.decoder
 import os
 import sys
 import time
-import urllib.request
 from hashlib import sha256
 from typing import List, Optional
 from typing import NoReturn
@@ -55,6 +54,8 @@ from .exceptions import (
     PaymentBlockedWarning,
     AuthException,
     PaymentAutoSubmit,
+    AuthMFA,
+    AuthUnknownException, CookieRefreshException,
 )
 from .exceptions import LoginException
 
@@ -70,6 +71,7 @@ class ArmorUtils(ArmorCaptcha):
 
         # 重定向工作空间
         self.model = YOLO(DIR_MODEL)
+        self.critical_threshold = 3
 
     @staticmethod
     def fall_in_captcha_login(ctx: Chrome) -> Optional[bool]:
@@ -116,7 +118,7 @@ class ArmorUtils(ArmorCaptcha):
 
             # 判断上下文身份令牌是否已生效
             if ctx.current_url != flag_ or not _ajax_cookie_check_need_login(
-                beat_dance=retry_times
+                    beat_dance=retry_times
             ):
                 return False
 
@@ -214,7 +216,7 @@ class ArmorUtils(ArmorCaptcha):
         self.runtime_workspace = workspace_
 
     def challenge_success(
-        self, ctx: Chrome, init: bool = True, **kwargs
+            self, ctx: Chrome, init: bool = True, **kwargs
     ) -> Optional[bool]:
         """
         判断挑战是否成功的复杂逻辑
@@ -247,22 +249,6 @@ class ArmorUtils(ArmorCaptcha):
             else:
                 return False
 
-        def _high_threat_proxy_access():
-            """error-text:: 请再试一次"""
-            # 未设置子网桥系统代理
-            if not urllib.request.getproxies():
-                return False
-
-            try:
-                WebDriverWait(ctx, 2, ignored_exceptions=WebDriverException).until(
-                    EC.visibility_of_element_located(
-                        (By.XPATH, "//div[@class='error-text']")
-                    )
-                )
-                return True
-            except TimeoutException:
-                return False
-
         door: str = kwargs.get("door", "login")
 
         flag = ctx.current_url
@@ -274,39 +260,62 @@ class ArmorUtils(ArmorCaptcha):
             self.log("挑战继续")
             return False
 
-        if not init and _high_threat_proxy_access():
-            self.log("挑战被迫重置 可能使用了高威胁的代理IP")
-
         try:
-            challenge_reset = WebDriverWait(
-                ctx, 5, ignored_exceptions=WebDriverException
-            ).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//div[@class='MuiAlert-message']")
-                )
-            )
+            challenge_error = ctx.find_element(By.XPATH, "//div[@class='display-error']")
+            error_message = challenge_error.get_attribute("aria-hidden")
+            if "true" in error_message:
+                raise TimeoutException
+            self.log(f"挑战失败（或被檢測），需要重置挑战")
+            raise ChallengeReset
         except TimeoutException:
+            # 特徵檢測
+            if door == "login":
+                # 模擬退火
+                for _ in range(45):
+                    try:
+                        ctx.switch_to.default_content()
+                        mui_typography = ctx.find_elements(By.TAG_NAME, "h6")
+                        # 未通过的可能原因为 “賬號信息錯誤”“IP威脅過高”“被識別”“被鎖定”
+                        if len(mui_typography) > 1:
+                            error_text = mui_typography[1].text
+                            # 連續三次錯誤回復視爲IP威脅過高
+                            if "错误回复" in error_text:
+                                self.critical_threshold -= 1
+                                self.log(f"驅動被檢測 - err={error_text}")
+                                if self.critical_threshold == 0:
+                                    raise CookieRefreshException(error_text)
+                            else:
+                                self.log(f"登錄狀態異常 - err={error_text}")
+                                raise AuthUnknownException(error_text)
+                            return False
+                        else:
+                            try:
+                                WebDriverWait(ctx, 0.2).until(EC.url_changes(flag))
+                                # 如果没有遇到双重认证，人机挑战成功
+                                if "id/login/mfa" not in ctx.current_url:
+                                    self.log("挑战成功")
+                                    return True
+                                # 人机挑战通过，但可能还需处理 `2FA` 问题（超纲了）
+                                raise AuthMFA("人机挑战已退出 error=遭遇意外的 2FA 双重认证")
+                            except TimeoutException:
+                                pass
+                    except (IndexError, AttributeError, TypeError):
+                        pass
+                    # 環境上下文切換異常 中斷退火
+                    except WebDriverException as err:
+                        self.log(err.msg)
+                        ctx.switch_to.default_content()
+                        break
+
             # 如果挑战通过，自动跳转至其他页面（也即离开当前网址）
-            try:
-                WebDriverWait(ctx, 10).until(EC.url_changes(flag))
-            # 如果挑战未通过，可能为“账号信息错误”“分数太低”“自动化特征被识别”
-            except TimeoutException:
+            if ctx.current_url == flag:
                 if door == "login":
                     self.log("断言超时，挑战继续")
                 return False
-            # 人机挑战通过，但可能还需处理 `2FA` 问题（超纲了）
-            else:
-                # 如果没有遇到双重认证，人机挑战成功
-                if "id/login/mfa" not in ctx.current_url:
-                    self.log("挑战成功")
-                    return True
-                raise AuthException("人机挑战已退出 error=遭遇意外的 2FA 双重认证")
-        else:
-            self.log("挑战失败，需要重置挑战")
-            challenge_reset.click()
-            raise ChallengeReset
 
-    def anti_hcaptcha(self, ctx: Chrome, door: str = "login") -> Optional[bool]:  # noqa
+    def anti_hcaptcha(
+            self, ctx: Chrome, door: str = "login", retry_times=0
+    ) -> Optional[bool]:  # noqa
         """
         Handle hcaptcha challenge
 
@@ -317,6 +326,7 @@ class ArmorUtils(ArmorCaptcha):
 
         > ps:该篇文章中的部分内容已过时，现在 hcaptcha challenge 远没有作者说的那么容易应付。
 
+        :param retry_times:
         :param door: [login free]
         :param ctx:
         :return:
@@ -330,20 +340,19 @@ class ArmorUtils(ArmorCaptcha):
             )
         )
 
-        # [👻] 获取挑战图片
-        # 多轮验证标签不会改变
-        self.get_label(ctx)
-        if self.tactical_retreat():
-            ctx.switch_to.default_content()
-            return False
-
-        # [👻] 注册解决方案
-        # 根据挑战类型自动匹配不同的模型
-        model = self.switch_solution(mirror=self.model)
-
         # [👻] 人机挑战！
         try:
             for index in range(2):
+                # [👻] 获取挑战图片
+                self.get_label(ctx)
+                if self.tactical_retreat():
+                    ctx.switch_to.default_content()
+                    return False
+
+                # [👻] 注册解决方案
+                # 根据挑战类型自动匹配不同的模型
+                model = self.switch_solution(mirror=self.model)
+
                 self.mark_samples(ctx)
 
                 self.download_images()
@@ -364,7 +373,9 @@ class ArmorUtils(ArmorCaptcha):
         # 捕获重置挑战的请求信号
         except ChallengeReset:
             ctx.switch_to.default_content()
-            return self.anti_hcaptcha(ctx, door=door)
+            if retry_times > 2:
+                return False
+            return self.anti_hcaptcha(ctx, door=door, retry_times=retry_times + 1)
         # 回到主线剧情
         else:
             ctx.switch_to.default_content()
@@ -518,12 +529,12 @@ class AssertUtils:
         try:
             warning_text = (
                 WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException)
-                .until(
+                    .until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//div[@data-component='DownloadMessage']//span")
                     )
                 )
-                .text
+                    .text
             )
             if warning_text == "感谢您的购买":
                 raise PaymentAutoSubmit(warning_text)
@@ -537,12 +548,12 @@ class AssertUtils:
         try:
             warning_text = (
                 WebDriverWait(ctx, 3, ignored_exceptions=WebDriverException)
-                .until(
+                    .until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//h2[@class='payment-blocked__msg']")
                     )
                 )
-                .text
+                    .text
             )
             if warning_text:
                 raise PaymentBlockedWarning(warning_text)
@@ -557,11 +568,11 @@ class AssertUtils:
 
     @staticmethod
     def purchase_status(
-        ctx: Chrome,
-        page_link: str,
-        get: bool,
-        action_name: Optional[str] = "AssertUtils",
-        init: Optional[bool] = True,
+            ctx: Chrome,
+            page_link: str,
+            get: bool,
+            action_name: Optional[str] = "AssertUtils",
+            init: Optional[bool] = True,
     ) -> Optional[str]:
         """
         断言当前上下文页面的游戏的在库状态。
@@ -593,8 +604,8 @@ class AssertUtils:
         # 游戏名 超时的空对象主动抛出异常
         game_name = (
             WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException)
-            .until(EC.visibility_of_element_located((By.XPATH, "//h1")))
-            .text
+                .until(EC.visibility_of_element_located((By.XPATH, "//h1")))
+                .text
         )
 
         if game_name[-1] == "。":
@@ -692,10 +703,10 @@ class AssertUtils:
     def unreal_resource_load(ctx: Chrome):
         """等待虚幻商店月供资源加载"""
         pending_locator = [
-            "//i[text()='添加到购物车']",
-            "//i[text()='购物车内']",
-            "//span[text()='撰写评论']",
-        ] * 10
+                              "//i[text()='添加到购物车']",
+                              "//i[text()='购物车内']",
+                              "//span[text()='撰写评论']",
+                          ] * 10
 
         time.sleep(3)
         for locator in pending_locator:
@@ -767,7 +778,7 @@ class EpicAwesomeGamer:
     # Reused Action Chains
     # ======================================================
     def _reset_page(
-        self, ctx: Chrome, page_link: str, ctx_cookies: List[dict], auth_str: str
+            self, ctx: Chrome, page_link: str, ctx_cookies: List[dict], auth_str: str
     ):
         if auth_str == self.AUTH_STR_GAMES:
             ctx.get(self.URL_ACCOUNT_PERSONAL)
@@ -1256,7 +1267,7 @@ class CookieManager(EpicAwesomeGamer):
         return False
 
     def refresh_ctx_cookies(
-        self, silence: bool = True, ctx_session=None, keep_live=None
+            self, silence: bool = True, ctx_session=None, keep_live=None
     ) -> Optional[bool]:
         """
         更新上下文身份信息，若认证数据过期则弹出 login 任务更新令牌。
@@ -1332,6 +1343,7 @@ class CookieManager(EpicAwesomeGamer):
                     if response:
                         break
                     balance_operator += 0.5
+
             else:
                 logger.critical(
                     ToolBox.runtime_report(
@@ -1343,7 +1355,9 @@ class CookieManager(EpicAwesomeGamer):
                 return False
         except ChallengeReset:
             pass
-        except (AuthException, ChallengeTimeout) as error:
+        except AuthException as err:
+            raise err
+        except ChallengeTimeout as error:
             logger.critical(
                 ToolBox.runtime_report(
                     motive="SKIP", action_name=self.action_name, message=error.msg

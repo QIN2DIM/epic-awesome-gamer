@@ -34,12 +34,29 @@ class AuthException(AwesomeException):
     """身份认证出现问题时抛出，例如遭遇插入到 hcaptcha 之后的 2FA 身份验证"""
 
 
+class AuthMFA(AuthException):
+    """認證失敗，不支持 2FA 雙重認證"""
+
+
 class CookieRefreshException(AuthException):
-    """Cookie更新异常，可能原因为<人机挑战失败>或<公网IP被标记为高威胁目标>"""
+    """認證失敗，可能原因：公网IP被标记为高威胁目标"""
 
 
 class LoginException(AuthException):
-    """登录异常 可能原因：账号或密码无效"""
+    """認證失敗，賬號或密碼錯誤"""
+
+
+class AuthBreakWarning(AuthException):
+    """登錄失敗，您的賬戶已被臨時鎖定。請稍後重試。"""
+
+
+class AuthUnknownException(AuthException):
+    def __init__(self, msg):
+        self.__doc__ = msg
+
+
+class CookieExpired(AwesomeException):
+    """身份令牌或饼干过期时抛出"""
 
 
 class PaymentException(AwesomeException):
@@ -52,10 +69,6 @@ class PaymentBlockedWarning(PaymentException):
 
 class PaymentAutoSubmit(PaymentException):
     """点击获取游戏后，订单窗格没有弹出，直接感谢我们购买游戏"""
-
-
-class CookieExpired(AwesomeException):
-    """身份令牌或饼干过期时抛出"""
 
 
 class AssertTimeout(AwesomeException):

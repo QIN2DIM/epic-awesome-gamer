@@ -24,6 +24,89 @@ from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 
 
+class MessagePusher:
+    _dividing_width = 28
+    _dividing_char = "="
+
+    _copyright_markdown = [
+        "Author: [「QIN2DIM」](https://github.com/QIN2DIM)",
+        "GitHub: [「Epic免费人」](https://github.com/QIN2DIM/epic-awesome-gamer)",
+    ]
+    _copyright_text = ["Author: QIN2DIM", "GitHub: QIN2DIM/epic-awesome-gamer"]
+
+    def __init__(self, servers, player: str, inline_docker: list):
+        """
+
+        :param servers:
+        :param player:
+        :param inline_docker:
+        :type servers: List[str]
+        """
+        self.servers = servers
+        self.player = player
+        _inline_docker = {r["url"]: r for r in inline_docker}
+        self.inline_docker = list(_inline_docker.values())
+
+        self.title = "EpicAwesomeGamer 运行报告"
+
+    def __enter__(self):
+        self.surprise = apprise.Apprise()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # 注册 Apprise 消息推送框架
+        for server in self.servers:
+            if server.startswith("tgram://"):
+                inline_textbox, title, server = self.for_telegram(server)
+            else:
+                inline_textbox, title = self.for_general(self.inline_docker)
+            self.surprise.add(server)
+            self.surprise.notify(body="\n".join(inline_textbox), title=title)
+            self.surprise.clear()
+
+    def for_telegram(self, server: str):
+        u = urlparse(server)
+        server = f"{u.scheme}://{u.netloc}{u.path}?format=markdown&&preview=yes"
+
+        inline_docker = self.inline_docker.copy()
+        _preview = [f"[​]({random.choice(inline_docker).get('url')})"]
+        _title = [f"*{self.title}*"]
+        for game_obj in inline_docker:
+            game_obj["name"] = game_obj["name"].replace("《", "").replace("》", "")
+        context_textbox, _ = self.for_general(
+            inline_docker, _copyright=self._copyright_markdown
+        )
+        context_textbox = _preview + _title + context_textbox
+        return context_textbox, "", server
+
+    def for_general(self, inline_docker, _copyright: List[str] = None):
+        _inline_textbox = self._copyright_text if _copyright is None else _copyright
+        _inline_textbox += ["<周免游戏>".center(self._dividing_width, self._dividing_char)]
+        if not inline_docker:
+            _inline_textbox += [f"[{ToolBox.date_format_now()}] 🛴 暂无待认领的周免游戏"]
+        else:
+            _game_textbox = []
+            _dlc_textbox = []
+            for game_obj in inline_docker:
+                if not game_obj.get("dlc"):
+                    _game_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
+                else:
+                    _dlc_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
+            _inline_textbox.extend(_game_textbox)
+            if _dlc_textbox:
+                _inline_textbox += [
+                    "<附加内容>".center(self._dividing_width, self._dividing_char)
+                ]
+                _inline_textbox.extend(_dlc_textbox)
+        _inline_textbox += [
+            "<操作统计>".center(self._dividing_width, self._dividing_char),
+            f"Player: {self.player}",
+            f"Total: {inline_docker.__len__()}",
+        ]
+
+        return _inline_textbox, self.title
+
+
 class ToolBox:
     """可移植的工具箱"""
 
@@ -235,91 +318,8 @@ def get_challenge_ctx(silence: Optional[bool] = None):
         return uc.Chrome(
             headless=silence,
             options=options,
-            driver_executable_path=ChromeDriverManager(log_level=0).install(),
+            # driver_executable_path=ChromeDriverManager(log_level=0).install(),
         )
     # 避免核心并行
     except OSError:
         return uc.Chrome(headless=silence, options=options)
-
-
-class MessagePusher:
-    _dividing_width = 28
-    _dividing_char = "="
-
-    _copyright_markdown = [
-        "Author: [「QIN2DIM」](https://github.com/QIN2DIM)",
-        "GitHub: [「Epic免费人」](https://github.com/QIN2DIM/epic-awesome-gamer)",
-    ]
-    _copyright_text = ["Author: QIN2DIM", "GitHub: QIN2DIM/epic-awesome-gamer"]
-
-    def __init__(self, servers, player: str, inline_docker: list):
-        """
-
-        :param servers:
-        :param player:
-        :param inline_docker:
-        :type servers: List[str]
-        """
-        self.servers = servers
-        self.player = player
-        _inline_docker = {r["url"]: r for r in inline_docker}
-        self.inline_docker = list(_inline_docker.values())
-
-        self.title = "EpicAwesomeGamer 运行报告"
-
-    def __enter__(self):
-        self.surprise = apprise.Apprise()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # 注册 Apprise 消息推送框架
-        for server in self.servers:
-            if server.startswith("tgram://"):
-                inline_textbox, title, server = self.for_telegram(server)
-            else:
-                inline_textbox, title = self.for_general(self.inline_docker)
-            self.surprise.add(server)
-            self.surprise.notify(body="\n".join(inline_textbox), title=title)
-            self.surprise.clear()
-
-    def for_telegram(self, server: str):
-        u = urlparse(server)
-        server = f"{u.scheme}://{u.netloc}{u.path}?format=markdown&&preview=yes"
-
-        inline_docker = self.inline_docker.copy()
-        _preview = [f"[​]({random.choice(inline_docker).get('url')})"]
-        _title = [f"*{self.title}*"]
-        for game_obj in inline_docker:
-            game_obj["name"] = game_obj["name"].replace("《", "").replace("》", "")
-        context_textbox, _ = self.for_general(
-            inline_docker, _copyright=self._copyright_markdown
-        )
-        context_textbox = _preview + _title + context_textbox
-        return context_textbox, "", server
-
-    def for_general(self, inline_docker, _copyright: List[str] = None):
-        _inline_textbox = self._copyright_text if _copyright is None else _copyright
-        _inline_textbox += ["<周免游戏>".center(self._dividing_width, self._dividing_char)]
-        if not inline_docker:
-            _inline_textbox += [f"[{ToolBox.date_format_now()}] 🛴 暂无待认领的周免游戏"]
-        else:
-            _game_textbox = []
-            _dlc_textbox = []
-            for game_obj in inline_docker:
-                if not game_obj.get("dlc"):
-                    _game_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
-                else:
-                    _dlc_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
-            _inline_textbox.extend(_game_textbox)
-            if _dlc_textbox:
-                _inline_textbox += [
-                    "<附加内容>".center(self._dividing_width, self._dividing_char)
-                ]
-                _inline_textbox.extend(_dlc_textbox)
-        _inline_textbox += [
-            "<操作统计>".center(self._dividing_width, self._dividing_char),
-            f"Player: {self.player}",
-            f"Total: {inline_docker.__len__()}",
-        ]
-
-        return _inline_textbox, self.title
