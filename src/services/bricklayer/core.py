@@ -1331,7 +1331,7 @@ class CookieManager(EpicAwesomeGamer):
                     response = self._armor.anti_hcaptcha(ctx, door="login")
                     if response:
                         break
-                    balance_operator -= 0.5
+                    balance_operator += 0.5
             else:
                 logger.critical(
                     ToolBox.runtime_report(

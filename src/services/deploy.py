@@ -16,6 +16,7 @@ from gevent.queue import Queue
 
 from services.bricklayer import GameClaimer
 from services.bricklayer import UnrealClaimer
+from services.bricklayer.exceptions import CookieRefreshException
 from services.explorer import Explorer
 from services.settings import (
     logger,
@@ -228,6 +229,7 @@ class BaseInstance:
         ):
             self._ctx_session = self.bricklayer.cookie_manager.ctx_session
             self._ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
+        self._bad_omen()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -278,6 +280,27 @@ class BaseInstance:
                     ignore=self.log_ignore,
                 )
             )
+
+    def _bad_omen(self):
+        if not hasattr(self, "_ctx_cookies"):
+            self.inline_docker = [
+                {
+                    "status": "🎃 领取失败",
+                    "name": CookieRefreshException.__doc__,
+                    "url": "https://github.com/QIN2DIM/epic-awesome-gamer",
+                }
+            ]
+            with MessagePusher(ACTIVE_SERVERS, PLAYER, self.inline_docker):
+                self.logger.error(
+                    ToolBox.runtime_report(
+                        motive="Notify",
+                        action_name=self.action_name,
+                        message="推送运行日志",
+                        active_pusher=ACTIVE_PUSHERS,
+                        err=CookieRefreshException.__doc__,
+                    )
+                )
+            sys.exit()
 
     def is_pending(self) -> Optional[bool]:
         """是否可发起驱动任务 True:执行 False/None:结束"""

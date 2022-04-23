@@ -34,6 +34,10 @@ class AuthException(AwesomeException):
     """身份认证出现问题时抛出，例如遭遇插入到 hcaptcha 之后的 2FA 身份验证"""
 
 
+class CookieRefreshException(AuthException):
+    """Cookie更新异常，可能原因为<人机挑战失败>或<公网IP被标记为高威胁目标>"""
+
+
 class LoginException(AuthException):
     """登录异常 可能原因：账号或密码无效"""
 
