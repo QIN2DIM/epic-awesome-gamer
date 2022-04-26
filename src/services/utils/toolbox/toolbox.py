@@ -4,23 +4,122 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
+import random
 import shutil
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from typing import List, Union, Dict, Optional, Any
+from urllib.parse import urlparse
 
+import apprise
+import cloudscraper
 import pytz
 import undetected_chromedriver as uc
 import yaml
+from gevent.queue import Queue
 from loguru import logger
+from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.chrome import ChromeType
 from webdriver_manager.utils import get_browser_version_from_os
+
+StandardContext = type(Chrome)
+ChallengerContext = type(uc.Chrome)
+
+
+class MessagePusher:
+    _dividing_width = 28
+    _dividing_char = "="
+
+    _copyright = "https://github.com/QIN2DIM/epic-awesome-gamer"
+    _copyright_markdown = [
+        "Author: [「QIN2DIM」](https://github.com/QIN2DIM)",
+        f"GitHub: [「Epic免费人」]({_copyright})",
+    ]
+    _copyright_text = ["Author: QIN2DIM", "GitHub: QIN2DIM/epic-awesome-gamer"]
+
+    def __init__(self, servers, player: str, inline_docker: list):
+        """
+
+        :param servers:
+        :param player:
+        :param inline_docker:
+        :type servers: List[str]
+        """
+        self.servers = servers
+        self.player = player
+        _inline_docker = {r["url"]: r for r in inline_docker}
+
+        self.title = "EpicAwesomeGamer 运行报告"
+
+        self.inline_docker = list(_inline_docker.values())
+        self.surprise = apprise.Apprise()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # 注册 Apprise 消息推送框架
+        for server in self.servers:
+            if server.startswith("tgram://"):
+                inline_textbox, title, server = self.for_telegram(server)
+            else:
+                inline_textbox, title = self.for_general(self.inline_docker)
+            self.surprise.add(server)
+            self.surprise.notify(body="\n".join(inline_textbox), title=title)
+            self.surprise.clear()
+
+    def for_telegram(self, server: str):
+        u = urlparse(server)
+        server = f"{u.scheme}://{u.netloc}{u.path}?format=markdown&&preview=yes"
+
+        inline_docker = self.inline_docker.copy()
+        _preview = [f"[​]({random.choice(inline_docker).get('url', self._copyright)})"]
+        _title = [f"*{self.title}*"]
+        for game_obj in inline_docker:
+            game_obj["name"] = game_obj["name"].replace("《", "").replace("》", "")
+        context_textbox, _ = self.for_general(
+            inline_docker, _copyright=self._copyright_markdown
+        )
+        context_textbox = _preview + _title + context_textbox
+        return context_textbox, "", server
+
+    def for_general(self, inline_docker, _copyright: List[str] = None):
+        _inline_textbox = self._copyright_text if _copyright is None else _copyright
+        _inline_textbox += ["<周免游戏>".center(self._dividing_width, self._dividing_char)]
+        if not inline_docker:
+            _inline_textbox += [f"[{ToolBox.date_format_now()}] 🛴 暂无待认领的周免游戏"]
+        else:
+            _game_textbox = []
+            _dlc_textbox = []
+            for game_obj in inline_docker:
+                if not game_obj.get("dlc"):
+                    _game_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
+                else:
+                    _dlc_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
+            _inline_textbox.extend(_game_textbox)
+            if _dlc_textbox:
+                _inline_textbox += [
+                    "<附加内容>".center(self._dividing_width, self._dividing_char)
+                ]
+                _inline_textbox.extend(_dlc_textbox)
+        _inline_textbox += [
+            "<操作统计>".center(self._dividing_width, self._dividing_char),
+            f"Player: {self.player}",
+            f"Total: {inline_docker.__len__()}",
+        ]
+
+        return _inline_textbox, self.title
 
 
 class ToolBox:
     """可移植的工具箱"""
+
+    logger_tracer = Queue()
 
     @staticmethod
     def check_sample_yaml(path_output: str, path_sample: str) -> Optional[Dict[str, Any]]:
@@ -71,6 +170,10 @@ class ToolBox:
         if params:
             flag_ += " - "
             flag_ += " ".join([f"{i[0]}={i[1]}" for i in params.items()])
+
+        # feat(pending): 将系统级日志按序插入消息队列
+        # ToolBox.logger_tracer.put(flag_)
+
         return flag_
 
     @staticmethod
@@ -162,9 +265,30 @@ class ToolBox:
             )
         return logger
 
+    @staticmethod
+    def handle_html(url_, cookie: str = None, allow_redirects=False):
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36"
+        }
+        if cookie is not None and isinstance(cookie, str):
+            headers.update({"cookie": cookie})
+        scraper = cloudscraper.create_scraper()
+        response_ = scraper.get(url_, headers=headers, allow_redirects=allow_redirects)
+        tree_ = etree.HTML(response_.content)
+        return tree_, response_
+
 
 def _set_ctx(language: Optional[str] = None) -> ChromeOptions:
-    """统一的 ChromeOptions 启动参数"""
+    """
+    统一的 ChromeOptions 启动参数
+
+    # 卸载代理
+    options.add_argument("--no-proxy-server")
+
+    :param language:
+    :return:
+    """
     options = ChromeOptions()
     options.add_argument("--log-level=3")
     options.add_argument("--disable-dev-shm-usage")
@@ -177,7 +301,9 @@ def _set_ctx(language: Optional[str] = None) -> ChromeOptions:
     return options
 
 
-def get_ctx(silence: Optional[bool] = None):
+def get_ctx(
+    silence: Optional[bool] = None, fast: Optional[bool] = False
+) -> StandardContext:
     """普通的 Selenium 驱动上下文，用于常规并发任务"""
 
     silence = True if silence is None or "linux" in sys.platform else silence
@@ -187,19 +313,39 @@ def get_ctx(silence: Optional[bool] = None):
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-software-rasterizer")
+    if fast is True:
+        options.add_argument("blink-settings=imagesEnabled=false")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--disable-infobars")
+        options.add_argument("--disable-javascript")
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
     # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
     return Chrome(ChromeDriverManager(log_level=0).install(), options=options)
 
 
-def get_challenge_ctx(silence: Optional[bool] = None):
+def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
     """挑战者驱动 用于处理人机挑战"""
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
 
     silence = True if silence is None or "linux" in sys.platform else silence
 
     # 控制挑战者驱动版本，避免过于超前
-    browser_version = get_browser_version_from_os("google-chrome")
-    version_main = browser_version.split(".")[0] if "." in browser_version else None
-
-    return uc.Chrome(options=_set_ctx(), headless=silence, version_main=version_main)
+    options = _set_ctx()
+    try:
+        return uc.Chrome(
+            headless=silence,
+            options=options,
+            driver_executable_path=ChromeDriverManager(log_level=0).install(),
+        )
+    # 避免核心并行
+    except OSError:
+        return uc.Chrome(headless=silence, options=options)
+    # 棄用索引緩存
+    except WebDriverException:
+        version_main = get_browser_version_from_os(ChromeType.GOOGLE).split(".")[0]
+        if version_main.isdigit():
+            return uc.Chrome(
+                headless=silence, options=options, version_main=int(version_main)
+            )

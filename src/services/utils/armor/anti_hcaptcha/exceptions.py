@@ -35,5 +35,9 @@ class ChallengeTimeout(ChallengeException):
     """人机挑战超时 CPU能力太弱无法在规定时间内完成挑战"""
 
 
+class SubmitException(ChallengeException):
+    """挑战提交时遇到未知错误"""
+
+
 class LabelNotFoundException(ChallengeException):
     """获取到空的图像标签名"""

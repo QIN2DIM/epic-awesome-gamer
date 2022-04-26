@@ -15,6 +15,7 @@ EPΙC_PASSWΟRD: ""
 # ===================================================
 message_pusher_settings:
   enable: true
+  player: ""
   pusher:
     PUSHER_EMAIL: ""
     PUSHER_DINGTALK: ""

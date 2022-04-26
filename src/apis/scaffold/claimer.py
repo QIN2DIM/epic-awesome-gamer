@@ -10,12 +10,16 @@ from services.settings import logger
 
 
 @logger.catch()
-def deploy(platform: Optional[str] = None):
+def deploy(platform: Optional[str] = None, unreal: Optional[bool] = False):
     """在微小容器中部署 `claim` 定时调度任务"""
-    ClaimerScheduler(silence=True).deploy_jobs(platform)
+    ClaimerScheduler(silence=True, unreal=unreal).deploy_jobs(platform)
 
 
 @logger.catch()
-def run(silence: Optional[bool] = None):
+def run(
+    silence: Optional[bool] = None,
+    log_ignore: Optional[bool] = None,
+    unreal: Optional[bool] = False,
+):
     """运行 `claim` 单步子任务，认领周免游戏"""
-    ClaimerScheduler(silence=silence).job_loop_claim()
+    ClaimerScheduler(silence=silence, unreal=unreal).job_loop_claim(log_ignore)

@@ -7,8 +7,7 @@
 	<a href=""><img src="https://img.shields.io/github/workflow/status/QIN2DIM/epic-awesome-gamer/scaffold_claim?style=for-the-badge"></a>
 	<br>
     <a href="https://github.com/QIN2DIM/epic-awesome-gamer/"><img src="https://img.shields.io/github/stars/QIN2DIM/epic-awesome-gamer?style=social"></a>
-	<a href="https://twitter.com/Alkaid20860233"><img src="https://img.shields.io/twitter/follow/QIN2DIM?label=Tweet&style=social"></a>
-	<a href="https://t.me/joinchat/HlB9SQJubb5VmNU5"><img src="https://img.shields.io/static/v1?style=social&logo=telegram&label=chat&message=studio" ></a>
+	<a href="https://t.me/+tJrSQ0_0ujkwZmZh"><img src="https://img.shields.io/static/v1?style=social&logo=telegram&label=chat&message=studio" ></a>
 	<br>
 	<br>
 </div>
@@ -16,20 +15,30 @@
 
 ![scaffold-get-demo-output-small](https://github.com/QIN2DIM/img_pool/blob/main/img/scaffold-get-demo-output-small.gif)
 
-## 项目简介 👋
+## Introduction 👋
 
 [Epic AwesomeGamer](https://github.com/QIN2DIM/epic-awesome-gamer) 帮助玩家优雅地领取 Epic 免费游戏。
 
-## 快速上手 🛴
+使用 「Epic免费人」可以实现如下需求：
 
-- :gear: [技术文档](https://www.wolai.com/vAiu9mSp6G15xhWeoEPUn2)
-- :small_red_triangle: 注意事项
-- :loudspeaker: 更新日志
-- :world_map: [开源计划](https://github.com/QIN2DIM/epic-awesome-gamer/issues/1)
+- `get`：搬空游戏商店，获取所有常驻免费游戏与免费附加内容；
+- `claim`：领取周免游戏及其免费附加内容；
+- `unreal`：搬空虚幻商店的常驻免费资源，领取本月免费内容；
+- `deploy`：部署系统定时任务。
 
-## 联系我们 📧
+## Features
 
-> 本项目由海南大学机器人与人工智能实验室（`RobAI-Lab`）提供维护。
-
-- [**Email**](mailto:HainanU_arai@163.com?subject=CampusDailyAutoSign-ISSUE) **||** [**Home**](https://a-rai.github.io/) **||** [**TG**](https://t.me/joinchat/HlB9SQJubb5VmNU5)
-
+| Demand               | Support |
+| :------------------- | :------ |
+| Game Claimer         | ✔       |
+| DLC Claimer          | ✔       |
+| Unreal Claimer       | ✔       |
+| hCaptcha Solver      | ✔       |
+| Docker CI            | ✔       |
+| Object Storage       |   ✔      |
+| Multi User           | ✔       |
+| Message Pusher       | ✔       |
+| Data Desensitization | ✔       |
+| Context Scheduler    | ✔       |
+| Rolling Upgrade      | 🚧       |
+| ...                  |         |

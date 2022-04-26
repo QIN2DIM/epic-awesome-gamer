@@ -4,7 +4,9 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
+import random
 import sys
+from datetime import datetime
 from os.path import join, dirname
 from typing import Dict, Any, Optional
 
@@ -28,8 +30,11 @@ __all__ = [
     "EPIC_PASSWORD",
     "EPIC_EMAIL",
     "MESSAGE_PUSHER_SETTINGS",
+    "PLAYER",
+    "ACTIVE_PUSHERS",
+    "ACTIVE_SERVERS",
 ]
-__version__ = "0.3.3.dev"
+__version__ = "0.3.5.dev"
 
 """
 ================================================ ʕ•ﻌ•ʔ ================================================
@@ -104,8 +109,13 @@ EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD", "")
 MESSAGE_PUSHER_SETTINGS: Optional[Dict[str, Any]] = config_.get(
     "message_pusher_settings", {}
 )
+# Apprise Server 泛映射
 PUSHER: Optional[Dict[str, Optional[str]]] = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
-
+# 匿名设置
+PLAYER: Optional[str] = MESSAGE_PUSHER_SETTINGS.get("player", "")
+# 检查激活的消息服务器
+ACTIVE_PUSHERS = [_p[0] for _p in PUSHER.items() if _p[-1]]
+ACTIVE_SERVERS = [_p[-1] for _p in PUSHER.items() if _p[-1]]
 # --------------------------------
 # [※] 补全语法模板
 # --------------------------------
@@ -121,6 +131,17 @@ try:
 except KeyError as e:
     print(f"[进程退出] 核心配置文件被篡改 error={e}")
     sys.exit()
+
+# fmt:off
+_CONVERTER = [
+    "沫雯喂", "辰丽", "荪彦孜", "有坷唯", "郑姊祺", "弹蓶蓶", "王飛",
+    "Makise Kurisu", "Rem", "Lacus Clyne", "Megumin", "Misaka Mikoto",
+    "Yukino", "ゆずりは いのり", "Gokou Ruri", "がえん とおえ", "Yuuki Asuna",
+]
+# fmt:on
+PLAYER = os.getenv("PLAYER", "") if not PLAYER else PLAYER
+if PLAYER in ["", None]:
+    PLAYER = f"{random.choice(_CONVERTER)}({datetime.now().day})"
 # --------------------------------
 # [√] 阻止缺省配置
 # --------------------------------

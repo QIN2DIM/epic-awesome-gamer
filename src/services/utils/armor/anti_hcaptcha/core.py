@@ -6,7 +6,6 @@ import requests
 from loguru import logger
 from selenium.common.exceptions import (
     ElementNotVisibleException,
-    ElementClickInterceptedException,
     WebDriverException,
     TimeoutException,
 )
@@ -15,7 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
-from .exceptions import LabelNotFoundException, ChallengeReset, ChallengeTimeout
+from .exceptions import LabelNotFoundException, ChallengeReset, SubmitException
 
 
 class ArmorCaptcha:
@@ -44,6 +43,7 @@ class ArmorCaptcha:
             "摩托车": "motorbike",
             "垂直河流": "vertical river",
             "天空中向左飞行的飞机": "airplane in the sky flying left",
+            "请选择天空中所有向右飞行的飞机": "airplanes in the sky that are flying to the right",
         }
 
         # 样本标签映射 {挑战图片1: locator1, ...}
@@ -104,7 +104,6 @@ class ArmorCaptcha:
         WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
             EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
         )
-        time.sleep(1)
 
         # DOM 定位元素
         samples = ctx.find_elements(By.XPATH, "//div[@class='task-image']")
@@ -138,7 +137,10 @@ class ArmorCaptcha:
         except TimeoutException:
             raise ChallengeReset("人机挑战意外通过")
         try:
-            _label = re.split(r"[包含 图片]", label_obj.text)[2][:-1]
+            if "包含" in label_obj.text:
+                _label = re.split(r"[包含 图片]", label_obj.text)[2][:-1]
+            else:
+                _label = label_obj.text
         except (AttributeError, IndexError):
             raise LabelNotFoundException("获取到异常的标签对象。")
         else:
@@ -207,22 +209,22 @@ class ArmorCaptcha:
                 # 选中标签元素
                 try:
                     self.alias2locator[alias].click()
-                except WebDriverException:
-                    pass
+                except WebDriverException as err:
+                    logger.error(err.msg)
 
         # {{< SUBMIT ANSWER >}}
         try:
-            WebDriverWait(
-                ctx, 35, ignored_exceptions=ElementClickInterceptedException
-            ).until(
+            submit_button = WebDriverWait(ctx, 35, 0.1).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//div[@class='button-submit button']")
                 )
-            ).click()
-        except (TimeoutException, ElementClickInterceptedException):
-            raise ChallengeTimeout("CPU 算力不足，无法在规定时间内完成挑战")
-
-        self.log(message=f"提交挑战 {model.flag}: {round(sum(ta), 2)}s")
+            )
+            submit_button.click()
+        except WebDriverException as err:
+            self.log("挑战提交失败", err=err)
+            raise SubmitException from err
+        else:
+            self.log(message=f"提交挑战 {model.flag}: {round(sum(ta), 2)}s")
 
     def challenge_success(self, ctx: Chrome, init: bool = True, **kwargs):
         """

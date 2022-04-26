@@ -24,3 +24,7 @@ class Explorer(Exception):
 
 class DiscoveryTimeoutException(Explorer):
     """未能在规定时间内为指定玩家搜索免费游戏"""
+
+
+class ProtocolOutdatedWarning(Explorer):
+    """Discovery缓存的商城数据丢失|为空|结构体过时"""

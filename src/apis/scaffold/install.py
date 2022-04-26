@@ -10,9 +10,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.utils import get_browser_version_from_os
 
 from services.settings import DIR_MODEL, logger, PATH_RAINBOW
-from services.utils import SKRecognition
 from services.utils import YOLO
 from services.utils import get_challenge_ctx
+from services.utils import sk_recognition
 
 
 def _download_model(onnx_prefix: str = None):
@@ -48,7 +48,7 @@ def _download_driver():
 def _download_rainbow():
     logger.debug("Downloading Reinforcement of Memory | Rainbow Table...")
 
-    SKRecognition.sync_rainbow(path_rainbow=PATH_RAINBOW, convert=True)
+    sk_recognition.SKRecognition.sync_rainbow(path_rainbow=PATH_RAINBOW, convert=True)
 
 
 def run(onnx_prefix: str = None):
