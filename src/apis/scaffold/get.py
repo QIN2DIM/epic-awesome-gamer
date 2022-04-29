@@ -27,11 +27,7 @@ class SteelTorrent:
     POWER = 2 if os.cpu_count() < 2 else 4
 
     def __init__(
-        self,
-        ctx_cookies,
-        category,
-        silence: Optional[bool] = None,
-        debug: Optional[bool] = None,
+        self, ctx_cookies, category, silence: Optional[bool] = None, debug: Optional[bool] = None
     ):
         self.ctx_cookies = ctx_cookies
         self.category = category
@@ -48,9 +44,7 @@ class SteelTorrent:
         self.pending_workers = Queue(self.POWER + 1)
 
         # 服务注册
-        self.bricklayer = GameClaimer(
-            silence=self.silence, claim_mode=GameClaimer.CLAIM_MODE_GET
-        )
+        self.bricklayer = GameClaimer(silence=self.silence, claim_mode=GameClaimer.CLAIM_MODE_GET)
         self.explorer = Explorer(silence=self.silence)
 
     def __enter__(self):
@@ -65,9 +59,7 @@ class SteelTorrent:
                 pass
 
         logger.success(
-            ToolBox.runtime_report(
-                motive="OVER", action_name=self.action_name, message="✔ 任务队列已清空"
-            )
+            ToolBox.runtime_report(motive="OVER", action_name=self.action_name, message="✔ 任务队列已清空")
         )
 
     def _require_worker(self) -> get_ctx:
@@ -86,9 +78,7 @@ class SteelTorrent:
             _game_objs = []
             while not self.done_jobs.empty():
                 _game_objs.append(self.done_jobs.get())
-        self.explorer.game_manager.save_game_objs(
-            _game_objs, category=self.category, runtime=True
-        )
+        self.explorer.game_manager.save_game_objs(_game_objs, category=self.category, runtime=True)
 
     def in_library(self, job: dict, review=None) -> Optional[bool]:
         """识别游戏在库状态"""
@@ -180,10 +170,7 @@ class SteelTorrent:
 
 @logger.catch()
 def join(
-    debug: bool = False,
-    cache: bool = True,
-    category: str = "game",
-    silence: Optional[bool] = True,
+    debug: bool = False, cache: bool = True, category: str = "game", silence: Optional[bool] = True
 ):
     """
     一键搬空免费商店
@@ -199,9 +186,7 @@ def join(
 
     monkey.patch_all(ssl=False, thread=False)
     logger.info(
-        ToolBox.runtime_report(
-            motive="STARTUP", action_name="ScaffoldGet", message="🔨 正在为玩家领取免费资源"
-        )
+        ToolBox.runtime_report(motive="STARTUP", action_name="ScaffoldGet", message="🔨 正在为玩家领取免费资源")
     )
 
     # [🔨] 读取有效的身份令牌

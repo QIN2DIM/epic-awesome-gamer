@@ -33,9 +33,6 @@ def run(silence: Optional[bool] = None):
 
     logger.success(
         ToolBox.runtime_report(
-            motive="GET",
-            action_name="ChallengeRunner",
-            message="玩家饼干已到货。",
-            path=PATH_USR_COOKIES,
+            motive="GET", action_name="ChallengeRunner", message="玩家饼干已到货。", path=PATH_USR_COOKIES
         )
     )

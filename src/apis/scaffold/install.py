@@ -65,7 +65,7 @@ def test():
     """检查挑战者驱动版本是否适配"""
     ctx = get_challenge_ctx(silence=True)
     try:
-        ctx.get("https://www.baidu.com")
+        ctx.get("https://www.epicgames.com/account/personal")
     finally:
         ctx.quit()
 

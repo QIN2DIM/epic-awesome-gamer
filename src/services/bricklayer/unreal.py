@@ -35,9 +35,7 @@ class UnrealClaimer(EpicAwesomeGamer):
         self.action_name = "UnrealClaimer"
         self.cookie_manager = CookieManager(auth_str=self.AUTH_STR_UNREAL)
 
-    def get_claimer_response(
-        self, ctx_cookies: List[dict]
-    ) -> List[Dict[str, Union[str, bool]]]:
+    def get_claimer_response(self, ctx_cookies: List[dict]) -> List[Dict[str, Union[str, bool]]]:
         """领取任务后审查资源的在库状态"""
         headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
         scraper = create_scraper()
@@ -60,9 +58,7 @@ class UnrealClaimer(EpicAwesomeGamer):
             if not articles:
                 logger.critical(
                     ToolBox.runtime_report(
-                        motive="MISS",
-                        action_name=self.action_name,
-                        message="虚幻商店月供内容或为空，请复查",
+                        motive="MISS", action_name=self.action_name, message="虚幻商店月供内容或为空，请复查"
                     )
                 )
                 return []

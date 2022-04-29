@@ -94,9 +94,7 @@ class GameClaimer(EpicAwesomeGamer):
         # [🚀] 清洗返回值使之符合接口规则
         return list(dlc_details.values())
 
-    def get_free_dlc_details(
-        self, ctx_url: str, cookie: str
-    ) -> List[Dict[str, Union[str, bool]]]:
+    def get_free_dlc_details(self, ctx_url: str, cookie: str) -> List[Dict[str, Union[str, bool]]]:
         """
         1. 检测一个游戏实体是否存在免费附加内容
         2. 将可领取的免费附加内容编织成任务对象并返回
@@ -220,9 +218,7 @@ class GameClaimer(EpicAwesomeGamer):
             init = False
             self.assert_.timeout(_loop_start, self.loop_timeout)
 
-    def get_free_game(
-        self, page_link: str, ctx_cookies: List[dict], ctx_session
-    ) -> Optional[str]:
+    def get_free_game(self, page_link: str, ctx_cookies: List[dict], ctx_session) -> Optional[str]:
         """获取周免资源 游戏本体/附加内容 集成接口"""
         if not ctx_cookies:
             raise CookieExpired(self.assert_.COOKIE_EXPIRED)
@@ -279,12 +275,18 @@ class GameClaimer(EpicAwesomeGamer):
 
         return self.result
 
+    def claim_booster(self, ctx_cookies: List[dict], ctx_session):
+        try:
+            return self.empty_shopping_payment(ctx_cookies=ctx_cookies, ctx_session=ctx_session)
+        except AssertTimeout:
+            logger.debug(
+                ToolBox.runtime_report(
+                    motive="QUIT", action_name=self.action_name, message="循环断言超时，任务退出。"
+                )
+            )
+
     def claim_stabilizer(
-        self,
-        page_link: str,
-        ctx_cookies: List[dict],
-        ctx_session,
-        get_blocked_warning=None,
+        self, page_link: str, ctx_cookies: List[dict], ctx_session, get_blocked_warning=None
     ) -> Optional[str]:
         """获取周免资源 游戏本体/附加内容 集成接口"""
         try:
