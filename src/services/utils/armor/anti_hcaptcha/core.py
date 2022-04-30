@@ -8,7 +8,6 @@ from selenium.common.exceptions import (
     ElementNotVisibleException,
     WebDriverException,
     TimeoutException,
-    ElementClickInterceptedException,
 )
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -198,7 +197,7 @@ class ArmorCaptcha:
                 # 选中标签元素
                 try:
                     self.alias2locator[alias].click()
-                except ElementClickInterceptedException:
+                except WebDriverException:
                     pass
 
         # {{< SUBMIT ANSWER >}}

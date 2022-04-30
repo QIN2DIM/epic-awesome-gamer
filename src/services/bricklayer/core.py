@@ -85,7 +85,7 @@ class ArmorUtils(ArmorCaptcha):
 
         # 重定向工作空间
         self.model = YOLO(DIR_MODEL)
-        self.critical_threshold = 10
+        self.critical_threshold = 3
 
     @staticmethod
     def fall_in_captcha_login(ctx: ChallengerContext, flag_url: str = None) -> Optional[str]:
