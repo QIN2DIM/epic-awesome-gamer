@@ -13,6 +13,7 @@ from .armor.anti_hcaptcha.exceptions import (
 )
 from .armor.anti_hcaptcha.solutions import sk_recognition
 from .armor.anti_hcaptcha.solutions.yolo import YOLO
+from .armor.anti_hcaptcha.solutions.de_stylized import ElephantsDrawnWithLeaves
 from .toolbox.toolbox import MessagePusher
 from .toolbox.toolbox import ToolBox
 from .toolbox.toolbox import get_challenge_ctx
@@ -29,6 +30,7 @@ __all__ = [
     "SubmitException",
     "sk_recognition",
     "YOLO",
+    "ElephantsDrawnWithLeaves",
     "MessagePusher",
     "ToolBox",
     "get_challenge_ctx",

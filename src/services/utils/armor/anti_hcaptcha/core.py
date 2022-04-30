@@ -8,6 +8,7 @@ from selenium.common.exceptions import (
     ElementNotVisibleException,
     WebDriverException,
     TimeoutException,
+    ElementClickInterceptedException,
 )
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -30,6 +31,7 @@ class ArmorCaptcha:
 
         # 博大精深！
         self.label_alias = {
+            "水上飞机": "seaplane",
             "自行车": "bicycle",
             "火车": "train",
             "卡车": "truck",
@@ -39,11 +41,11 @@ class ArmorCaptcha:
             "飞机": "aeroplane",
             "ー条船": "boat",
             "船": "boat",
-            "汽车": "car",
             "摩托车": "motorbike",
             "垂直河流": "vertical river",
             "天空中向左飞行的飞机": "airplane in the sky flying left",
             "请选择天空中所有向右飞行的飞机": "airplanes in the sky that are flying to the right",
+            "请选择所有用树叶画的大象": "elephants drawn with leaves",
         }
 
         # 样本标签映射 {挑战图片1: locator1, ...}
@@ -134,9 +136,8 @@ class ArmorCaptcha:
             raise LabelNotFoundException("获取到异常的标签对象。")
         else:
             self.label = _label
-            self.log(
-                message="获取挑战标签", label=f"{self.label}({self.label_alias.get(self.label, 'none')})"
-            )
+            log_label = self.label_alias.get(self.label, self.label)
+            self.log(message="获取挑战标签", label=f"「{log_label}」")
 
     def download_images(self):
         """
@@ -202,9 +203,9 @@ class ArmorCaptcha:
 
         # {{< SUBMIT ANSWER >}}
         try:
-            submit_button = WebDriverWait(ctx, 35, 0.1).until(
-                EC.element_to_be_clickable((By.XPATH, "//div[@class='button-submit button']"))
-            )
+            submit_button = WebDriverWait(
+                ctx, 35, ignored_exceptions=ElementClickInterceptedException
+            ).until(EC.element_to_be_clickable((By.XPATH, "//div[@class='button-submit button']")))
             submit_button.click()
         except WebDriverException as err:
             self.log("挑战提交失败", err=err)

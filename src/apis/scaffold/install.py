@@ -5,6 +5,7 @@
 # Description:
 import sys
 import webbrowser
+from typing import Optional
 
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.utils import get_browser_version_from_os
@@ -13,13 +14,15 @@ from services.settings import DIR_MODEL, logger, PATH_RAINBOW
 from services.utils import YOLO
 from services.utils import get_challenge_ctx
 from services.utils import sk_recognition
+from services.utils import ElephantsDrawnWithLeaves
 
 
-def _download_model(onnx_prefix: str = None):
-    """下载 YOLOv4 目标检测模型"""
+def _download_model(onnx_prefix: Optional[str] = None):
+    """Pull models"""
     logger.debug("Downloading YOLOv5(ONNX) object detection model...")
 
     YOLO(dir_model=DIR_MODEL, onnx_prefix=onnx_prefix).download_model()
+    ElephantsDrawnWithLeaves(dir_model=DIR_MODEL).download_model()
 
 
 def _download_driver():
