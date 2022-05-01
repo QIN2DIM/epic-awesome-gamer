@@ -218,8 +218,6 @@ class ArmorUtils(ArmorCaptcha):
                     with open(path_challenge_img, "wb") as file:
                         file.write(await response.read())
 
-        self.log(message="下载挑战图片")
-
         # 初始化挑战图片下载目录
         workspace_ = self._init_workspace()
 
@@ -340,12 +338,6 @@ class ArmorUtils(ArmorCaptcha):
 
     def tactical_retreat(self) -> Optional[str]:
         """模型存在泛化死角，遇到指定标签时主动进入下一轮挑战，节约时间"""
-        _bad_list = ["水上飞机"]
-
-        # 低水平泛化
-        if self.label in _bad_list:
-            self.log(message="模型泛化较差，逃逸", label=self.label)
-            return self.CHALLENGE_REFRESH
         # 新挑战
         if self.label not in self.label_alias:
             self.log(message="暂未编排的挑战类型", label=self.label)
@@ -373,12 +365,12 @@ class ArmorUtils(ArmorCaptcha):
         :param ctx:
         :return:
         """
-        # [👻] 进入人机挑战关卡
-        self.switch_challenge_iframe(ctx)
-
         # [👻] 人机挑战！
         try:
             for index in range(3):
+                # [👻] 进入人机挑战关卡
+                self.switch_challenge_iframe(ctx)
+
                 # [👻] 获取挑战标签
                 self.get_label(ctx)
 
@@ -403,17 +395,18 @@ class ArmorUtils(ArmorCaptcha):
 
                 # [👻] 輪詢控制臺響應
                 result, message = self.challenge_success(ctx, window=window)
-                self.log("获取响应", desc=f"{message}({result})")
+                ctx.switch_to.default_content()
 
+                self.log("获取响应", desc=f"{message}({result})")
                 if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:
                     return result
-                time.sleep(1)
 
         # 提交结果断言超时或 mark_samples() 等待超时
         except (WebDriverException, SubmitException) as err:
             logger.exception(err)
-            ctx.switch_to.default_content()
             return self.CHALLENGE_CRASH
+        finally:
+            ctx.switch_to.default_content()
 
 
 class AssertUtils:

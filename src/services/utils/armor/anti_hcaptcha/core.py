@@ -93,8 +93,6 @@ class ArmorCaptcha:
         :param ctx:
         :return:
         """
-        self.log(message="获取挑战图片链接及元素定位器")
-
         # 等待图片加载完成
         WebDriverWait(ctx, 25, ignored_exceptions=ElementNotVisibleException).until(
             EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
@@ -121,6 +119,7 @@ class ArmorCaptcha:
         :param ctx:
         :return:
         """
+        time.sleep(1)
         try:
             label_obj = WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@class='prompt-text']"))
