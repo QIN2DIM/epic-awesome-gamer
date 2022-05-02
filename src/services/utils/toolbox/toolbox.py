@@ -78,15 +78,25 @@ class MessagePusher:
 
     def for_telegram(self, server: str):
         u = urlparse(server)
-        server = f"{u.scheme}://{u.netloc}{u.path}?format=markdown&&preview=yes"
+
+        # 去除指纹链接前台化
+        is_preview_ = "yes" if "preview=no" not in u.query.lower() else "no"
+
+        server = f"{u.scheme}://{u.netloc}{u.path}?format=markdown&&preview={is_preview_}"
 
         inline_docker = self.inline_docker.copy()
+
         _preview = [f"[​]({random.choice(inline_docker).get('url', self._copyright)})"]
+
         _title = [f"*{self.title}*"]
+
         for game_obj in inline_docker:
             game_obj["name"] = game_obj["name"].replace("《", "").replace("》", "")
+
         context_textbox, _ = self.for_general(inline_docker, _copyright=self._copyright_markdown)
+
         context_textbox = _preview + _title + context_textbox
+
         return context_textbox, "", server
 
     def for_general(self, inline_docker, _copyright: List[str] = None):

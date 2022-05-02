@@ -173,7 +173,17 @@ class ArmorUtils(ArmorCaptcha):
         except TimeoutException:
             return False
 
-    def switch_challenge_iframe(self, ctx: ChallengerContext):
+    def switch_challenge_iframe(self, ctx: ChallengerContext, window: str):
+        # turn to dom root
+        ctx.switch_to.default_content()
+
+        # purchase framework
+        if window == "free":
+            WebDriverWait(ctx, 5).until(
+                EC.frame_to_be_available_and_switch_to_it((By.XPATH, self.HOOK_PURCHASE))
+            )
+
+        # challenge framework
         WebDriverWait(ctx, 5).until(
             EC.frame_to_be_available_and_switch_to_it((By.XPATH, self.HOOK_CHALLENGE))
         )
@@ -330,7 +340,6 @@ class ArmorUtils(ArmorCaptcha):
                             raise AuthMFA("人机挑战已退出 error=遭遇意外的 2FA 双重认证")
 
                 # 輪詢超時 若此時頁面仍未跳轉視爲挑戰失敗
-                self.switch_challenge_iframe(ctx)
                 if ctx.current_url == flag:
                     return self.CHALLENGE_CONTINUE, "退火断言超时，挑战重置"
 
@@ -367,7 +376,7 @@ class ArmorUtils(ArmorCaptcha):
         try:
             for index in range(3):
                 # [👻] 进入人机挑战关卡
-                self.switch_challenge_iframe(ctx)
+                self.switch_challenge_iframe(ctx, window)
 
                 # [👻] 获取挑战标签
                 self.get_label(ctx)
@@ -393,7 +402,6 @@ class ArmorUtils(ArmorCaptcha):
 
                 # [👻] 輪詢控制臺響應
                 result, message = self.challenge_success(ctx, window=window)
-                ctx.switch_to.default_content()
 
                 self.log("获取响应", desc=f"{message}({result})")
                 if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:

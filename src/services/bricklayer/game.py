@@ -205,7 +205,7 @@ class GameClaimer(EpicAwesomeGamer):
             self._activate_payment(ctx_session, mode=self.ACTIVE_BINGO)
 
             # [🚀] 新用户首次购买游戏需要处理许可协议书
-            if self.assert_.surprise_license(ctx_session):
+            if init and self.assert_.surprise_license(ctx_session):
                 logger.debug("[🛵] 新用户首次购买游戏需要处理许可协议书")
                 ctx_session.refresh()
                 continue
