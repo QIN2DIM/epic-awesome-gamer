@@ -119,8 +119,7 @@ class ClaimerScheduler:
             ToolBox.runtime_report(
                 motive="JOB",
                 action_name=self.action_name,
-                message=f"任务将在北京时间每周五 04:{jitter_minute[0]} "
-                f"以及 04:{jitter_minute[-1]} 执行。",
+                message=f"任务将在北京时间每周五 04:{jitter_minute[0]} " f"以及 04:{jitter_minute[-1]} 执行。",
                 end_date=str(self.end_date),
             )
         )
@@ -166,14 +165,10 @@ class ClaimerScheduler:
     def job_loop_claim(self, log_ignore: Optional[bool] = False):
         """wrap function for claimer instance"""
         if not self.unreal:
-            with GameClaimerInstance(
-                silence=self.silence, log_ignore=log_ignore
-            ) as claimer:
+            with GameClaimerInstance(silence=self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
         else:
-            with UnrealClaimerInstance(
-                silence=self.silence, log_ignore=log_ignore
-            ) as claimer:
+            with UnrealClaimerInstance(silence=self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
 
 
@@ -181,10 +176,7 @@ class BaseInstance:
     """Atomic Scheduler"""
 
     def __init__(
-        self,
-        silence: bool,
-        log_ignore: Optional[bool] = False,
-        action_name: Optional[str] = None,
+        self, silence: bool, log_ignore: Optional[bool] = False, action_name: Optional[str] = None
     ):
         """
 
@@ -197,7 +189,6 @@ class BaseInstance:
 
         # 广度优先|深度优先
         self.depth = 0
-        self.indepth: Optional[bool] = True
         # 服务注册
         self.logger = logger
         self.bricklayer = GameClaimer(silence=silence)
@@ -233,9 +224,12 @@ class BaseInstance:
                 self._ctx_session = self.bricklayer.cookie_manager.ctx_session
                 self._ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
             if self._ctx_cookies is None:
-                self._bad_omen(CookieRefreshException.__doc__)
-        except Exception as err:  # skipcq
+                raise CookieRefreshException
+        except CookieRefreshException as err:
             self._bad_omen(err.__doc__)
+        except Exception as err:  # skipcq
+            self.logger.exception(err)
+            self._bad_omen(str(err))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -262,11 +256,7 @@ class BaseInstance:
             self.inline_docker.append(context)
 
         # 在 `ignore` 模式下当所有资源实体都已在库时不推送消息
-        if (
-            self.inline_docker
-            and self.pusher_settings.get("enable")
-            and any(ACTIVE_SERVERS)
-        ):
+        if self.inline_docker and self.pusher_settings.get("enable") and any(ACTIVE_SERVERS):
             with MessagePusher(ACTIVE_SERVERS, PLAYER, self.inline_docker):
                 self.logger.success(
                     ToolBox.runtime_report(
@@ -360,7 +350,6 @@ class BaseInstance:
                             action_name=self.action_name,
                             message=f"🍜 发现{self.tag}",
                             game=f"『{resource_obj['name']}』",
-                            indepth=self.indepth,
                         )
                     )
 
@@ -381,12 +370,12 @@ class BaseInstance:
         # 1. 启动消息队列 编排消息模版
         # 2. 启动任务队列 领取周免游戏
         # ======================================
-        if self.is_pending() is True:
-            self.inline_bricklayer()
-            # [🛵] 接下来，跳跃很有用
-            if self.indepth is True:
-                self.depth += 1
-                return self.just_do_it()
+        if not self.is_pending():
+            return
+        # [🛵] 接下来，跳跃很有用
+        self.inline_bricklayer()
+        self.depth += 1
+        return self.just_do_it()
 
     def inline_bricklayer(self):
         """扬帆起航"""
@@ -432,51 +421,18 @@ class GameClaimerInstance(BaseInstance):
 
         return self
 
-    def _indepth_action(self):
-        self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
-
-        self.bricklayer.cart_balancing(
-            ctx_cookies=self._ctx_cookies, ctx_session=self._ctx_session
-        )
-        while not self.task_queue_worker.empty():
-            job = self.task_queue_worker.get()
-            self.bricklayer.claim_stabilizer(
-                page_link=job["url"],
-                ctx_cookies=self._ctx_cookies,
-                ctx_session=self._ctx_session,
-            )
-            job["review"] = True
-            self.promotions_review.append(job)
-        self.bricklayer.empty_shopping_payment(
-            ctx_cookies=self._ctx_cookies, ctx_session=self._ctx_session
-        )
-
-    def _breadth_action(self):
-        self.indepth = False
-        self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_GET
-
-        job = self.task_queue_worker.get()
-        result = self.bricklayer.claim_stabilizer(
-            page_link=job["url"],
-            ctx_cookies=self._ctx_cookies,
-            ctx_session=self._ctx_session,
-        )
-        self._pusher_putter(result=result, obj=job)
-
     def get_promotions(self) -> Optional[Dict[str, Union[List[str], str]]]:
         """获取促销信息的顶级接口"""
         try:
-            return self.explorer.get_promotions(ctx_cookies=self._ctx_cookies)
+            return self.explorer.get_promotions(self._ctx_cookies)
         except Exception as err:  # skipcq: - 应力表达式的无感切换
             self.logger.exception(err)
-            return self.explorer.get_promotions_by_stress_expressions(
-                ctx_session=self._ctx_session
-            )
+            return self.explorer.get_promotions_by_stress_expressions(self._ctx_session)
 
     def promotions_filter(self):
         if self.promotions_review:
             self.steel_torrent.docker = self.promotions_review
-        # 启动最高功率的协同任务
+
         if sys.platform.startswith("win") or "cygwin" in sys.platform:
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
             asyncio.run(self.steel_torrent.advance(workers="fast"))
@@ -485,11 +441,13 @@ class GameClaimerInstance(BaseInstance):
             loop.run_until_complete(self.steel_torrent.advance(workers="fast"))
 
     def inline_bricklayer(self):
-        # 针对不同的应用场景优选执行策略
-        if self.task_queue_worker.qsize() == 1:
-            self._breadth_action()
-        else:
-            self._indepth_action()
+        self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session)
+        while not self.task_queue_worker.empty():
+            job = self.task_queue_worker.get()
+            job["review"] = True
+            self.bricklayer.claim_stabilizer(job["url"], self._ctx_cookies, self._ctx_session)
+            self.promotions_review.append(job)
+        self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
 
 
 class UnrealClaimerInstance(BaseInstance):

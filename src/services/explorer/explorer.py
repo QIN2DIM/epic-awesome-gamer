@@ -23,10 +23,7 @@ class Explorer(EpicAwesomeExplorer):
         self.game_manager = GameLibManager()
 
     def discovery_free_games(
-        self,
-        ctx_cookies: Optional[List[dict]] = None,
-        category: str = "game",
-        silence: bool = None,
+        self, ctx_cookies: Optional[List[dict]] = None, category: str = "game", silence: bool = None
     ) -> Optional[List[dict]]:
         """
         发现免费游戏。
@@ -48,9 +45,7 @@ class Explorer(EpicAwesomeExplorer):
         # 创建驱动上下文
         try:
             with get_ctx(silence=silence, fast=True) as ctx:
-                self._discovery_free_games(
-                    ctx=ctx, ctx_cookies=ctx_cookies, category=category
-                )
+                self._discovery_free_games(ctx=ctx, ctx_cookies=ctx_cookies, category=category)
         except DiscoveryTimeoutException as err:
             logger.error(err)
 
@@ -92,10 +87,7 @@ class Explorer(EpicAwesomeExplorer):
             # 获取商城促销数据&&获取<本周免费>的游戏对象
             for promotion in promotions:
                 if promotion["promotions"]["promotionalOffers"]:
-                    url = (
-                        self.URL_PRODUCT_PAGE
-                        + promotion["catalogNs"]["mappings"][0]["pageSlug"]
-                    )
+                    url = self.URL_PRODUCT_PAGE + promotion["catalogNs"]["mappings"][0]["pageSlug"]
                     free_game_objs[url] = promotion["title"]
 
         return free_game_objs

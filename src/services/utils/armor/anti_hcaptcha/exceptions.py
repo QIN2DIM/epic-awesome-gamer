@@ -4,9 +4,7 @@ from typing import Optional, Sequence
 class ArmorException(Exception):
     """Armor module basic exception"""
 
-    def __init__(
-        self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None
-    ):
+    def __init__(self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None):
         self.msg = msg
         self.stacktrace = stacktrace
         super().__init__()

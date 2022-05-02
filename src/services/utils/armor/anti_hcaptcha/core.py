@@ -8,6 +8,7 @@ from selenium.common.exceptions import (
     ElementNotVisibleException,
     WebDriverException,
     TimeoutException,
+    ElementClickInterceptedException,
 )
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -30,6 +31,7 @@ class ArmorCaptcha:
 
         # 博大精深！
         self.label_alias = {
+            "水上飞机": "seaplane",
             "自行车": "bicycle",
             "火车": "train",
             "卡车": "truck",
@@ -39,11 +41,11 @@ class ArmorCaptcha:
             "飞机": "aeroplane",
             "ー条船": "boat",
             "船": "boat",
-            "汽车": "car",
             "摩托车": "motorbike",
             "垂直河流": "vertical river",
             "天空中向左飞行的飞机": "airplane in the sky flying left",
             "请选择天空中所有向右飞行的飞机": "airplanes in the sky that are flying to the right",
+            "请选择所有用树叶画的大象": "elephants drawn with leaves",
         }
 
         # 样本标签映射 {挑战图片1: locator1, ...}
@@ -84,13 +86,6 @@ class ArmorCaptcha:
             os.mkdir(_workspace)
         return _workspace
 
-    def tactical_retreat(self) -> bool:
-        """模型存在泛化死角，遇到指定标签时主动进入下一轮挑战，节约时间"""
-        if self.label in ["水上飞机"] or not self.label_alias.get(self.label):
-            self.log(message="模型泛化较差，逃逸", label=self.label)
-            return True
-        return False
-
     def mark_samples(self, ctx: Chrome):
         """
         获取每个挑战图片的下载链接以及网页元素位置
@@ -98,10 +93,8 @@ class ArmorCaptcha:
         :param ctx:
         :return:
         """
-        self.log(message="获取挑战图片链接及元素定位器")
-
         # 等待图片加载完成
-        WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
+        WebDriverWait(ctx, 25, ignored_exceptions=ElementNotVisibleException).until(
             EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
         )
 
@@ -111,9 +104,7 @@ class ArmorCaptcha:
             alias = sample.get_attribute("aria-label")
             while True:
                 try:
-                    image_style = sample.find_element(
-                        By.CLASS_NAME, "image"
-                    ).get_attribute("style")
+                    image_style = sample.find_element(By.CLASS_NAME, "image").get_attribute("style")
                     url = re.split(r'[(")]', image_style)[2]
                     self.alias2url.update({alias: url})
                     break
@@ -128,10 +119,9 @@ class ArmorCaptcha:
         :param ctx:
         :return:
         """
+        time.sleep(1)
         try:
-            label_obj = WebDriverWait(
-                ctx, 30, ignored_exceptions=ElementNotVisibleException
-            ).until(
+            label_obj = WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@class='prompt-text']"))
             )
         except TimeoutException:
@@ -145,10 +135,8 @@ class ArmorCaptcha:
             raise LabelNotFoundException("获取到异常的标签对象。")
         else:
             self.label = _label
-            self.log(
-                message="获取挑战标签",
-                label=f"{self.label}({self.label_alias.get(self.label, 'none')})",
-            )
+            log_label = self.label_alias.get(self.label, self.label)
+            self.log(message="获取挑战标签", label=f"「{log_label}」")
 
     def download_images(self):
         """
@@ -209,16 +197,14 @@ class ArmorCaptcha:
                 # 选中标签元素
                 try:
                     self.alias2locator[alias].click()
-                except WebDriverException as err:
-                    logger.error(err.msg)
+                except WebDriverException:
+                    pass
 
         # {{< SUBMIT ANSWER >}}
         try:
-            submit_button = WebDriverWait(ctx, 35, 0.1).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, "//div[@class='button-submit button']")
-                )
-            )
+            submit_button = WebDriverWait(
+                ctx, 35, ignored_exceptions=ElementClickInterceptedException
+            ).until(EC.element_to_be_clickable((By.XPATH, "//div[@class='button-submit button']")))
             submit_button.click()
         except WebDriverException as err:
             self.log("挑战提交失败", err=err)
@@ -226,13 +212,12 @@ class ArmorCaptcha:
         else:
             self.log(message=f"提交挑战 {model.flag}: {round(sum(ta), 2)}s")
 
-    def challenge_success(self, ctx: Chrome, init: bool = True, **kwargs):
+    def challenge_success(self, ctx: Chrome, **kwargs):
         """
         自定义的人机挑战通过逻辑
 
         :return:
         """
-        raise NotImplementedError
 
     def anti_captcha(self):
         """

@@ -19,6 +19,7 @@ __all__ = [
     "logger",
     "DIR_CHALLENGE",
     "DIR_COOKIES",
+    "DIR_USERS",
     "DIR_TEMP_CACHE",
     "DIR_EXPLORER",
     "PATH_USR_COOKIES",
@@ -56,6 +57,7 @@ PATH_RAINBOW = join(DIR_MODEL, "rainbow.yaml")
 # Cookie 工作目录
 DIR_COOKIES = join(PROJECT_DATABASE, "cookies")
 PATH_USR_COOKIES = join(DIR_COOKIES, "user_cookies.txt")
+DIR_USERS = join(PROJECT_DATABASE, "users")
 # FreeGame Mining Workspace
 DIR_EXPLORER = join(PROJECT_DATABASE, "explorer")
 # 运行缓存目录
@@ -67,9 +69,7 @@ DIR_LOG = join(PROJECT_DATABASE, "logs")
 # ---------------------------------------------------
 # [√]服务器日志配置
 # ---------------------------------------------------
-logger = ToolBox.init_log(
-    error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG, "runtime.log")
-)
+logger = ToolBox.init_log(error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG, "runtime.log"))
 
 # ---------------------------------------------------
 # 路径补全
@@ -79,6 +79,7 @@ for _pending in [
     DIR_MODEL,
     DIR_EXPLORER,
     DIR_COOKIES,
+    DIR_USERS,
     DIR_TEMP_CACHE,
     DIR_CHALLENGE,
     DIR_LOG,
@@ -102,20 +103,14 @@ config_ = ToolBox.check_sample_yaml(
 # 不建议在公有库上创建工作流运行项目，有仓库禁用风险
 EPIC_EMAIL: Optional[str] = config_.get("EPΙC_EMAΙL", "")
 EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD", "")
-
 # --------------------------------
 # [※] 消息推送配置
 # --------------------------------
-MESSAGE_PUSHER_SETTINGS: Optional[Dict[str, Any]] = config_.get(
-    "message_pusher_settings", {}
-)
+MESSAGE_PUSHER_SETTINGS: Optional[Dict[str, Any]] = config_.get("message_pusher_settings", {})
 # Apprise Server 泛映射
 PUSHER: Optional[Dict[str, Optional[str]]] = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
 # 匿名设置
 PLAYER: Optional[str] = MESSAGE_PUSHER_SETTINGS.get("player", "")
-# 检查激活的消息服务器
-ACTIVE_PUSHERS = [_p[0] for _p in PUSHER.items() if _p[-1]]
-ACTIVE_SERVERS = [_p[-1] for _p in PUSHER.items() if _p[-1]]
 # --------------------------------
 # [※] 补全语法模板
 # --------------------------------
@@ -149,5 +144,8 @@ if not all((EPIC_EMAIL, EPIC_PASSWORD)):
     print("[进程退出] 账号信息未配置或相关变量不合法")
     sys.exit()
 
+# 检查激活的消息服务器
 if not any(PUSHER.values()):
     MESSAGE_PUSHER_SETTINGS["enable"] = False
+ACTIVE_PUSHERS = [_p[0] for _p in PUSHER.items() if _p[-1]]
+ACTIVE_SERVERS = [_p[-1] for _p in PUSHER.items() if _p[-1]]

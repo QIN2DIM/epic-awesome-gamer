@@ -7,6 +7,7 @@ import os
 import random
 import shutil
 import sys
+import warnings
 from datetime import datetime
 from datetime import timedelta
 from typing import List, Union, Dict, Optional, Any
@@ -29,6 +30,8 @@ from webdriver_manager.utils import get_browser_version_from_os
 
 StandardContext = type(Chrome)
 ChallengerContext = type(uc.Chrome)
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class MessagePusher:
@@ -82,9 +85,7 @@ class MessagePusher:
         _title = [f"*{self.title}*"]
         for game_obj in inline_docker:
             game_obj["name"] = game_obj["name"].replace("《", "").replace("》", "")
-        context_textbox, _ = self.for_general(
-            inline_docker, _copyright=self._copyright_markdown
-        )
+        context_textbox, _ = self.for_general(inline_docker, _copyright=self._copyright_markdown)
         context_textbox = _preview + _title + context_textbox
         return context_textbox, "", server
 
@@ -103,9 +104,7 @@ class MessagePusher:
                     _dlc_textbox.append(f"[{game_obj['status']}] {game_obj['name']}")
             _inline_textbox.extend(_game_textbox)
             if _dlc_textbox:
-                _inline_textbox += [
-                    "<附加内容>".center(self._dividing_width, self._dividing_char)
-                ]
+                _inline_textbox += ["<附加内容>".center(self._dividing_width, self._dividing_char)]
                 _inline_textbox.extend(_dlc_textbox)
         _inline_textbox += [
             "<操作统计>".center(self._dividing_width, self._dividing_char),
@@ -160,9 +159,7 @@ class ToolBox:
             )
 
     @staticmethod
-    def runtime_report(
-        action_name: str, motive: str = "RUN", message: str = "", **params
-    ) -> str:
+    def runtime_report(action_name: str, motive: str = "RUN", message: str = "", **params) -> str:
         """格式化输出"""
         flag_ = f">> {motive} [{action_name}]"
         if message != "":
@@ -187,16 +184,13 @@ class ToolBox:
         """
         if isinstance(api_cookies, str):
             return [
-                {"name": i.split("=")[0], "value": i.split("=")[1]}
-                for i in api_cookies.split("; ")
+                {"name": i.split("=")[0], "value": i.split("=")[1]} for i in api_cookies.split("; ")
             ]
         return "; ".join([f"{i['name']}={i['value']}" for i in api_cookies])
 
     @staticmethod
     def date_format_now(
-        mode: Optional[str] = None,
-        zone: Optional[str] = None,
-        threshold: Optional[int] = None,
+        mode: Optional[str] = None, zone: Optional[str] = None, threshold: Optional[int] = None
     ) -> str:
         """
         输出格式化日期
@@ -301,9 +295,7 @@ def _set_ctx(language: Optional[str] = None) -> ChromeOptions:
     return options
 
 
-def get_ctx(
-    silence: Optional[bool] = None, fast: Optional[bool] = False
-) -> StandardContext:
+def get_ctx(silence: Optional[bool] = None, fast: Optional[bool] = False) -> StandardContext:
     """普通的 Selenium 驱动上下文，用于常规并发任务"""
 
     silence = True if silence is None or "linux" in sys.platform else silence
@@ -325,27 +317,34 @@ def get_ctx(
     return Chrome(ChromeDriverManager(log_level=0).install(), options=options)
 
 
-def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
+def get_challenge_ctx(
+    silence: Optional[bool] = None, user_data_dir: Optional[str] = None
+) -> ChallengerContext:
     """挑战者驱动 用于处理人机挑战"""
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
 
     silence = True if silence is None or "linux" in sys.platform else silence
 
-    # 控制挑战者驱动版本，避免过于超前
     options = _set_ctx()
+    driver_executable_path = ChromeDriverManager(log_level=0).install()
+    version_main = get_browser_version_from_os(ChromeType.GOOGLE).split(".")[0]
+
     try:
         return uc.Chrome(
             headless=silence,
             options=options,
-            driver_executable_path=ChromeDriverManager(log_level=0).install(),
+            driver_executable_path=driver_executable_path,
+            user_data_dir=user_data_dir,
         )
     # 避免核心并行
     except OSError:
-        return uc.Chrome(headless=silence, options=options)
+        return uc.Chrome(headless=silence, options=options, user_data_dir=user_data_dir)
     # 棄用索引緩存
     except WebDriverException:
-        version_main = get_browser_version_from_os(ChromeType.GOOGLE).split(".")[0]
         if version_main.isdigit():
             return uc.Chrome(
-                headless=silence, options=options, version_main=int(version_main)
+                headless=silence,
+                options=options,
+                version_main=int(version_main),
+                user_data_dir=user_data_dir,
             )

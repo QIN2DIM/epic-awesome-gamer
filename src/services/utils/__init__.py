@@ -12,13 +12,15 @@ from .armor.anti_hcaptcha.exceptions import (
     SubmitException,
 )
 from .armor.anti_hcaptcha.solutions import sk_recognition
+from .armor.anti_hcaptcha.solutions.resnet import ElephantsDrawnWithLeaves
+from .armor.anti_hcaptcha.solutions.resnet import ResNetSeaplane
 from .armor.anti_hcaptcha.solutions.yolo import YOLO
+from .toolbox.toolbox import ChallengerContext
 from .toolbox.toolbox import MessagePusher
+from .toolbox.toolbox import StandardContext
 from .toolbox.toolbox import ToolBox
 from .toolbox.toolbox import get_challenge_ctx
 from .toolbox.toolbox import get_ctx
-from .toolbox.toolbox import ChallengerContext
-from .toolbox.toolbox import StandardContext
 
 __all__ = [
     "AshFramework",
@@ -29,6 +31,8 @@ __all__ = [
     "SubmitException",
     "sk_recognition",
     "YOLO",
+    "ElephantsDrawnWithLeaves",
+    "ResNetSeaplane",
     "MessagePusher",
     "ToolBox",
     "get_challenge_ctx",

@@ -35,7 +35,9 @@ class EpicAwesomeExplorer:
         f"{URL_STORE_PREFIX}sortBy=releaseDate&sortDir=DESC&priceTier=tierFree&count=40"
     )
     URL_STORE_FREE_DLC = f"{URL_STORE_PREFIX}sortBy=releaseDate&sortDir=DESC&priceTier=tierFree&category=GameAddOn&count=40&start=0"  # noqa
-    URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=zh-CN"
+    URL_PROMOTIONS = (
+        "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=zh-CN"
+    )
     URL_PRODUCT_PAGE = "https://store.epicgames.com/zh-CN/p/"
 
     def __init__(self, silence: bool = None):
@@ -114,13 +116,9 @@ class EpicAwesomeExplorer:
 
             # 断言最后一页
             WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, "//a[@data-component='PaginationItem']")
-                )
+                EC.element_to_be_clickable((By.XPATH, "//a[@data-component='PaginationItem']"))
             )
-            page_switcher = ctx.find_elements(
-                By.XPATH, "//a[@data-component='PaginationItem']"
-            )[-1]
+            page_switcher = ctx.find_elements(By.XPATH, "//a[@data-component='PaginationItem']")[-1]
 
             # 提取价值信息
             game_objs = ctx.find_elements(By.XPATH, "//a[@class='css-1jx3eyg']")
@@ -154,15 +152,11 @@ class EpicAwesomeExplorer:
             )
         )
 
-    def stress_expressions(
-        self, ctx: Union[ChallengerContext, StandardContext]
-    ) -> Dict[str, str]:
+    def stress_expressions(self, ctx: Union[ChallengerContext, StandardContext]) -> Dict[str, str]:
         """应力表达式的主要实现"""
         logger.debug(
             ToolBox.runtime_report(
-                motive="DISCOVERY",
-                action_name=self.action_name,
-                message="📡 使用应力表达式搜索周免游戏...",
+                motive="DISCOVERY", action_name=self.action_name, message="📡 使用应力表达式搜索周免游戏..."
             )
         )
 
@@ -176,15 +170,11 @@ class EpicAwesomeExplorer:
 
                 # 定位周免游戏的绝对位置
                 WebDriverWait(ctx, 45, ignored_exceptions=WebDriverException).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//a[contains(string(),'当前免费')]")
-                    )
+                    EC.presence_of_element_located((By.XPATH, "//a[contains(string(),'当前免费')]"))
                 )
 
                 # 周免游戏基本信息
-                stress_operator = ctx.find_elements(
-                    By.XPATH, "//a[contains(string(),'当前免费')]"
-                )
+                stress_operator = ctx.find_elements(By.XPATH, "//a[contains(string(),'当前免费')]")
                 title_seq = ctx.find_elements(
                     By.XPATH,
                     "//a[contains(string(),'当前免费')]//span[@data-testid='offer-title-info-title']",
@@ -355,9 +345,8 @@ class GameLibManager(EpicAwesomeExplorer):
                 return [obj["url"] for obj in ctx_content]
             return ctx_content
 
-    def is_my_game(
-        self, ctx_cookies, page_link: str, pre_assert_content: bytes = None
-    ) -> Optional[dict]:
+    @staticmethod
+    def is_my_game(ctx_cookies, page_link: str, pre_assert_content: bytes = None) -> Optional[dict]:
         """
         判断游戏在库状态
 
@@ -372,6 +361,13 @@ class GameLibManager(EpicAwesomeExplorer):
             False 继续任务
             仅当返回值为 False 时可以继续任务，并可以进一步筛选掉 AjaxLoadingReject 目标。
         """
+
+        def response_wrapper(new_params: dict):
+            resp_ = {"assert": "", "status": None, "warning": ""}
+            resp_.update(new_params)
+            return resp_
+
+        # 模式匹配 --> 上下文呈递|重新握手
         if pre_assert_content is None:
             headers = {
                 "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -386,59 +382,48 @@ class GameLibManager(EpicAwesomeExplorer):
         else:
             content = pre_assert_content
 
+        # 清洗页面的促销信息
         tree = etree.HTML(content)
         assert_obj = tree.xpath(
             "//span[@data-component='PurchaseCTA']//span[@data-component='Message']"
         )
 
-        # 🚧 异常状态
-        if not assert_obj:
-            logger.debug(
-                ToolBox.runtime_report(
-                    motive="IGNORE",
-                    action_name=self.action_name,
-                    message="忽略尚未发布的游戏对象",
-                    url=page_link,
-                )
-            )
-            return {"assert": "AssertObjectNotFound", "status": None}
+        # 模式匹配 --> 向下游呈递资源对象的状态
+        # 1. 剔除已在库的、付费的、未推出的资源；
+        # 2. 剔除被限制的免费资源；
+        # 3. 呈递待领取的免费资源；
 
+        # 🚧 异常状态 忽略尚未发布的游戏对象
+        if not assert_obj:
+            return response_wrapper({"assert": "AssertObjectNotFound", "status": None})
         assert_message = assert_obj[0].text
-        response_obj = {"assert": assert_message, "warning": "", "status": None}
 
         # 🚧 跳过 `无法认领` 的日志信息
         if assert_message in ["已在游戏库中", "已在库中", "立即购买", "购买", "即将推出"]:
-            response_obj["status"] = True
-        # 🚧 惰性加载，前置节点不处理动态加载元素
-        elif assert_message in ["正在载入"]:
-            response_obj["status"] = False
-            response_obj["assert"] = "AjaxLoadingReject"
-        # 🍟 未领取的免费游戏
-        elif assert_message in ["获取"]:
-            warning_obj = tree.xpath("//h1[@class='css-1gty6cv']//span")
-            # 出现遮挡警告
-            if warning_obj:
-                warning_message = warning_obj[0].text
-                response_obj["warning"] = warning_message
-                # 成人内容可获取
-                if "成人内容" in warning_message:
-                    response_obj["status"] = False
-                # 如地区限制警告
-                else:
-                    logger.warning(
-                        ToolBox.runtime_report(
-                            motive="SKIP",
-                            action_name=self.action_name,
-                            message=warning_message,
-                            url=page_link,
-                        )
-                    )
-                    response_obj["status"] = None
-            # 继续任务
-            else:
-                response_obj["status"] = False
+            return response_wrapper({"assert": assert_message, "status": True})
 
-        return response_obj
+        # 🚧 惰性加载，前置节点不处理动态加载元素
+        if assert_message in ["正在载入"]:
+            return response_wrapper({"assert": "AjaxLoadingReject", "status": False})
+
+        # 🍟 未领取的免费游戏
+        if assert_message in ["获取"]:
+            # 無遮挡警告 繼續任務
+            warning_obj = tree.xpath("//h1[@class='css-1gty6cv']//span")
+            if not warning_obj:
+                return response_wrapper({"assert": assert_message, "status": False})
+
+            # 成人内容可获取
+            warning_message = warning_obj[0].text
+            if warning_message in ["成人内容"]:
+                return response_wrapper(
+                    {"assert": assert_message, "warning": warning_message, "status": False}
+                )
+
+            # 地区限制無法獲取
+            return response_wrapper(
+                {"assert": assert_message, "warning": warning_message, "status": None}
+            )
 
 
 class _Game:
@@ -458,9 +443,7 @@ class _Dlc:
     # 附加内容名称
     name: str = "《消逝的光芒》-《求生之路 2》Weapon Pack"
     # 商城访问链接
-    url: str = (
-        "https://store.epicgames.com/zh-CN/p/dying-light--left-4-dead-2-weapon-pack"
-    )
+    url: str = "https://store.epicgames.com/zh-CN/p/dying-light--left-4-dead-2-weapon-pack"
     # 在库情况 True在库 False不在 None不到啊(初始化状态)
     in_library: bool = None
 
