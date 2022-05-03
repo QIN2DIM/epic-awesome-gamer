@@ -57,6 +57,7 @@ from .exceptions import (
     AuthMFA,
     AuthUnknownException,
     CookieRefreshException,
+    LoginException,
 )
 
 # 显示人机挑战的DEBUG日志
@@ -123,6 +124,8 @@ class ArmorUtils(ArmorCaptcha):
                             error_text=error_text,
                         )
                     )
+                    if "账号或密码" in error_text:
+                        raise LoginException(error_text)
                     raise AssertTimeout
             except (WebDriverException, AttributeError, TypeError):
                 pass
@@ -247,7 +250,6 @@ class ArmorUtils(ArmorCaptcha):
         self.runtime_workspace = workspace_
 
     def challenge_success(self, ctx: ChallengerContext, window=None, **kwargs) -> Tuple[str, str]:
-        super().challenge_success(ctx, window=window, **kwargs)
         """
         判断挑战是否成功的复杂逻辑
 
@@ -261,6 +263,7 @@ class ArmorUtils(ArmorCaptcha):
         - 通过验证，弹出 2FA 双重认证
           无法处理，任务结束
 
+        :param window:
         :param ctx: 挑战者驱动上下文
         :return:
         """
@@ -268,7 +271,7 @@ class ArmorUtils(ArmorCaptcha):
         def is_challenge_image_clickable():
             time.sleep(2)
             try:
-                WebDriverWait(ctx, 1).until(
+                WebDriverWait(ctx, 1, 0.1).until(
                     EC.presence_of_element_located((By.XPATH, "//div[@class='task-image']"))
                 )
                 return True
@@ -295,8 +298,9 @@ class ArmorUtils(ArmorCaptcha):
                     WebDriverWait(ctx, 25, 0.1).until_not(
                         EC.presence_of_element_located((By.XPATH, self.HOOK_PURCHASE))
                     )
-                except TimeoutException:
                     return self.CHALLENGE_SUCCESS, "退火成功"
+                except TimeoutException:
+                    return self.CHALLENGE_RETRY, "決策中斷"
             if window == "login":
                 # {{< 人機挑戰|模擬退火 >}}
                 for _ in range(45):
@@ -308,7 +312,7 @@ class ArmorUtils(ArmorCaptcha):
                     # 2. 高威脅水平的訪客IP
                     if len(mui_typography) > 1:
                         try:
-                            error_text = mui_typography[1].text
+                            error_text = mui_typography[1].text.strip()
                         except AttributeError:
                             pass
                         else:
@@ -320,7 +324,7 @@ class ArmorUtils(ArmorCaptcha):
                                 return self.CHALLENGE_CRASH, "登入页面错误回复"
                             else:
                                 self.log("認證失敗", resp=error_text)
-                                _unknown = AuthUnknownException()
+                                _unknown = AuthUnknownException(msg=error_text)
                                 _unknown.report(error_text)
                                 raise _unknown
                     # {{< 輪詢漏檢狀態 >}}
@@ -331,7 +335,7 @@ class ArmorUtils(ArmorCaptcha):
                         # 1. 如果没有遇到多重认证，人机挑战成功
                         # 2. 人机挑战通过，但可能还需处理 `2FA` 问题（超纲了）
                         try:
-                            WebDriverWait(ctx, 0.5).until(EC.url_changes(flag))
+                            WebDriverWait(ctx, 2, 0.1).until(EC.url_changes(flag))
                         except TimeoutException:
                             pass
                         else:

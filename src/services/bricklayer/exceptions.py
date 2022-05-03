@@ -49,8 +49,8 @@ class AuthBreakWarning(AuthException):
 
 
 class AuthUnknownException(AuthException):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, msg=None, stacktrace=None):
+        super().__init__(msg, stacktrace)
         self.__doc__ = None
 
     def report(self, msg):
