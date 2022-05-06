@@ -6,6 +6,7 @@
 import asyncio
 import random
 import sys
+import time
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Union
 
@@ -40,7 +41,7 @@ class SteelTorrent(AshFramework):
         self.task_queue_pending = task_queue_pending
         self.headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/100.0.4896.127 Safari/537.36 Edg/100.0.1185.44",
+            "Chrome/101.0.4951.41 Safari/537.36 Edg/101.0.1210.32",
             "cookie": ToolBox.transfer_cookies(self.ctx_cookies),
         }
 
@@ -66,11 +67,18 @@ class SteelTorrent(AshFramework):
                 self.worker.put(dlc)
 
     async def control_driver(self, context, session=None):
-        # 判断游戏本体是否在库
-        async with session.get(context["url"], headers=self.headers) as response:
-            content = await response.read()
-            context["in_library"] = self.in_library(content)
-            self.task_queue_pending.put_nowait(context)
+        for _ in range(5):
+            # 判断游戏本体是否在库
+            try:
+                async with session.get(context["url"], headers=self.headers) as response:
+                    content = await response.read()
+                    context["in_library"] = self.in_library(content)
+                    self.task_queue_pending.put_nowait(context)
+                break
+            # 解析商品页时返回错误结果，等待若干秒后重试
+            except TypeError:
+                await asyncio.sleep(1)
+                time.sleep(2)
         # 识别免费附加内容
         if not context.get("review"):
             await self.parse_free_dlc(content, session)
@@ -463,7 +471,6 @@ class UnrealClaimerInstance(BaseInstance):
             self.task_queue_pending.put(content_obj)
 
     def inline_bricklayer(self):
-        """虚幻商城月供砖家"""
         self.bricklayer.claim_stabilizer(
             ctx_session=self._ctx_session, ctx_cookies=self._ctx_cookies
         )
