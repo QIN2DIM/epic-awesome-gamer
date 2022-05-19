@@ -34,6 +34,7 @@ __all__ = [
     "PLAYER",
     "ACTIVE_PUSHERS",
     "ACTIVE_SERVERS",
+    "SynergyTunnel",
 ]
 __version__ = "0.3.5.dev"
 
@@ -154,3 +155,21 @@ _0x1 = ["EPΙC_EMAΙL", "EPΙC_PASSWΟRD", "PLAYER"]
 _0x1.extend(PUSHER)
 for _k in _0x1:
     os.environ[_k] = "_0x1"
+
+
+class SynergyTunnel:
+    _CHANNEL = {}
+
+    LEAVES = []
+
+    @staticmethod
+    def set_combat(k, v):
+        SynergyTunnel._CHANNEL.update({k: v})
+
+    @staticmethod
+    def get_combat(k):
+        return SynergyTunnel._CHANNEL.get(k)
+
+    @staticmethod
+    def is_convert() -> bool:
+        return bool(SynergyTunnel.LEAVES)

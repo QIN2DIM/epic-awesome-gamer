@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Union
 
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 
-from services.settings import logger
+from services.settings import logger, SynergyTunnel
 from services.utils import ToolBox
 from .core import EpicAwesomeGamer, CookieManager
 from .exceptions import (
@@ -120,7 +120,7 @@ class GameClaimer(EpicAwesomeGamer):
     def is_empty_cart(self, ctx_cookies: List[dict], init=True) -> Optional[bool]:
         """判断商城购物车是否为空"""
         cookie = ToolBox.transfer_cookies(ctx_cookies)
-        tree, _ = ToolBox.handle_html(self.URL_GAME_CART, cookie)
+        tree, resp_ = ToolBox.handle_html(self.URL_GAME_CART, cookie)
 
         assert_obj = tree.xpath("//span[text()='您的购物车是空的。']")
         if len(assert_obj) != 0:
@@ -131,9 +131,11 @@ class GameClaimer(EpicAwesomeGamer):
                     )
                 )
             return True
+        if "challengeTitle" in resp_.text:
+            return None
         return False
 
-    def cart_balancing(self, ctx_cookies: List[dict], ctx_session, init=True):
+    def cart_balancing(self, ctx_cookies: List[dict], ctx_session, init=True, tun=False):
         """
         购物车|愿望清单的内容转移
 
@@ -179,7 +181,16 @@ class GameClaimer(EpicAwesomeGamer):
                 auth_str=self.AUTH_STR_GAMES,
             )
             self._move_product_to_wishlist(ctx=ctx_session)
-            return self.cart_balancing(ctx_cookies, ctx_session, init=False)
+            if tun is True:
+                logger.debug(
+                    ToolBox.runtime_report(
+                        motive="COMBAT",
+                        action_name=self.action_name,
+                        message="🥊 OneMoreStep Challenge",
+                    )
+                )
+                return
+            return self.cart_balancing(ctx_cookies, ctx_session, init=False, tun=tun)
 
     def empty_shopping_payment(self, ctx_cookies: List[dict], ctx_session):
         """清空购物车"""
@@ -188,6 +199,9 @@ class GameClaimer(EpicAwesomeGamer):
         while True:
             # [🚀] 判断购物车状态
             logger.debug("[🛵] 判断购物车状态")
+            if not init and SynergyTunnel.is_convert():
+                break
+            # resp: none --> OMS challenge
             if self.is_empty_cart(ctx_cookies, init=init):
                 break
 
@@ -239,9 +253,19 @@ class GameClaimer(EpicAwesomeGamer):
             # [🚀] 断言游戏的在库状态
             self.assert_.surprise_warning_purchase(ctx_session)
             get = bool(self.claim_mode == self.CLAIM_MODE_GET)
-            self.result = self.assert_.purchase_status(
-                ctx_session, page_link, get, self.action_name, init
-            )
+            for _ in range(2):
+                self.result = self.assert_.purchase_status(
+                    ctx_session, page_link, get, self.action_name, init
+                )
+                if self.result != self.assert_.ONE_MORE_STEP:
+                    break
+                if self.armor.face_the_checkbox(ctx_session):
+                    logger.debug(ctx_session.current_url)
+                    self.armor.anti_checkbox(ctx_session)
+                    with open("inner.html", "w", encoding="utf8") as file:
+                        file.write(ctx_session.page_source)
+                    self._duel_with_challenge(ctx_session, window="oms")
+                ctx_session.get_screenshot_as_file(f"{int(time.time())}.png")
 
             # 当游戏不处于 待认领 状态时跳过后续业务
             if self.result != self.assert_.GAME_PENDING:
@@ -250,6 +274,7 @@ class GameClaimer(EpicAwesomeGamer):
                 if self.result == self.assert_.ASSERT_OBJECT_EXCEPTION:
                     continue
                 # 否则游戏状态处于<领取成功>或<已在库>或<付费游戏>
+                SynergyTunnel.set_combat(page_link, self.result)
                 break
 
             # [🚀] 激活游戏订单

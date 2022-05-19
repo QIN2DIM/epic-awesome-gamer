@@ -25,6 +25,7 @@ from services.settings import (
     PLAYER,
     ACTIVE_SERVERS,
     ACTIVE_PUSHERS,
+    SynergyTunnel,
 )
 from services.utils import ToolBox, get_challenge_ctx, MessagePusher, AshFramework
 
@@ -32,7 +33,7 @@ from services.utils import ToolBox, get_challenge_ctx, MessagePusher, AshFramewo
 class SteelTorrent(AshFramework):
     """加速嵌套循环"""
 
-    def __init__(self, docker, ctx_cookies, explorer, bricklayer, task_queue_pending):
+    def __init__(self, docker, ctx_cookies, explorer, bricklayer, task_queue_pending, tun):
         super().__init__(docker=docker)
 
         self.ctx_cookies = ctx_cookies
@@ -44,6 +45,7 @@ class SteelTorrent(AshFramework):
             "Chrome/101.0.4951.41 Safari/537.36 Edg/101.0.1210.32",
             "cookie": ToolBox.transfer_cookies(self.ctx_cookies),
         }
+        self.tun = tun
 
     def in_library(self, content) -> bool:
         result = self.explorer.game_manager.is_my_game(self.ctx_cookies, None, content)
@@ -67,21 +69,27 @@ class SteelTorrent(AshFramework):
                 self.worker.put(dlc)
 
     async def control_driver(self, context, session=None):
-        for _ in range(5):
-            # 判断游戏本体是否在库
-            try:
-                async with session.get(context["url"], headers=self.headers) as response:
-                    content = await response.read()
-                    context["in_library"] = self.in_library(content)
-                    self.task_queue_pending.put_nowait(context)
-                break
-            # 解析商品页时返回错误结果，等待若干秒后重试
-            except TypeError:
-                await asyncio.sleep(1)
-                time.sleep(2)
-        # 识别免费附加内容
-        if not context.get("review"):
-            await self.parse_free_dlc(content, session)
+        # 在隧道模式中不开启前置的网络请求
+        if self.tun is True:
+            context["in_library"] = SynergyTunnel.get_combat(context["url"])
+            self.task_queue_pending.put_nowait(context)
+        # 通过网络请求判断游戏本体是否在库
+        else:
+            for _ in range(5):
+                try:
+                    async with session.get(context["url"], headers=self.headers) as response:
+                        content = await response.read()
+                        context["in_library"] = self.in_library(content)
+                        self.task_queue_pending.put_nowait(context)
+                    break
+                # 解析商品页时返回错误结果，等待若干秒后重试
+                except TypeError:
+                    await asyncio.sleep(1)
+                    time.sleep(2)
+
+            # 识别免费附加内容
+            if not context.get("review"):
+                await self.parse_free_dlc(content, session)
 
     async def advance(self, workers):
         await super().subvert(workers)
@@ -170,10 +178,13 @@ class ClaimerScheduler:
         if platform == "vps":
             self.deploy_on_vps()
 
-    def job_loop_claim(self, log_ignore: Optional[bool] = False):
+    def job_loop_claim(self, log_ignore: Optional[bool] = False, tun: Optional[bool] = True):
         """wrap function for claimer instance"""
         if not self.unreal:
-            with GameClaimerInstance(silence=self.silence, log_ignore=log_ignore) as claimer:
+            self.logger.debug(f"SynergyTunnel Pattern: {tun}")
+            with GameClaimerInstance(
+                silence=self.silence, log_ignore=log_ignore, tun=tun
+            ) as claimer:
                 claimer.just_do_it()
         else:
             with UnrealClaimerInstance(silence=self.silence, log_ignore=log_ignore) as claimer:
@@ -184,7 +195,11 @@ class BaseInstance:
     """Atomic Scheduler"""
 
     def __init__(
-        self, silence: bool, log_ignore: Optional[bool] = False, action_name: Optional[str] = None
+        self,
+        silence: bool,
+        log_ignore: Optional[bool] = False,
+        action_name: Optional[str] = None,
+        tun: Optional[bool] = True,
     ):
         """
 
@@ -199,6 +214,7 @@ class BaseInstance:
         self.depth = 0
         # 服务注册
         self.logger = logger
+        self.tun = tun
         self.bricklayer = GameClaimer(silence=silence)
         # 尚未初始化的挑战者上下文容器
         self._ctx_session = None
@@ -332,8 +348,11 @@ class BaseInstance:
             resource_obj = self.task_queue_pending.get()
             # 实例已在库
             if resource_obj["in_library"]:
+                if self.tun is True:
+                    result = SynergyTunnel.get_combat(resource_obj["url"])
+                    message = result
                 # 初见判断在库，资源已在库；多轮判断在库，资源领取成功
-                if self.depth == 0:
+                elif self.depth == 0:
                     result = self.ok
                     message = "🛴 资源已在库"
                 else:
@@ -392,8 +411,10 @@ class BaseInstance:
 class GameClaimerInstance(BaseInstance):
     """单步子任务 认领周免游戏"""
 
-    def __init__(self, silence: bool, log_ignore: Optional[bool] = False):
-        super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer")
+    def __init__(
+        self, silence: bool, log_ignore: Optional[bool] = False, tun: Optional[bool] = True
+    ):
+        super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer", tun=tun)
 
         self.explorer = Explorer(silence=silence)
 
@@ -415,7 +436,6 @@ class GameClaimerInstance(BaseInstance):
         self.promotions_context = [
             {"url": p[0], "name": p[-1]} for p in self.get_promotions().items()
         ]
-
         new_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(new_loop)
 
@@ -425,6 +445,7 @@ class GameClaimerInstance(BaseInstance):
             explorer=self.explorer,
             bricklayer=self.bricklayer,
             task_queue_pending=self.task_queue_pending,
+            tun=self.tun,
         )
 
         return self
@@ -449,13 +470,18 @@ class GameClaimerInstance(BaseInstance):
             loop.run_until_complete(self.steel_torrent.advance(workers="fast"))
 
     def inline_bricklayer(self):
-        self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session)
+        self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session, tun=self.tun)
         while not self.task_queue_worker.empty():
             job = self.task_queue_worker.get()
             job["review"] = True
             self.bricklayer.claim_stabilizer(job["url"], self._ctx_cookies, self._ctx_session)
             self.promotions_review.append(job)
-        self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
+            SynergyTunnel.LEAVES.append(job["url"])
+        for leave in SynergyTunnel.LEAVES:
+            if not SynergyTunnel.get_combat(leave):
+                self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
+                SynergyTunnel.set_combat(leave, self.coco)
+                break
 
 
 class UnrealClaimerInstance(BaseInstance):
