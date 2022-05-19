@@ -21,6 +21,7 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     InvalidCookieDomainException,
 )
+from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -176,9 +177,28 @@ class ArmorUtils(ArmorCaptcha):
         except TimeoutException:
             return False
 
+    @staticmethod
+    def face_the_checkbox(ctx: Chrome) -> Optional[bool]:
+        """遇见 hCaptcha checkbox"""
+        try:
+            WebDriverWait(ctx, 8, ignored_exceptions=WebDriverException).until(
+                EC.presence_of_element_located((By.XPATH, "//iframe[contains(@title,'checkbox')]"))
+            )
+            return True
+        except TimeoutException:
+            return False
+
     def switch_challenge_iframe(self, ctx: ChallengerContext, window: str):
         # turn to dom root
         ctx.switch_to.default_content()
+
+        if window == "oms":
+            WebDriverWait(ctx, 5).until(
+                EC.presence_of_element_located((By.XPATH, self.HOOK_CHALLENGE))
+            )
+            hooks = ctx.find_elements(By.XPATH, self.HOOK_CHALLENGE)
+            ctx.switch_to.frame(hooks[-1])
+            return
 
         # purchase framework
         if window == "free":
@@ -346,6 +366,10 @@ class ArmorUtils(ArmorCaptcha):
                 # 輪詢超時 若此時頁面仍未跳轉視爲挑戰失敗
                 if ctx.current_url == flag:
                     return self.CHALLENGE_CONTINUE, "退火断言超时，挑战重置"
+            if window == "oms":
+                ctx.get_screenshot_as_file(f"{int(time.time())}.png")
+                self.log(ctx.page_source)
+                return self.CHALLENGE_SUCCESS, "退火成功"
 
     def tactical_retreat(self) -> Optional[str]:
         """模型存在泛化死角，遇到指定标签时主动进入下一轮挑战，节约时间"""
@@ -418,6 +442,26 @@ class ArmorUtils(ArmorCaptcha):
         finally:
             ctx.switch_to.default_content()
 
+    def anti_checkbox(self, ctx):
+        """处理复选框"""
+        for _ in range(8):
+            try:
+                # [👻] 进入复选框
+                WebDriverWait(ctx, 2, ignored_exceptions=ElementNotVisibleException).until(
+                    EC.frame_to_be_available_and_switch_to_it(
+                        (By.XPATH, "//div[@id='cf-hcaptcha-container']//div[not(@style)]//iframe")
+                    )
+                )
+                # [👻] 点击复选框
+                WebDriverWait(ctx, 2).until(EC.element_to_be_clickable((By.ID, "checkbox"))).click()
+                self.log("Handle hCaptcha checkbox")
+                return True
+            except TimeoutException:
+                pass
+            finally:
+                # [👻] 回到主线剧情
+                ctx.switch_to.default_content()
+
 
 class AssertUtils:
     """处理穿插在认领过程中意外出现的遮挡信息"""
@@ -430,6 +474,8 @@ class AssertUtils:
     GAME_PENDING = "👀 待认领"
     GAME_CLAIM = "🛒 领取成功"
     GAME_NOT_FREE = "🦽 付费游戏"
+
+    ONE_MORE_STEP = "🥊 进位挑战"
 
     @staticmethod
     def login_error(ctx: ChallengerContext) -> bool:
@@ -588,14 +634,14 @@ class AssertUtils:
             pass
 
     @staticmethod
-    def timeout(loop_start: float, loop_timeout: float = 300) -> NoReturn:
+    def timeout(loop_start: float, loop_timeout: float = 180) -> NoReturn:
         """任务超时锁"""
         if time.time() - loop_start > loop_timeout:
             raise AssertTimeout
 
     @staticmethod
     def purchase_status(
-        ctx: ChallengerContext,
+        ctx,
         page_link: str,
         get: bool,
         action_name: Optional[str] = "AssertUtils",
@@ -614,19 +660,24 @@ class AssertUtils:
         time.sleep(2)
 
         # 捕获按钮对象，根据按钮上浮动的提示信息断言游戏在库状态 超时的空对象主动抛出异常
-        try:
-            assert_obj = WebDriverWait(ctx, 30).until(
-                EC.element_to_be_clickable(
-                    (
-                        By.XPATH,
-                        "//span[@data-component='PurchaseCTA']//span[@data-component='Message']",
+        for _ in range(15):
+            try:
+                assert_obj = WebDriverWait(ctx, 2).until(
+                    EC.element_to_be_clickable(
+                        (
+                            By.XPATH,
+                            "//span[@data-component='PurchaseCTA']//span[@data-component='Message']",
+                        )
                     )
                 )
-            )
-        except TimeoutException:
+                assert_info = assert_obj.text
+                break
+            except TimeoutException:
+                ctx.get_screenshot_as_file(f"{int(time.time())}.png")
+                if "再进行一步操作" in ctx.page_source:
+                    return AssertUtils.ONE_MORE_STEP
+        else:
             return AssertUtils.ASSERT_OBJECT_EXCEPTION
-
-        assert_info = assert_obj.text
 
         # 游戏名 超时的空对象主动抛出异常
         game_name = (
@@ -753,12 +804,12 @@ class EpicAwesomeGamer:
     # 操作对象参数
     URL_MASTER_HOST = "https://store.epicgames.com"
     URL_LOGIN_GAMES = "https://www.epicgames.com/id/login/epic?lang=zh-CN"
-    URL_LOGIN_UNREAL = "https://www.unrealengine.com/id/login/epic?lang=zh-CN"
     URL_ACCOUNT_PERSONAL = "https://www.epicgames.com/account/personal"
 
     # 购物车结算成功
     URL_CART_SUCCESS = "https://store.epicgames.com/zh-CN/cart/success"
 
+    URL_LOGIN_UNREAL = "https://www.unrealengine.com/id/login/epic?lang=zh-CN"
     URL_UNREAL_STORE = "https://www.unrealengine.com/marketplace/zh-CN/assets"
     URL_UNREAL_MONTH = (
         f"{URL_UNREAL_STORE}?count=20&sortBy=effectiveDate&sortDir=DESC&start=0&tag=4910"
@@ -858,7 +909,7 @@ class EpicAwesomeGamer:
             ctx.switch_to.default_content()
             return False
 
-    def _duel_with_challenge(self, ctx) -> Optional[bool]:
+    def _duel_with_challenge(self, ctx, window="free") -> Optional[bool]:
         """
         动态处理人机挑战
         :param ctx:
@@ -867,7 +918,7 @@ class EpicAwesomeGamer:
         if self.armor.fall_in_captcha_runtime(ctx):
             self.assert_.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
-                return self.armor.anti_hcaptcha(ctx, dir_model=DIR_MODEL, window="free")
+                return self.armor.anti_hcaptcha(ctx, dir_model=DIR_MODEL, window=window)
             except (ChallengeReset, WebDriverException):
                 pass
 
@@ -887,9 +938,11 @@ class EpicAwesomeGamer:
                 WebDriverWait(api, 5, ignored_exceptions=ElementClickInterceptedException).until(
                     EC.element_to_be_clickable((By.XPATH, element_xpath[mode]))
                 ).click()
+                logger.debug("activate-payment  # 加载成功")
                 return True
             # 加载超时，继续测试
             except TimeoutException:
+                logger.debug("activate-payment  # 加载超时，继续测试")
                 continue
             # 出现弹窗遮挡
             except ElementClickInterceptedException:
@@ -987,6 +1040,7 @@ class EpicAwesomeGamer:
 
         def annealing():
             logger.debug(f"[🎃] 退火成功")
+
             return True
 
         _fall_in_challenge = 0

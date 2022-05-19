@@ -20,6 +20,7 @@ def run(
     silence: Optional[bool] = None,
     log_ignore: Optional[bool] = None,
     unreal: Optional[bool] = False,
+    tun: Optional[bool] = True,
 ):
     """运行 `claim` 单步子任务，认领周免游戏"""
-    ClaimerScheduler(silence=silence, unreal=unreal).job_loop_claim(log_ignore)
+    ClaimerScheduler(silence=silence, unreal=unreal).job_loop_claim(log_ignore, tun)

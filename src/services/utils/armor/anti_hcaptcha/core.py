@@ -40,6 +40,7 @@ class ArmorCaptcha:
             "巴士": "bus",
             "飞机": "aeroplane",
             "ー条船": "boat",
+            "一条船": "boat",
             "船": "boat",
             "摩托车": "motorbike",
             "垂直河流": "vertical river",
