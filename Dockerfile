@@ -1,4 +1,4 @@
-FROM python:3.10-slim as builder
+FROM python:3.10 as builder
 
 WORKDIR /home/epic
 
