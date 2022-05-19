@@ -83,11 +83,13 @@ class Explorer(EpicAwesomeExplorer):
         else:
             elements = data["data"]["Catalog"]["searchStore"]["elements"]
             promotions = [e for e in elements if e.get("promotions")]
-
             # 获取商城促销数据&&获取<本周免费>的游戏对象
             for promotion in promotions:
                 if promotion["promotions"]["promotionalOffers"]:
-                    url = self.URL_PRODUCT_PAGE + promotion["catalogNs"]["mappings"][0]["pageSlug"]
+                    try:
+                        url = self.URL_PRODUCT_PAGE + promotion["catalogNs"]["mappings"][0]["pageSlug"]
+                    except IndexError:
+                        url = self.URL_PRODUCT_PAGE + promotion["productSlug"]
                     free_game_objs[url] = promotion["title"]
 
         return free_game_objs
