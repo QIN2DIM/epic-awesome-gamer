@@ -938,11 +938,11 @@ class EpicAwesomeGamer:
                 WebDriverWait(api, 5, ignored_exceptions=ElementClickInterceptedException).until(
                     EC.element_to_be_clickable((By.XPATH, element_xpath[mode]))
                 ).click()
-                logger.debug("activate-payment  # 加载成功")
+                logger.debug(f"[🔖] 资源订单加载完毕 - mode={mode}")
                 return True
             # 加载超时，继续测试
             except TimeoutException:
-                logger.debug("activate-payment  # 加载超时，继续测试")
+                logger.debug(f"[🔖] 资源订单加载超时 - mode={mode}")
                 continue
             # 出现弹窗遮挡
             except ElementClickInterceptedException:
