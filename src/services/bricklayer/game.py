@@ -280,8 +280,8 @@ class GameClaimer(EpicAwesomeGamer):
             self._activate_payment(ctx, mode=self.claim_mode)
 
             # 上下文切换
+            self.captcha_runtime_memory(ctx, suffix="_switch")
             if self.claim_mode == self.CLAIM_MODE_ADD:
-                self.captcha_runtime_memory(ctx, suffix="_switch")
                 break
 
             # [🚀] 新用户首次购买游戏需要处理许可协议书

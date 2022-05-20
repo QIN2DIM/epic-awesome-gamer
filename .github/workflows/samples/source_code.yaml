@@ -1,0 +1,45 @@
+name: fuck me till the daylight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    env:
+      COMMAND: "python main.py claim"
+      EPΙC_EMAΙL: ${{ secrets.EPIC_EMAIL }}
+      EPΙC_PASSWΟRD: ${{ secrets.EPIC_PASSWORD }}
+      PUSHER_TELEGRAM: ${{ secrets.PUSHER_TELEGRAM }}
+      PLAYER: ${{ secrets.EPIC_PLAYER }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Init the env & pulling project
+      run: |
+        sudo timedatectl set-timezone "Asia/Shanghai"
+        git clone https://github.com/QIN2DIM/epic-awesome-gamer.git epic
+    - name: Installing Dependencies
+      run: |
+        cd epic 
+        pip install -r requirements.txt
+        cd src
+        cp config-sample.yaml config.yaml
+        python main.py install
+    - name: Just do it
+      run: |
+        if [ -f "ctx_cookies.yaml" ];then cp ctx_cookies.yaml epic/src/database/cookies/; fi
+        cd epic/src/ && ${{ env.COMMAND }}
+    - name: Setup GIT user
+      uses: fregante/setup-git-user@v1
+    - name: Caching identity tokens
+      run: |
+        cp epic/src/database/cookies/ctx_cookies.yaml .
+        cp epic/src/database/logs/runtime.log .
+        cp -a epic/src/database/logs/screenshot ./screenshot
+        rm -rf epic
+        git add .
+        git commit -m "Automated deployment @ $(date '+%Y-%m-%d %H:%M:%S') Asia/Shanghai"
+        git push -f

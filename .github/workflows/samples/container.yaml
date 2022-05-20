@@ -1,0 +1,22 @@
+name: Fingers of the Golden Order
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    env:
+      EPΙC_EMAΙL: ${{ secrets.EPIC_EMAIL }}
+      EPΙC_PASSWΟRD: ${{ secrets.EPIC_PASSWORD }}
+      PUSHER_TELEGRAM: ${{ secrets.PUSHER_TELEGRAM }}
+      PLAYER: ${{ secrets.EPIC_PLAYER }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scaffold Claim
+        run: |
+          docker run --rm --pull always \
+          -e EPΙC_EMAΙL \
+          -e EPΙC_PASSWΟRD \
+          -e PUSHER_TELEGRAM \
+          -e PLAYER \
+          ech0sec/awesome-epic:daddy python3 main.py claim
