@@ -232,7 +232,7 @@ class GameClaimer(EpicAwesomeGamer):
             init = False
             self.assert_.timeout(_loop_start, self.loop_timeout)
 
-    def get_free_game(self, page_link: str, ctx_cookies: List[dict], ctx_session) -> Optional[str]:
+    def get_free_game(self, page_link: str, ctx_cookies: List[dict], ctx) -> Optional[str]:
         """获取周免资源 游戏本体/附加内容 集成接口"""
         if not ctx_cookies:
             raise CookieExpired(self.assert_.COOKIE_EXPIRED)
@@ -244,28 +244,27 @@ class GameClaimer(EpicAwesomeGamer):
             # InvalidCookieDomainException：需要 2 次 GET 重载 cookie relative domain
             # InvalidCookieDomainException：跨域认证，访问主域名或过滤异站域名信息
             self._reset_page(
-                ctx=ctx_session,
-                page_link=page_link,
-                ctx_cookies=ctx_cookies,
-                auth_str=self.AUTH_STR_GAMES,
+                ctx=ctx, page_link=page_link, ctx_cookies=ctx_cookies, auth_str=self.AUTH_STR_GAMES
             )
 
+            # [🚀] 处理前置的遮挡信息
+            self.assert_.surprise_warning_purchase(ctx)
+
             # [🚀] 断言游戏的在库状态
-            self.assert_.surprise_warning_purchase(ctx_session)
+            # 捕获 ONE MORE STEP CHALLENGE
             get = bool(self.claim_mode == self.CLAIM_MODE_GET)
             for _ in range(2):
                 self.result = self.assert_.purchase_status(
-                    ctx_session, page_link, get, self.action_name, init
+                    ctx, page_link, get, self.action_name, init
                 )
                 if self.result != self.assert_.ONE_MORE_STEP:
                     break
-                if self.armor.face_the_checkbox(ctx_session):
-                    logger.debug(ctx_session.current_url)
-                    self.armor.anti_checkbox(ctx_session)
-                    with open("inner.html", "w", encoding="utf8") as file:
-                        file.write(ctx_session.page_source)
-                    self._duel_with_challenge(ctx_session, window="oms")
-                ctx_session.get_screenshot_as_file(f"{int(time.time())}.png")
+                if self.armor.face_the_checkbox(ctx) and self.armor.anti_checkbox(ctx):
+                    self._duel_with_challenge(ctx)
+                    time.sleep(5)
+            else:
+                self.assert_.timeout(_loop_start, self.loop_timeout)
+                continue
 
             # 当游戏不处于 待认领 状态时跳过后续业务
             if self.result != self.assert_.GAME_PENDING:
@@ -278,21 +277,23 @@ class GameClaimer(EpicAwesomeGamer):
                 break
 
             # [🚀] 激活游戏订单
-            self._activate_payment(ctx_session, mode=self.claim_mode)
+            self._activate_payment(ctx, mode=self.claim_mode)
+
             # 上下文切换
             if self.claim_mode == self.CLAIM_MODE_ADD:
+                self.captcha_runtime_memory(ctx, suffix="_switch")
                 break
 
             # [🚀] 新用户首次购买游戏需要处理许可协议书
-            if self.assert_.surprise_license(ctx_session):
-                ctx_session.refresh()
+            if self.assert_.surprise_license(ctx):
+                ctx.refresh()
                 continue
 
             # [🚀] 订单消失
-            self.assert_.payment_auto_submit(ctx_session)
+            self.assert_.payment_auto_submit(ctx)
 
             # [🚀] 处理游戏订单
-            self._handle_payment(ctx_session)
+            self._handle_payment(ctx)
 
             # [🚀] 更新上下文状态
             init = False
@@ -315,9 +316,7 @@ class GameClaimer(EpicAwesomeGamer):
     ) -> Optional[str]:
         """获取周免资源 游戏本体/附加内容 集成接口"""
         try:
-            return self.get_free_game(
-                page_link=page_link, ctx_cookies=ctx_cookies, ctx_session=ctx_session
-            )
+            return self.get_free_game(page_link=page_link, ctx_cookies=ctx_cookies, ctx=ctx_session)
         except AssertTimeout:
             logger.debug(
                 ToolBox.runtime_report(
