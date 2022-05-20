@@ -9,7 +9,7 @@ from typing import List, Optional, Union, Dict
 import cloudscraper
 
 from services.settings import logger
-from services.utils import ToolBox, get_ctx
+from services.utils import ToolBox, get_challenge_ctx
 from .core import EpicAwesomeExplorer, GameLibManager
 from .exceptions import DiscoveryTimeoutException
 
@@ -44,7 +44,7 @@ class Explorer(EpicAwesomeExplorer):
 
         # 创建驱动上下文
         try:
-            with get_ctx(silence=silence, fast=True) as ctx:
+            with get_challenge_ctx(silence=silence) as ctx:
                 self._discovery_free_games(ctx=ctx, ctx_cookies=ctx_cookies, category=category)
         except DiscoveryTimeoutException as err:
             logger.error(err)
@@ -110,7 +110,7 @@ class Explorer(EpicAwesomeExplorer):
             finally:
                 ctx_session.switch_to.window(critical_memory)
         else:
-            with get_ctx(silence=self.silence) as ctx:
+            with get_challenge_ctx(silence=self.silence) as ctx:
                 pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx)
 
         if pending_games:

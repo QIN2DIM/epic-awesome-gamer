@@ -296,7 +296,6 @@ def _set_ctx(language: Optional[str] = None) -> ChromeOptions:
     options = ChromeOptions()
     options.add_argument("--log-level=3")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--no-sandbox")
 
     # 统一挑战语言
     os.environ["LANGUAGE"] = "zh" if language is None else language
@@ -312,6 +311,7 @@ def get_ctx(silence: Optional[bool] = None, fast: Optional[bool] = False) -> Sta
 
     options = _set_ctx()
     if silence is True:
+        options.add_argument("--no-sandbox")
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-software-rasterizer")

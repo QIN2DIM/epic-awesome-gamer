@@ -5,6 +5,8 @@
 # Description:
 from typing import Optional
 
+from loguru import logger
+
 from apis.scaffold import get, challenge, install, claimer
 
 
@@ -46,11 +48,12 @@ class Scaffold:
 
     @staticmethod
     def get(
-        debug: Optional[bool] = None,
-        cache: Optional[bool] = True,
-        dlc: Optional[bool] = False,
-        unreal: Optional[bool] = False,
-        silence: Optional[bool] = True,
+            debug: Optional[bool] = None,
+            cache: Optional[bool] = True,
+            dlc: Optional[bool] = False,
+            unreal: Optional[bool] = False,
+            silence: Optional[bool] = True,
+            dev: Optional[str] = None
     ):
         """
 
@@ -84,6 +87,7 @@ class Scaffold:
 
         存储内容与当前上下文身份令牌有关（不同地区权限不同）。
 
+        :param dev:
         :param unreal: 默认False，与 ``dlc`` 只能同时生效一个。清扫虚幻商店所有可领取的免费内容。
         :param silence: 默认True。是否静默启动浏览器。除非你想观赏系统的作业流程，否则别徒增功耗。
           该项在 Linux 上始终为True，无法手动指定。
@@ -99,15 +103,18 @@ class Scaffold:
             category = "unreal"
         else:
             category = "game"
-
-        get.join(debug=debug, cache=cache, category=category, silence=silence)
+        logger.critical(
+            "The scaffolding command `get` is not open for use at this time, and related tasks will be skipped."
+        )
+        if dev == "chichao":
+            get.join(debug=debug, cache=cache, category=category, silence=silence)
 
     @staticmethod
     def claim(
-        silence: Optional[bool] = True,
-        ignore: Optional[bool] = False,
-        unreal: Optional[bool] = False,
-        tun: Optional[bool] = True,
+            silence: Optional[bool] = True,
+            ignore: Optional[bool] = False,
+            unreal: Optional[bool] = False,
+            tun: Optional[bool] = True,
     ):
         """
         Introduction
