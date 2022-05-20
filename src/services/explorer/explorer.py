@@ -87,7 +87,10 @@ class Explorer(EpicAwesomeExplorer):
             for promotion in promotions:
                 if promotion["promotions"]["promotionalOffers"]:
                     try:
-                        url = self.URL_PRODUCT_PAGE + promotion["catalogNs"]["mappings"][0]["pageSlug"]
+                        url = (
+                            self.URL_PRODUCT_PAGE
+                            + promotion["catalogNs"]["mappings"][0]["pageSlug"]
+                        )
                     except IndexError:
                         url = self.URL_PRODUCT_PAGE + promotion["productSlug"]
                     free_game_objs[url] = promotion["title"]

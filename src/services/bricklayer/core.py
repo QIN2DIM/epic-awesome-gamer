@@ -34,6 +34,7 @@ from services.settings import (
     DIR_MODEL,
     EPIC_PASSWORD,
     PATH_RAINBOW,
+    DIR_SCREENSHOT,
 )
 from services.utils import (
     ToolBox,
@@ -367,8 +368,10 @@ class ArmorUtils(ArmorCaptcha):
                 if ctx.current_url == flag:
                     return self.CHALLENGE_CONTINUE, "退火断言超时，挑战重置"
             if window == "oms":
-                ctx.get_screenshot_as_file(f"{int(time.time())}.png")
-                self.log(ctx.page_source)
+                try:
+                    WebDriverWait(ctx, 5).until(EC.url_changes(ctx.current_url))
+                except TimeoutException:
+                    pass
                 return self.CHALLENGE_SUCCESS, "退火成功"
 
     def tactical_retreat(self) -> Optional[str]:
@@ -456,6 +459,8 @@ class ArmorUtils(ArmorCaptcha):
                 WebDriverWait(ctx, 2).until(EC.element_to_be_clickable((By.ID, "checkbox"))).click()
                 self.log("Handle hCaptcha checkbox")
                 return True
+            except ElementClickInterceptedException:
+                return False
             except TimeoutException:
                 pass
             finally:
@@ -673,7 +678,6 @@ class AssertUtils:
                 assert_info = assert_obj.text
                 break
             except TimeoutException:
-                ctx.get_screenshot_as_file(f"{int(time.time())}.png")
                 if "再进行一步操作" in ctx.page_source:
                     return AssertUtils.ONE_MORE_STEP
         else:
@@ -918,7 +922,9 @@ class EpicAwesomeGamer:
         if self.armor.fall_in_captcha_runtime(ctx):
             self.assert_.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
-                return self.armor.anti_hcaptcha(ctx, dir_model=DIR_MODEL, window=window)
+                resp = self.armor.anti_hcaptcha(ctx, dir_model=DIR_MODEL, window=window)
+                self.captcha_runtime_memory(ctx, suffix=f"_{window}")
+                return resp
             except (ChallengeReset, WebDriverException):
                 pass
 
@@ -1000,6 +1006,18 @@ class EpicAwesomeGamer:
         # [🍜] Switch to default iframe.
         ctx.switch_to.default_content()
         ctx.refresh()
+
+    @staticmethod
+    def captcha_runtime_memory(ctx: ChallengerContext, suffix: str = ""):
+        _finger = os.path.join(DIR_SCREENSHOT, f"{int(time.time())}{suffix}")
+
+        # 保存截图
+        ctx.get_screenshot_as_file(f"{_finger}.png")
+
+        # 保存源码
+        content = ctx.execute_cdp_cmd("Page.captureSnapshot", {}).get("data", "")
+        with open(f"{_finger}.mhtml", "w", newline="") as file:
+            file.write(content)
 
     def login(self, email: str, password: str, ctx: ChallengerContext, auth_url: str):
         """

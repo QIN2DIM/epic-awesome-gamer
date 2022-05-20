@@ -24,6 +24,7 @@ __all__ = [
     "DIR_EXPLORER",
     "PATH_USR_COOKIES",
     "DIR_MODEL",
+    "DIR_SCREENSHOT",
     "PATH_RAINBOW",
     # ------------------------------
     # CONFIG
@@ -67,6 +68,7 @@ DIR_TEMP_CACHE = join(PROJECT_DATABASE, "temp_cache")
 DIR_CHALLENGE = join(DIR_TEMP_CACHE, "_challenge")
 # 服务日志目录
 DIR_LOG = join(PROJECT_DATABASE, "logs")
+DIR_SCREENSHOT = join(DIR_LOG, "screenshot")
 # ---------------------------------------------------
 # [√]服务器日志配置
 # ---------------------------------------------------
@@ -84,6 +86,7 @@ for _pending in [
     DIR_TEMP_CACHE,
     DIR_CHALLENGE,
     DIR_LOG,
+    DIR_SCREENSHOT,
 ]:
     if not os.path.exists(_pending):
         os.mkdir(_pending)

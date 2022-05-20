@@ -180,14 +180,14 @@ class ClaimerScheduler:
 
     def job_loop_claim(self, log_ignore: Optional[bool] = False, tun: Optional[bool] = True):
         """wrap function for claimer instance"""
-        if not self.unreal:
+        if self.unreal:
+            with UnrealClaimerInstance(silence=self.silence, log_ignore=log_ignore) as claimer:
+                claimer.just_do_it()
+        else:
             self.logger.debug(f"SynergyTunnel Pattern: {tun}")
             with GameClaimerInstance(
                 silence=self.silence, log_ignore=log_ignore, tun=tun
             ) as claimer:
-                claimer.just_do_it()
-        else:
-            with UnrealClaimerInstance(silence=self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
 
 
@@ -418,20 +418,12 @@ class GameClaimerInstance(BaseInstance):
 
         self.explorer = Explorer(silence=silence)
 
-        self.cookie = None
-        self.headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/100.0.4896.127 Safari/537.36 Edg/100.0.1185.44"
-        }
         self.promotions_review = []
         self.promotions_context = []
         self.steel_torrent = None
 
     def __enter__(self):
         super().__enter__()
-        self.cookie = ToolBox.transfer_cookies(self._ctx_cookies)
-        self.headers.update({"cookie": self.cookie})
-
         # 初始化协同任务
         self.promotions_context = [
             {"url": p[0], "name": p[-1]} for p in self.get_promotions().items()
@@ -470,13 +462,18 @@ class GameClaimerInstance(BaseInstance):
             loop.run_until_complete(self.steel_torrent.advance(workers="fast"))
 
     def inline_bricklayer(self):
+        # 将购物车商品移至愿望清单
         self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session, tun=self.tun)
+
+        # 将商品逐渐添加至购物车
         while not self.task_queue_worker.empty():
             job = self.task_queue_worker.get()
-            job["review"] = True
             self.bricklayer.claim_stabilizer(job["url"], self._ctx_cookies, self._ctx_session)
+            job["review"] = True
             self.promotions_review.append(job)
             SynergyTunnel.LEAVES.append(job["url"])
+
+        # 清空购物车
         for leave in SynergyTunnel.LEAVES:
             if not SynergyTunnel.get_combat(leave):
                 self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
