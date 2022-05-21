@@ -166,31 +166,19 @@ class GameClaimer(EpicAwesomeGamer):
             print("存在付费内容")
         :return:
         """
-        if self.is_empty_cart(ctx_cookies, init) is not True:
-            _message = "将购物车商品移至愿望清单" if init else "正在审核移动操作"
-            logger.debug(
-                ToolBox.runtime_report(
-                    motive="REMOVE", action_name=self.action_name, message=_message
-                )
+        _message = "将购物车商品移至愿望清单" if init else "正在审核移动操作"
+        logger.debug(
+            ToolBox.runtime_report(
+                motive="REMOVE", action_name=self.action_name, message=_message
             )
-
-            self._reset_page(
-                ctx=ctx_session,
-                ctx_cookies=ctx_cookies,
-                page_link=self.URL_GAME_CART,
-                auth_str=self.AUTH_STR_GAMES,
-            )
-            self._move_product_to_wishlist(ctx=ctx_session)
-            if tun is True:
-                logger.debug(
-                    ToolBox.runtime_report(
-                        motive="COMBAT",
-                        action_name=self.action_name,
-                        message="🥊 OneMoreStep Challenge",
-                    )
-                )
-                return
-            return self.cart_balancing(ctx_cookies, ctx_session, init=False, tun=tun)
+        )
+        self._reset_page(
+            ctx=ctx_session,
+            ctx_cookies=ctx_cookies,
+            page_link=self.URL_GAME_CART,
+            auth_str=self.AUTH_STR_GAMES,
+        )
+        self._move_product_to_wishlist(ctx=ctx_session)
 
     def empty_shopping_payment(self, ctx_cookies: List[dict], ctx_session):
         """清空购物车"""
@@ -202,8 +190,8 @@ class GameClaimer(EpicAwesomeGamer):
             if not init and SynergyTunnel.is_convert():
                 break
             # resp: none --> OMS challenge
-            if self.is_empty_cart(ctx_cookies, init=init):
-                break
+            # if self.is_empty_cart(ctx_cookies, init=init):
+            #     break
 
             # [🚀] 重载身份令牌
             logger.debug("[🛵] 重载身份令牌")
