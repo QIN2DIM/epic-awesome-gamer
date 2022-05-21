@@ -248,7 +248,7 @@ class GameClaimer(EpicAwesomeGamer):
                 if self.result != self.assert_.ONE_MORE_STEP:
                     break
                 if self.armor.face_the_checkbox(ctx) and self.armor.anti_checkbox(ctx):
-                    self._duel_with_challenge(ctx)
+                    self._duel_with_challenge(ctx, window="oms")
                     time.sleep(5)
             else:
                 self.assert_.timeout(_loop_start, self.loop_timeout)
