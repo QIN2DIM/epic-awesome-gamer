@@ -585,6 +585,7 @@ class AssertUtils:
         :return:
         """
         try:
+            time.sleep(1)
             surprise_obj = WebDriverWait(ctx, 2).until(
                 EC.visibility_of_element_located((By.XPATH, "//h1[@data-component='Heading']"))
             )

@@ -86,7 +86,10 @@ class MessagePusher:
 
         inline_docker = self.inline_docker.copy()
 
-        _preview = [f"[​]({random.choice(inline_docker).get('url', self._copyright)})"]
+        # fixme
+        # _preview = [f"[​]({random.choice(inline_docker).get('url', self._copyright)})"]
+        _preview = [f"[​](https://cdn2.unrealengine.com/egs-bioshockthecollection-massmediagames-g1c-00"
+                    f"-1920x1080-4269d4245e1e.jpg?h=1080&resize=1&w=1920)"]
 
         _title = [f"*{self.title}*"]
 
