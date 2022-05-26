@@ -467,6 +467,7 @@ class GameClaimerInstance(BaseInstance):
 
         # 将商品逐渐添加至购物车
         while not self.task_queue_worker.empty():
+            self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
             job = self.task_queue_worker.get()
             self.bricklayer.claim_stabilizer(job["url"], self._ctx_cookies, self._ctx_session)
             job["review"] = True

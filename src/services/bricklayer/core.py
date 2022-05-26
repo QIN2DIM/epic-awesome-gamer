@@ -586,7 +586,7 @@ class AssertUtils:
         """
         try:
             surprise_obj = WebDriverWait(ctx, 2).until(
-                EC.visibility_of_element_located((By.TAG_NAME, "h1"))
+                EC.visibility_of_element_located((By.XPATH, "//h1[@data-component='Heading']"))
             )
             surprise_warning = surprise_obj.text
         except TimeoutException:
@@ -594,7 +594,7 @@ class AssertUtils:
 
         if "成人内容" in surprise_warning:
             WebDriverWait(ctx, 2, ignored_exceptions=ElementClickInterceptedException).until(
-                EC.element_to_be_clickable((By.XPATH, "//span[text()='继续']/parent::button"))
+                EC.element_to_be_clickable((By.XPATH, "//div[@data-component='AgeGateTakeover']/button"))
             ).click()
             return True
         if "内容品当前在您所在平台或地区不可用。" in surprise_warning:
