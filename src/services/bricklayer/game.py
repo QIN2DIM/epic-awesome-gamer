@@ -265,9 +265,6 @@ class GameClaimer(EpicAwesomeGamer):
                 break
 
             # [🚀] 激活游戏订单
-            # fixme: patch
-            if "bioshock-the-collection" in page_link:
-                self.claim_mode = self.CLAIM_MODE_GET
             self._activate_payment(ctx, mode=self.claim_mode)
 
             # 上下文切换
