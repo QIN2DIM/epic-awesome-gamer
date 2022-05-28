@@ -1,6 +1,6 @@
 <div align="center">
     <h1> EPIC 免费人</h1>
-    <p>🚀 优雅地领取 Epic 免费游戏</p>
+    <p>🍷 Gracefully claim weekly free games and monthly content from Epic Store.</p>
     <img src="https://img.shields.io/static/v1?message=reference&color=blue&style=for-the-badge&logo=micropython&label=python">
     <img src="https://img.shields.io/github/license/QIN2DIM/epic-awesome-gamer?style=for-the-badge">
     <a href="https://hub.docker.com/r/ech0sec/awesome-epic"><img src="https://img.shields.io/docker/pulls/ech0sec/awesome-epic?color=green&style=for-the-badge"></a>
