@@ -94,10 +94,15 @@ class Explorer(EpicAwesomeExplorer):
                     except IndexError:
                         url = self.URL_PRODUCT_PAGE + promotion["productSlug"]
                     free_game_objs[url] = promotion["title"]
+
         # fixme: patch
-        free_game_objs = {
-            "https://store.epicgames.com/zh-CN/bundles/bioshock-the-collection": "BioShock: The Collection"
-        }
+        _patch_obj = "https://store.epicgames.com/zh-CN/p/bioshock-the-collection"
+        if free_game_objs.get(_patch_obj):
+            del free_game_objs[_patch_obj]
+            free_game_objs = {
+                "https://store.epicgames.com/zh-CN/bundles/bioshock-the-collection": "BioShock: The Collection"
+            }
+
         return free_game_objs
 
     def get_promotions_by_stress_expressions(
