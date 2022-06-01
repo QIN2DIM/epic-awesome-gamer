@@ -4,6 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
+import time
 
 import cv2
 import numpy as np
@@ -112,6 +113,9 @@ class YOLO:
             "toothbrush",
         ]
 
+        # Vatican Pattern
+        # self.solution_dev = Solutions.solution_dev
+
     def download_model(self):
         """Download YOLOv5(ONNX) model"""
         Solutions.download_model_(
@@ -121,22 +125,17 @@ class YOLO:
             model_name=self.onnx_model["name"],
         )
 
-    def detect_common_objects(self, img_stream, confidence=0.4, nms_thresh=0.4):
+    def detect_common_objects(self, img: np.ndarray, confidence=0.4, nms_thresh=0.4):
         """
         Object Detection
 
         Get multiple labels identified in a given image
 
-        :param img_stream: image file binary stream
-             with open(img_filepath, "rb") as file:
-                data = file.read()
-             detect_common_objects(img_stream=data)
+        :param img:
         :param confidence:
         :param nms_thresh:
         :return: bbox, label, conf
         """
-        np_array = np.frombuffer(img_stream, np.uint8)
-        img = cv2.imdecode(np_array, flags=1)
         height, width = img.shape[:2]
 
         blob = cv2.dnn.blobFromImage(img, 1 / 255.0, (128, 128), (0, 0, 0), swapRB=True, crop=False)
@@ -173,8 +172,45 @@ class YOLO:
         return [str(self.classes[class_ids[i]]) for i in indices]
 
     def solution(self, img_stream: bytes, label: str, **kwargs) -> bool:
-        """Implementation process of solution"""
+        """
+        Implementation process of solution.
+
+         with open(img_filepath, "rb") as file:
+            data = file.read()
+         solution(img_stream=data, label="truck")
+
+        :param img_stream: image file binary stream
+        :param label:
+        :param kwargs:
+        :return:
+        """
         confidence = kwargs.get("confidence", 0.4)
         nms_thresh = kwargs.get("nms_thresh", 0.4)
-        labels = self.detect_common_objects(img_stream, confidence, nms_thresh)
+        img = self.preprocessing(img_stream)
+        labels = self.detect_common_objects(img, confidence, nms_thresh)
         return bool(label in labels)
+
+    def preprocessing(self, img_stream: bytes) -> np.ndarray:
+        np_array = np.frombuffer(img_stream, np.uint8)
+        img = cv2.imdecode(np_array, flags=1)
+        return img
+
+
+class YOLOAirplane(YOLO):
+    """YOLO model with data augmentation"""
+
+    def __init__(self, dir_model: str = None, path_rainbow=None):
+        super().__init__(dir_model=dir_model)
+
+        self.ks = Solutions(name=self.flag, path_rainbow=path_rainbow)
+
+    def preprocessing(self, img_stream: bytes) -> np.ndarray:
+        img = super().preprocessing(img_stream)
+        return cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+
+    def solution(self, img_stream: bytes, label: str, **kwargs) -> bool:
+        match_output = self.ks.match_rainbow(img_stream, rainbow_key="airplane")
+        if match_output is not None:
+            time.sleep(0.17)
+            return match_output
+        return super().solution(img_stream, label, **kwargs)
