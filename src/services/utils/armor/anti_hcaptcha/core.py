@@ -120,10 +120,11 @@ class ArmorCaptcha:
         :param ctx:
         :return:
         """
+
         time.sleep(1)
         try:
             label_obj = WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException).until(
-                EC.presence_of_element_located((By.XPATH, "//div[@class='prompt-text']"))
+                EC.presence_of_element_located((By.XPATH, "//h2[@class='prompt-text']"))
             )
         except TimeoutException:
             raise ChallengeReset("人机挑战意外通过")

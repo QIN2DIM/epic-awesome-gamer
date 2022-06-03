@@ -168,9 +168,7 @@ class GameClaimer(EpicAwesomeGamer):
         """
         _message = "将购物车商品移至愿望清单" if init else "正在审核移动操作"
         logger.debug(
-            ToolBox.runtime_report(
-                motive="REMOVE", action_name=self.action_name, message=_message
-            )
+            ToolBox.runtime_report(motive="REMOVE", action_name=self.action_name, message=_message)
         )
         self._reset_page(
             ctx=ctx_session,

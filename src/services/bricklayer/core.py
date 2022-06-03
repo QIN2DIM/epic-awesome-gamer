@@ -345,6 +345,8 @@ class ArmorUtils(ArmorCaptcha):
                                     self.log("原子實例被檢測", resp=error_text)
                                     raise CookieRefreshException(error_text)
                                 return self.CHALLENGE_CRASH, "登入页面错误回复"
+                            elif "there was a socket open error" in error_text:
+                                return (self.CHALLENGE_CRASH, "there was a socket open error")
                             else:
                                 self.log("認證失敗", resp=error_text)
                                 _unknown = AuthUnknownException(msg=error_text)
@@ -597,7 +599,9 @@ class AssertUtils:
 
         if "成人内容" in surprise_warning:
             WebDriverWait(ctx, 2, ignored_exceptions=ElementClickInterceptedException).until(
-                EC.element_to_be_clickable((By.XPATH, "//div[@data-component='AgeGateTakeover']/button"))
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//div[@data-component='AgeGateTakeover']/button")
+                )
             ).click()
             return True
         if "内容品当前在您所在平台或地区不可用。" in surprise_warning:

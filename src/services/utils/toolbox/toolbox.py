@@ -88,8 +88,10 @@ class MessagePusher:
 
         # fixme
         # _preview = [f"[​]({random.choice(inline_docker).get('url', self._copyright)})"]
-        _preview = [f"[​](https://cdn2.unrealengine.com/egs-bioshockthecollection-massmediagames-g1c-00"
-                    f"-1920x1080-4269d4245e1e.jpg?h=1080&resize=1&w=1920)"]
+        _preview = [
+            f"[​](https://cdn1.epicgames.com/offer/d5241c76f178492ea1540fce45616757/"
+            f"egs-vault-w3-1920x1080_1920x1080-4a501d33fb4ac641e3e1e290dcc0e6c1)"
+        ]
 
         _title = [f"*{self.title}*"]
 
@@ -330,9 +332,7 @@ def get_ctx(silence: Optional[bool] = None, fast: Optional[bool] = False) -> Sta
     return Chrome(ChromeDriverManager(log_level=0).install(), options=options)
 
 
-def get_challenge_ctx(
-    silence: Optional[bool] = None, user_data_dir: Optional[str] = None
-) -> ChallengerContext:
+def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
     """挑战者驱动 用于处理人机挑战"""
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
 
@@ -346,12 +346,12 @@ def get_challenge_ctx(
         return uc.Chrome(
             headless=silence,
             options=options,
+            use_subprocess=True,
             driver_executable_path=driver_executable_path,
-            user_data_dir=user_data_dir,
         )
     # 避免核心并行
     except OSError:
-        return uc.Chrome(headless=silence, options=options, user_data_dir=user_data_dir)
+        return uc.Chrome(headless=silence, options=options, use_subprocess=True)
     # 棄用索引緩存
     except WebDriverException:
         if version_main.isdigit():
@@ -359,5 +359,5 @@ def get_challenge_ctx(
                 headless=silence,
                 options=options,
                 version_main=int(version_main),
-                user_data_dir=user_data_dir,
+                use_subprocess=True,
             )

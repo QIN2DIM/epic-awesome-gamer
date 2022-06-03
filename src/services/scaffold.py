@@ -48,12 +48,12 @@ class Scaffold:
 
     @staticmethod
     def get(
-            debug: Optional[bool] = None,
-            cache: Optional[bool] = True,
-            dlc: Optional[bool] = False,
-            unreal: Optional[bool] = False,
-            silence: Optional[bool] = True,
-            dev: Optional[str] = None
+        debug: Optional[bool] = None,
+        cache: Optional[bool] = True,
+        dlc: Optional[bool] = False,
+        unreal: Optional[bool] = False,
+        silence: Optional[bool] = True,
+        dev: Optional[str] = None,
     ):
         """
 
@@ -111,10 +111,10 @@ class Scaffold:
 
     @staticmethod
     def claim(
-            silence: Optional[bool] = True,
-            ignore: Optional[bool] = False,
-            unreal: Optional[bool] = False,
-            tun: Optional[bool] = True,
+        silence: Optional[bool] = True,
+        ignore: Optional[bool] = False,
+        unreal: Optional[bool] = False,
+        tun: Optional[bool] = True,
     ):
         """
         Introduction
