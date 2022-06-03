@@ -4,7 +4,6 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
-import random
 import shutil
 import sys
 import warnings
