@@ -215,8 +215,8 @@ class ArmorUtils(ArmorCaptcha):
     def switch_solution(self, dir_model):
         """模型卸载"""
         label = self.label_alias.get(self.label)
-        if label in ["aeroplane"]:
-            return yolo.YOLOAirplane(dir_model, path_rainbow=PATH_RAINBOW)
+        if label in ["train", "aeroplane"]:
+            return yolo.YOLOWithAugmentation(label, dir_model, path_rainbow=PATH_RAINBOW)
         if label in ["seaplane"]:
             return resnet.ResNetSeaplane(dir_model)
         if label in ["elephants drawn with leaves"]:
@@ -346,7 +346,7 @@ class ArmorUtils(ArmorCaptcha):
                                     raise CookieRefreshException(error_text)
                                 return self.CHALLENGE_CRASH, "登入页面错误回复"
                             elif "there was a socket open error" in error_text:
-                                return (self.CHALLENGE_CRASH, "there was a socket open error")
+                                return self.CHALLENGE_CRASH, "there was a socket open error"
                             else:
                                 self.log("認證失敗", resp=error_text)
                                 _unknown = AuthUnknownException(msg=error_text)
