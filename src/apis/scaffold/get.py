@@ -66,7 +66,7 @@ class SteelTorrent:
         """获取驱动上下文"""
         if not self.pending_workers.empty():
             return self.pending_workers.get_nowait()
-        return get_ctx(self.silence, fast=True)
+        return get_ctx(self.silence)
 
     def _release_worker(self, worker):
         self.pending_workers.put(worker)

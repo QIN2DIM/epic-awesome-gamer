@@ -89,7 +89,7 @@ class MessagePusher:
         # _preview = [f"[​]({random.choice(inline_docker).get('url', self._copyright)})"]
         _preview = [
             f"[​](https://cdn1.epicgames.com/offer/d5241c76f178492ea1540fce45616757/"
-            f"egs-vault-w3-1920x1080_1920x1080-4a501d33fb4ac641e3e1e290dcc0e6c1)"
+            f"egs-vault-w4-1920x1080_1920x1080-2df36fe63c18ff6fcb5febf3dd7ed06e?h=480&resize=1&w=854)"
         ]
 
         _title = [f"*{self.title}*"]
@@ -308,7 +308,7 @@ def _set_ctx(language: Optional[str] = None) -> ChromeOptions:
     return options
 
 
-def get_ctx(silence: Optional[bool] = None, fast: Optional[bool] = False) -> StandardContext:
+def get_ctx(silence: Optional[bool] = None) -> StandardContext:
     """普通的 Selenium 驱动上下文，用于常规并发任务"""
 
     silence = True if silence is None or "linux" in sys.platform else silence
@@ -319,13 +319,6 @@ def get_ctx(silence: Optional[bool] = None, fast: Optional[bool] = False) -> Sta
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-software-rasterizer")
-    if fast is True:
-        options.add_argument("blink-settings=imagesEnabled=false")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--disable-infobars")
-        options.add_argument("--disable-javascript")
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
     # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
     return Chrome(ChromeDriverManager(log_level=0).install(), options=options)
