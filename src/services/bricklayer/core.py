@@ -588,23 +588,24 @@ class AssertUtils:
         :param ctx:
         :return:
         """
+        time.sleep(1)
+
         try:
-            time.sleep(1)
-            surprise_obj = WebDriverWait(ctx, 2).until(
-                EC.visibility_of_element_located((By.XPATH, "//h1[@data-component='Heading']"))
-            )
-            surprise_warning = surprise_obj.text
+            WebDriverWait(ctx, 3).until(EC.visibility_of_element_located((By.XPATH, "//h1")))
         except TimeoutException:
             return True
+        else:
+            surprise_warning_objs = ctx.find_elements(By.XPATH, "//h1//span")
+            surprise_warnings = [i.text for i in surprise_warning_objs]
 
-        if "成人内容" in surprise_warning:
-            WebDriverWait(ctx, 2, ignored_exceptions=ElementClickInterceptedException).until(
-                EC.element_to_be_clickable((By.XPATH, "//span[text()='继续']/parent::button"))
-            ).click()
-            return True
-        if "内容品当前在您所在平台或地区不可用。" in surprise_warning:
-            raise UnableToGet(surprise_warning)
-        return False
+            if "内容品当前在您所在平台或地区不可用。" in surprise_warnings:
+                raise UnableToGet
+            if "本游戏包含成人内容，仅限18岁以上玩家选购" in surprise_warnings:
+                WebDriverWait(ctx, 5, ignored_exceptions=ElementClickInterceptedException).until(
+                    EC.element_to_be_clickable((By.XPATH, "//span[text()='继续']/parent::button"))
+                ).click()
+                return True
+            return False
 
     @staticmethod
     def payment_auto_submit(ctx: ChallengerContext) -> NoReturn:
@@ -672,15 +673,11 @@ class AssertUtils:
         # 捕获按钮对象，根据按钮上浮动的提示信息断言游戏在库状态 超时的空对象主动抛出异常
         for _ in range(15):
             try:
-                assert_obj = WebDriverWait(ctx, 2).until(
+                purchase_button = WebDriverWait(ctx, 2).until(
                     EC.element_to_be_clickable(
-                        (
-                            By.XPATH,
-                            "//span[@data-component='PurchaseCTA']//span[@data-component='Message']",
-                        )
+                        (By.XPATH, "//button[@data-testid='purchase-cta-button']")
                     )
                 )
-                assert_info = assert_obj.text
                 break
             except TimeoutException:
                 if "再进行一步操作" in ctx.page_source:
@@ -703,7 +700,10 @@ class AssertUtils:
             )
             return AssertUtils.ASSERT_OBJECT_EXCEPTION
 
-        if "已在" in assert_info:
+        # 游戏状态 在库|获取|购买
+        purchase_msg = purchase_button.text
+
+        if "已在" in purchase_msg:
             _message = "🛴 游戏已在库" if init else "🥂 领取成功"
             logger.info(
                 ToolBox.runtime_report(
@@ -712,7 +712,7 @@ class AssertUtils:
             )
             return AssertUtils.GAME_OK if init else AssertUtils.GAME_CLAIM
 
-        if "获取" in assert_info:
+        if "获取" in purchase_msg:
             deadline: Optional[str] = None
             try:
                 deadline = ctx.find_element(
@@ -747,7 +747,7 @@ class AssertUtils:
 
             return AssertUtils.GAME_PENDING
 
-        if "购买" in assert_info:
+        if "购买" in purchase_msg:
             logger.warning(
                 ToolBox.runtime_report(
                     motive="SKIP",
