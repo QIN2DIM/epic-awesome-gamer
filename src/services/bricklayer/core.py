@@ -541,7 +541,7 @@ class AssertUtils:
                 ctx, 3, ignored_exceptions=ElementNotVisibleException
             ).until(
                 EC.presence_of_element_located(
-                    (By.XPATH, "//label//span[@data-component='Message']")
+                    (By.XPATH, "//label[@for='agree']")
                 )
             )
         except TimeoutException:
