@@ -337,20 +337,12 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
 
     try:
         return uc.Chrome(
-            headless=silence,
-            options=options,
-            use_subprocess=True,
-            driver_executable_path=driver_executable_path,
+            headless=silence, options=options, driver_executable_path=driver_executable_path
         )
     # 避免核心并行
     except OSError:
-        return uc.Chrome(headless=silence, options=options, use_subprocess=True)
+        return uc.Chrome(headless=silence, options=options)
     # 棄用索引緩存
     except WebDriverException:
         if version_main.isdigit():
-            return uc.Chrome(
-                headless=silence,
-                options=options,
-                version_main=int(version_main),
-                use_subprocess=True,
-            )
+            return uc.Chrome(headless=silence, options=options, version_main=int(version_main))

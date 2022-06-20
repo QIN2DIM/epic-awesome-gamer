@@ -971,20 +971,18 @@ class EpicAwesomeGamer:
             self._switch_to_payment_iframe(ctx)
         except TimeoutException:
             try:
-                warning_layout = ctx.find_element(
-                    By.XPATH, "//div[@data-component='WarningLayout']"
-                )
-                warning_text = warning_layout.text
-                # Handle delayed loading of cookies.
-                if "依旧要购买吗" in warning_text:
-                    return
-                # Handle Linux User-Agent Heterogeneous Services.
-                if "设备不受支持" in warning_text:
-                    ctx.find_element(By.XPATH, "//span[text()='继续']/parent::button").click()
-                    return self._handle_payment(ctx)
+                warning_layouts = ctx.find_elements(By.XPATH, "//h1//span")
+                for warning_layout in warning_layouts:
+                    # Handle delayed loading of cookies.
+                    warning_text = warning_layout.text
+                    if warning_text == "依旧要购买吗":
+                        return
+                    # Handle Linux User-Agent Heterogeneous Services.
+                    if warning_text == "设备不受支持":
+                        ctx.find_element(By.XPATH, "//span[text()='继续']/parent::button").click()
+                        return self._handle_payment(ctx)
             except NoSuchElementException:
                 pass
-
         # [🍜] 判断游戏锁区
         self.assert_.payment_blocked(ctx)
 
