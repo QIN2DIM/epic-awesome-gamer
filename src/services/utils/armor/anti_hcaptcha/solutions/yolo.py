@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 
 from .kernel import Solutions
+from .kernel import ChallengeStyle
 
 
 class YOLO:
@@ -209,7 +210,9 @@ class YOLOWithAugmentation(YOLO):
 
     def preprocessing(self, img_stream: bytes) -> np.ndarray:
         img = super().preprocessing(img_stream)
-        return cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+        if img.shape[0] == ChallengeStyle.WATERMARK:
+            return cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+        return img
 
     def solution(self, img_stream: bytes, label: str, **kwargs) -> bool:
         match_output = self.ks.match_rainbow(img_stream, rainbow_key=self.rainbow_key)

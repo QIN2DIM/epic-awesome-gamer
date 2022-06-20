@@ -4,6 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
+import random
 import shutil
 import sys
 import warnings
@@ -86,11 +87,11 @@ class MessagePusher:
         inline_docker = self.inline_docker.copy()
 
         # fixme
-        # _preview = [f"[​]({random.choice(inline_docker).get('url', self._copyright)})"]
-        _preview = [
-            f"[​](https://cdn1.epicgames.com/offer/d5241c76f178492ea1540fce45616757/"
-            f"egs-vault-w4-1920x1080_1920x1080-2df36fe63c18ff6fcb5febf3dd7ed06e?h=480&resize=1&w=854)"
-        ]
+        _preview = [f"[​]({random.choice(inline_docker).get('url', self._copyright)})"]
+        # _preview = [
+        #     f"[​](https://cdn1.epicgames.com/offer/d5241c76f178492ea1540fce45616757/"
+        #     f"egs-vault-w4-1920x1080_1920x1080-2df36fe63c18ff6fcb5febf3dd7ed06e?h=480&resize=1&w=854)"
+        # ]
 
         _title = [f"*{self.title}*"]
 

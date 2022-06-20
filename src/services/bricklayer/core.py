@@ -215,8 +215,6 @@ class ArmorUtils(ArmorCaptcha):
     def switch_solution(self, dir_model):
         """模型卸载"""
         label = self.label_alias.get(self.label)
-        if label in ["train", "aeroplane"]:
-            return yolo.YOLOWithAugmentation(label, dir_model, path_rainbow=PATH_RAINBOW)
         if label in ["seaplane"]:
             return resnet.ResNetSeaplane(dir_model)
         if label in ["elephants drawn with leaves"]:
@@ -229,7 +227,7 @@ class ArmorUtils(ArmorCaptcha):
             return sk_recognition.RightPlaneRecognition(path_rainbow=PATH_RAINBOW)
         if label in ["horses drawn with flowers"]:
             return resnet.HorsesDrawnWithFlowers(dir_model, path_rainbow=PATH_RAINBOW)
-        return yolo.YOLO(dir_model)
+        return yolo.YOLOWithAugmentation(label, dir_model, path_rainbow=PATH_RAINBOW)
 
     def download_images(self) -> None:
         """
@@ -539,11 +537,7 @@ class AssertUtils:
         try:
             surprise_obj = WebDriverWait(
                 ctx, 3, ignored_exceptions=ElementNotVisibleException
-            ).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//label[@for='agree']")
-                )
-            )
+            ).until(EC.presence_of_element_located((By.XPATH, "//label[@for='agree']")))
         except TimeoutException:
             return
         else:
