@@ -21,12 +21,9 @@ import yaml
 from gevent.queue import Queue
 from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
-from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.chrome import ChromeType
-from webdriver_manager.utils import get_browser_version_from_os
 
 StandardContext = type(Chrome)
 ChallengerContext = type(uc.Chrome)
@@ -190,7 +187,7 @@ class ToolBox:
 
     @staticmethod
     def transfer_cookies(
-        api_cookies: Union[List[Dict[str, str]], str]
+            api_cookies: Union[List[Dict[str, str]], str]
     ) -> Union[str, List[Dict[str, str]]]:
         """
         将 cookies 转换为可携带的 Request Header
@@ -205,7 +202,7 @@ class ToolBox:
 
     @staticmethod
     def date_format_now(
-        mode: Optional[str] = None, zone: Optional[str] = None, threshold: Optional[int] = None
+            mode: Optional[str] = None, zone: Optional[str] = None, threshold: Optional[int] = None
     ) -> str:
         """
         输出格式化日期
@@ -278,7 +275,7 @@ class ToolBox:
     def handle_html(url_, cookie: str = None, allow_redirects=False):
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36"
+                          "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36"
         }
         if cookie is not None and isinstance(cookie, str):
             headers.update({"cookie": cookie})
@@ -333,16 +330,10 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
 
     options = _set_ctx()
     driver_executable_path = ChromeDriverManager(log_level=0).install()
-    version_main = get_browser_version_from_os(ChromeType.GOOGLE).split(".")[0]
+    # version_main = get_browser_version_from_os(ChromeType.GOOGLE).split(".")[0]
 
-    try:
-        return uc.Chrome(
-            headless=silence, options=options, driver_executable_path=driver_executable_path
-        )
-    # 避免核心并行
-    except OSError:
-        return uc.Chrome(headless=silence, options=options)
-    # 棄用索引緩存
-    except WebDriverException:
-        if version_main.isdigit():
-            return uc.Chrome(headless=silence, options=options, version_main=int(version_main))
+    ctx = uc.Chrome(
+        headless=silence, options=options, driver_executable_path=driver_executable_path
+    )
+    logger.debug(ctx.execute_script("return navigator.userAgent"))
+    return ctx

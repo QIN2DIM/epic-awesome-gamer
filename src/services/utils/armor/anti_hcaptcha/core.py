@@ -202,6 +202,11 @@ class ArmorCaptcha:
                 except WebDriverException:
                     pass
 
+        # Check result of the challenge.
+        _prefix = "database/challenge_result/"
+        os.makedirs(_prefix, exist_ok=True)
+        ctx.save_screenshot(f"{_prefix}{int(time.time())}{self.label_alias[self.label]}.png")
+
         # {{< SUBMIT ANSWER >}}
         try:
             submit_button = WebDriverWait(
