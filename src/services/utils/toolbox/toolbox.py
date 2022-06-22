@@ -187,7 +187,7 @@ class ToolBox:
 
     @staticmethod
     def transfer_cookies(
-            api_cookies: Union[List[Dict[str, str]], str]
+        api_cookies: Union[List[Dict[str, str]], str]
     ) -> Union[str, List[Dict[str, str]]]:
         """
         将 cookies 转换为可携带的 Request Header
@@ -202,7 +202,7 @@ class ToolBox:
 
     @staticmethod
     def date_format_now(
-            mode: Optional[str] = None, zone: Optional[str] = None, threshold: Optional[int] = None
+        mode: Optional[str] = None, zone: Optional[str] = None, threshold: Optional[int] = None
     ) -> str:
         """
         输出格式化日期
@@ -275,7 +275,7 @@ class ToolBox:
     def handle_html(url_, cookie: str = None, allow_redirects=False):
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36"
+            "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36"
         }
         if cookie is not None and isinstance(cookie, str):
             headers.update({"cookie": cookie})
@@ -330,10 +330,17 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
 
     options = _set_ctx()
     driver_executable_path = ChromeDriverManager(log_level=0).install()
-    # version_main = get_browser_version_from_os(ChromeType.GOOGLE).split(".")[0]
 
     ctx = uc.Chrome(
-        headless=silence, options=options, driver_executable_path=driver_executable_path
+        headless=silence,
+        options=options,
+        use_subprocess=True,
+        driver_executable_path=driver_executable_path,
     )
+
     logger.debug(ctx.execute_script("return navigator.userAgent"))
+    if "linux" in sys.platform and not os.getenv("GITHUB_ACTIONS"):
+        for i in os.environ.items():
+            logger.debug(i)
+
     return ctx
