@@ -17,6 +17,8 @@ from .exceptions import DiscoveryTimeoutException
 class Explorer(EpicAwesomeExplorer):
     """商城探索者 发现常驻免费游戏以及周免游戏"""
 
+    cdn_image_urls = []
+
     def __init__(self, silence: Optional[bool] = None):
         super().__init__(silence=silence)
         self.action_name = "Explorer"
@@ -94,6 +96,11 @@ class Explorer(EpicAwesomeExplorer):
                     except IndexError:
                         url = self.URL_PRODUCT_PAGE + promotion["productSlug"]
                     free_game_objs[url] = promotion["title"]
+                    try:
+                        image_url = promotion["keyImages"][-1]["url"]
+                        Explorer.cdn_image_urls.append(image_url)
+                    except (KeyError, IndexError, AttributeError):
+                        pass
 
         return free_game_objs
 

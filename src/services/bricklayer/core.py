@@ -134,7 +134,7 @@ class ArmorUtils(ArmorCaptcha):
 
             # {{< 頁面重定向|跳過挑戰 >}}
             try:
-                WebDriverWait(ctx, 1).until(EC.url_changes(flag_))
+                WebDriverWait(ctx, 2).until(EC.url_changes(flag_))
                 logger.debug(
                     ToolBox.runtime_report(
                         action_name="ArmorUtils", motive="ARMOR", message="🥤 跳过人机挑战"
@@ -147,13 +147,13 @@ class ArmorUtils(ArmorCaptcha):
             # {{< 多因素判斷 >}}
             # 僅當前置條件滿足時，挑戰框架可見性斷言結果才有效
             try:
-                WebDriverWait(ctx, 1, 0.1).until_not(EC.element_to_be_clickable((By.ID, "sign-in")))
+                WebDriverWait(ctx, 2, 0.1).until_not(EC.element_to_be_clickable((By.ID, "sign-in")))
             except TimeoutException:
                 continue
             else:
                 # {{< 挑戰框架可見 >}}
                 try:
-                    WebDriverWait(ctx, 1, 0.1).until(
+                    WebDriverWait(ctx, 2, 0.1).until(
                         EC.visibility_of_element_located((By.XPATH, ArmorUtils.HOOK_CHALLENGE))
                     )
                     return ArmorUtils.AUTH_CHALLENGE

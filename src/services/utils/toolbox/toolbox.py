@@ -42,7 +42,7 @@ class MessagePusher:
     ]
     _copyright_text = ["Author: QIN2DIM", "GitHub: QIN2DIM/epic-awesome-gamer"]
 
-    def __init__(self, servers, player: str, inline_docker: list):
+    def __init__(self, servers, player: str, inline_docker: list, key_images: List[str] = None):
         """
 
         :param servers:
@@ -58,6 +58,9 @@ class MessagePusher:
 
         self.inline_docker = list(_inline_docker.values())
         self.surprise = apprise.Apprise()
+
+        # 游戏概念插画链接（CDN链接）
+        self.key_images = key_images
 
     def __enter__(self):
         return self
@@ -83,12 +86,16 @@ class MessagePusher:
 
         inline_docker = self.inline_docker.copy()
 
-        # fixme
+        # illustrations
         _preview = [f"[​]({random.choice(inline_docker).get('url', self._copyright)})"]
-        # _preview = [
-        #     f"[​](https://cdn1.epicgames.com/offer/d5241c76f178492ea1540fce45616757/"
-        #     f"egs-vault-w4-1920x1080_1920x1080-2df36fe63c18ff6fcb5febf3dd7ed06e?h=480&resize=1&w=854)"
-        # ]
+        if self.key_images:
+            cdn_image_url = random.choice(self.key_images)
+            if (
+                isinstance(cdn_image_url, str)
+                and cdn_image_url.startswith("https://")
+                and "cdn" in cdn_image_url
+            ):
+                _preview = [f"[​]({cdn_image_url})"]
 
         _title = [f"*{self.title}*"]
 
@@ -98,7 +105,6 @@ class MessagePusher:
         context_textbox, _ = self.for_general(inline_docker, _copyright=self._copyright_markdown)
 
         context_textbox = _preview + _title + context_textbox
-
         return context_textbox, "", server
 
     def for_general(self, inline_docker, _copyright: List[str] = None):

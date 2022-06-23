@@ -281,7 +281,9 @@ class BaseInstance:
 
         # 在 `ignore` 模式下当所有资源实体都已在库时不推送消息
         if self.inline_docker and self.pusher_settings.get("enable") and any(ACTIVE_SERVERS):
-            with MessagePusher(ACTIVE_SERVERS, PLAYER, self.inline_docker):
+            with MessagePusher(
+                ACTIVE_SERVERS, PLAYER, self.inline_docker, key_images=Explorer.cdn_image_urls
+            ):
                 self.logger.success(
                     ToolBox.runtime_report(
                         motive="Notify",
