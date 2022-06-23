@@ -465,27 +465,29 @@ class GameClaimerInstance(BaseInstance):
 
     def inline_bricklayer(self):
         # 将购物车商品移至愿望清单
-        if self.task_queue_worker.qsize() > 1:
-            self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session, tun=self.tun)
+        # if self.task_queue_worker.qsize() > 1:
+        #     self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session, tun=self.tun)
+        #     self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
+        # else:
+        #     self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_GET
 
         # 将商品逐渐添加至购物车
         # GET/ADD 模式切换： 任务数大于1时使用 AddMode
         while not self.task_queue_worker.empty():
             job = self.task_queue_worker.get()
-            if self.task_queue_worker.empty():
-                self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_GET
-            else:
-                SynergyTunnel.LEAVES.append(job["url"])
+            self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_GET
+            # SynergyTunnel.LEAVES.append(job["url"])
             self.bricklayer.claim_stabilizer(job["url"], self._ctx_cookies, self._ctx_session)
             job["review"] = True
             self.promotions_review.append(job)
 
-        # 清空购物车
-        for leave in SynergyTunnel.LEAVES:
-            if not SynergyTunnel.get_combat(leave):
-                self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
-                SynergyTunnel.set_combat(leave, self.coco)
-                break
+        # # 清空购物车
+        # if self.bricklayer.claim_mode == self.bricklayer.CLAIM_MODE_ADD:
+        #     for leave in SynergyTunnel.LEAVES:
+        #         if not SynergyTunnel.get_combat(leave):
+        #             self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
+        #             SynergyTunnel.set_combat(leave, self.coco)
+        #             break
 
 
 class UnrealClaimerInstance(BaseInstance):
