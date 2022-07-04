@@ -335,11 +335,7 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
     """挑战者驱动 用于处理人机挑战"""
     options = _set_ctx()
 
-    # Happy Hunger Games!
     silence = True if silence is None or "linux" in sys.platform else silence
-    if silence is True and "linux" in sys.platform:
-        options.add_argument("--no-proxy-server")
-        options.add_argument("--disable-blink-features=AutomationControlled")
 
     # - Use chromedriver cache to improve application startup speed
     # - Requirement: undetected-chromedriver >= 3.1.5.post2
