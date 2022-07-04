@@ -16,12 +16,12 @@ from .kernel import ChallengeStyle
 class YOLO:
     """YOLO model for image classification"""
 
-    def __init__(self, dir_model, onnx_prefix: str = "yolov5n6"):
+    def __init__(self, dir_model, onnx_prefix: str = None):
         self.dir_model = "./model" if dir_model is None else dir_model
 
         # Select default onnx model.
         self.onnx_prefix = (
-            "yolov5s6"
+            "yolov6n"
             if onnx_prefix
             not in [
                 # Reference - Ultralytics YOLOv5 https://github.com/ultralytics/yolov5
