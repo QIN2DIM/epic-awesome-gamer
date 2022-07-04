@@ -349,6 +349,7 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
 
     # Create challenger
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
+    runner_str = "goto"
     try:
         ctx = uc.Chrome(
             headless=silence,
@@ -357,6 +358,7 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
             driver_executable_path=driver_executable_path,
         )
     except WebDriverException:
+        runner_str = "hook-based"
         ctx = uc.Chrome(
             headless=silence,
             options=options,
@@ -365,10 +367,8 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
         )
 
     # Record necessary startup information
+    hook_ = "GitHub Action" if os.getenv("GITHUB_ACTIONS") else "base"
     logger.debug(ctx.execute_script("return navigator.userAgent"))
-    if not os.getenv("GITHUB_ACTIONS"):
-        logger.debug(f"_platform: Runner - hook={sys.platform}")
-    else:
-        logger.debug(f"_platform: GitHub Action - hook={sys.platform}")
+    logger.debug(f"Setup info: hook={hook_} platform={sys.platform} runner={runner_str}")
 
     return ctx
