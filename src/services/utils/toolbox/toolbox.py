@@ -22,7 +22,7 @@ import yaml
 from gevent.queue import Queue
 from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
-from selenium.common import WebDriverException
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
