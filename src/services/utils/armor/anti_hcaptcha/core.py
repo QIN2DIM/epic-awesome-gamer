@@ -1,7 +1,5 @@
 import os
-import random
 import re
-import sys
 import time
 
 import requests
@@ -66,7 +64,7 @@ class ArmorCaptcha:
 
         self._headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62"
+            "Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62"
         }
 
     def log(self, message: str, **params) -> None:
@@ -200,11 +198,11 @@ class ArmorCaptcha:
             if result:
                 # 选中标签元素
                 try:
-                    if "linux" in sys.platform:
-                        time.sleep(random.uniform(1, 3))
                     self.alias2locator[alias].click()
                 except WebDriverException:
-                    self.log("Unable to click on target element.", label=self.label_alias[self.label])
+                    self.log(
+                        "Unable to click on target element.", label=self.label_alias[self.label]
+                    )
 
         # Check result of the challenge.
         # _prefix = "database/challenge_result/"
