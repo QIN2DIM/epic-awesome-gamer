@@ -114,7 +114,6 @@ class Scaffold:
         silence: Optional[bool] = True,
         ignore: Optional[bool] = False,
         unreal: Optional[bool] = False,
-        tun: Optional[bool] = True,
     ):
         """
         Introduction
@@ -146,9 +145,6 @@ class Scaffold:
           任务时节约资源。
         :param unreal: 默认False。虚幻商城月供砖家。将任务句柄由<游戏商店>切换至<虚幻商店>，
           业务内容保持一致。脚手架指令 unreal 与此入口意义相同。
-        :param tun: 默认 True。Tunnel Pattern 设计模式
-          若为 True，更加安全稳定的运行方案，用于绕过 OneMoreStep Challenge。
-          若为 False，将网络请求前置，换取极高的运行效能。
         :return:
         """
         claimer.run(silence=silence, log_ignore=ignore, unreal=unreal)
@@ -169,3 +165,7 @@ class Scaffold:
         :return:
         """
         claimer.deploy(platform, unreal=unreal)
+
+    @staticmethod
+    def log():
+        """显示最近一次的运行日志。"""

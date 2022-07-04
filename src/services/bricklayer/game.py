@@ -264,10 +264,11 @@ class GameClaimer(EpicAwesomeGamer):
             # [🚀] 激活游戏订单
             self._activate_payment(ctx, mode=self.claim_mode)
 
-            # ------ 上下文切换 | [GET/ADD] ------
+            # ------ {{< 上下文切换 | [GET/ADD] >}} ------
             self.captcha_runtime_memory(ctx, suffix="_switch")
             if self.claim_mode == self.CLAIM_MODE_ADD:
                 break
+            # ------ {{< DONE >}} ------
 
             # [🚀] 新用户首次购买游戏需要处理许可协议书
             if self.assert_.surprise_license(ctx):
@@ -275,7 +276,8 @@ class GameClaimer(EpicAwesomeGamer):
                 continue
 
             # [🚀] 订单消失
-            self.assert_.payment_auto_submit(ctx)
+            if self.assert_.payment_auto_submit(ctx):
+                continue
 
             # [🚀] 处理游戏订单
             self._handle_payment(ctx)

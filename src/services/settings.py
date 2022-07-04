@@ -26,6 +26,7 @@ __all__ = [
     "DIR_MODEL",
     "DIR_SCREENSHOT",
     "PATH_RAINBOW",
+    "DIR_LOG",
     # ------------------------------
     # CONFIG
     # ------------------------------

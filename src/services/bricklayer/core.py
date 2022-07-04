@@ -55,7 +55,6 @@ from .exceptions import (
     SwitchContext,
     PaymentBlockedWarning,
     AuthException,
-    PaymentAutoSubmit,
     AuthMFA,
     AuthUnknownException,
     CookieRefreshException,
@@ -611,22 +610,15 @@ class AssertUtils:
             return False
 
     @staticmethod
-    def payment_auto_submit(ctx: ChallengerContext) -> NoReturn:
+    def payment_auto_submit(ctx: ChallengerContext) -> Optional[bool]:
         """认领游戏后订单自动提交 仅在常驻游戏中出现"""
         try:
-            warning_text = (
-                WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException)
-                .until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//div[@data-component='DownloadMessage']//span")
-                    )
-                )
-                .text
+            WebDriverWait(ctx, 5).until(
+                EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'感谢您的购买')]"))
             )
-            if warning_text == "感谢您的购买":
-                raise PaymentAutoSubmit(warning_text)
+            return True
         except TimeoutException:
-            pass
+            return False
 
     @staticmethod
     def payment_blocked(ctx: ChallengerContext) -> NoReturn:
@@ -718,11 +710,7 @@ class AssertUtils:
         if "获取" in purchase_msg:
             deadline: Optional[str] = None
             try:
-                deadline = ctx.find_element(
-                    By.XPATH,
-                    "//div[@data-component='PDPSidebarLayout']"
-                    "//span[contains(text(),'优惠截止')][@data-component='Message']",
-                ).text
+                deadline = ctx.find_element(By.XPATH, "//span[contains(text(),'优惠截止于')]").text
             except (NoSuchElementException, AttributeError):
                 pass
 
@@ -927,7 +915,7 @@ class EpicAwesomeGamer:
         :param ctx:
         :return: True挑战成功，False挑战失败/需要跳过，None其他信号
         """
-        if self.armor.fall_in_captcha_runtime(ctx):
+        if self.armor.fall_in_captcha_runtime(ctx, window):
             self.assert_.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
                 resp = self.armor.anti_hcaptcha(ctx, dir_model=DIR_MODEL, window=window)
