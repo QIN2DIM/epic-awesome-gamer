@@ -38,11 +38,11 @@ class ArmorCaptcha:
             "公交车": "bus",
             "巴土": "bus",
             "巴士": "bus",
-            "飞机": "aeroplane",
+            "飞机": "airplane",
             "ー条船": "boat",
             "一条船": "boat",
             "船": "boat",
-            "摩托车": "motorbike",
+            "摩托车": "motorcycle",
             "垂直河流": "vertical river",
             "天空中向左飞行的飞机": "airplane in the sky flying left",
             "请选择天空中所有向右飞行的飞机": "airplanes in the sky that are flying to the right",
@@ -203,9 +203,9 @@ class ArmorCaptcha:
                     pass
 
         # Check result of the challenge.
-        _prefix = "database/challenge_result/"
-        os.makedirs(_prefix, exist_ok=True)
-        ctx.save_screenshot(f"{_prefix}{int(time.time())}.{self.label_alias[self.label]}.png")
+        # _prefix = "database/challenge_result/"
+        # os.makedirs(_prefix, exist_ok=True)
+        # ctx.save_screenshot(f"{_prefix}{int(time.time())}.{self.label_alias[self.label]}.png")
 
         # {{< SUBMIT ANSWER >}}
         try:

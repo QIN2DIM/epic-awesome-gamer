@@ -3,6 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import logging
 import os
 import random
 import shutil
@@ -21,9 +22,11 @@ import yaml
 from gevent.queue import Queue
 from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
+from selenium.common import WebDriverException
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.utils import get_browser_version_from_os, ChromeType
 
 StandardContext = type(Chrome)
 ChallengerContext = type(uc.Chrome)
@@ -306,7 +309,7 @@ def _set_ctx(language: Optional[str] = None) -> ChromeOptions:
     options.add_argument("--disable-dev-shm-usage")
 
     # 统一挑战语言
-    os.environ["LANGUAGE"] = "zh" if language is None else language
+    os.environ["LANGUAGE"] = "zh_CN" if language is None else language
     options.add_argument(f"--lang={os.getenv('LANGUAGE', '')}")
 
     return options
@@ -330,23 +333,42 @@ def get_ctx(silence: Optional[bool] = None) -> StandardContext:
 
 def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
     """挑战者驱动 用于处理人机挑战"""
-    logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
-
-    silence = True if silence is None or "linux" in sys.platform else silence
-
     options = _set_ctx()
+
+    # Happy Hunger Games!
+    silence = True if silence is None or "linux" in sys.platform else silence
+    if silence is True and "linux" in sys.platform:
+        options.add_argument("--no-proxy-server")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+
+    # - Use chromedriver cache to improve application startup speed
+    # - Requirement: undetected-chromedriver >= 3.1.5.post2
+    logging.getLogger("WDM").setLevel(logging.NOTSET)
     driver_executable_path = ChromeDriverManager(log_level=0).install()
+    version_main = get_browser_version_from_os(ChromeType.GOOGLE).split(".")[0]
 
-    ctx = uc.Chrome(
-        headless=silence,
-        options=options,
-        use_subprocess=True,
-        driver_executable_path=driver_executable_path,
-    )
+    # Create challenger
+    logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
+    try:
+        ctx = uc.Chrome(
+            headless=silence,
+            options=options,
+            use_subprocess=False,
+            driver_executable_path=driver_executable_path,
+        )
+    except WebDriverException:
+        ctx = uc.Chrome(
+            headless=silence,
+            options=options,
+            use_subprocess=False,
+            version_main=int(version_main) if version_main.isdigit() else None,
+        )
 
+    # Record necessary startup information
     logger.debug(ctx.execute_script("return navigator.userAgent"))
-    if "linux" in sys.platform and not os.getenv("GITHUB_ACTIONS"):
-        for i in os.environ.items():
-            logger.debug(i)
+    if not os.getenv("GITHUB_ACTIONS"):
+        logger.debug(f"_platform: Runner - hook={sys.platform}")
+    else:
+        logger.debug(f"_platform: GitHub Action - hook={sys.platform}")
 
     return ctx

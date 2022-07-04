@@ -3,10 +3,8 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import asyncio
 import random
 import sys
-import time
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Union
 
@@ -47,12 +45,6 @@ class SteelTorrent(AshFramework):
         }
         self.tun = tun
 
-    def in_library(self, content) -> bool:
-        result = self.explorer.game_manager.is_my_game(self.ctx_cookies, None, content)
-        if not result["status"] and result["assert"] != "AssertObjectNotFound":
-            return False
-        return True
-
     async def parse_free_dlc(self, game_page_content, session):
         dlc_page = self.bricklayer.has_attach(game_page_content)
         if not dlc_page:
@@ -68,31 +60,8 @@ class SteelTorrent(AshFramework):
             for dlc in dlc_details:
                 self.worker.put(dlc)
 
-    async def control_driver(self, context, session=None):
-        # 在隧道模式中不开启前置的网络请求
-        if self.tun is True:
-            context["in_library"] = SynergyTunnel.get_combat(context["url"])
-            self.task_queue_pending.put_nowait(context)
-        # 通过网络请求判断游戏本体是否在库
-        else:
-            for _ in range(5):
-                try:
-                    async with session.get(context["url"], headers=self.headers) as response:
-                        content = await response.read()
-                        context["in_library"] = self.in_library(content)
-                        self.task_queue_pending.put_nowait(context)
-                    break
-                # 解析商品页时返回错误结果，等待若干秒后重试
-                except TypeError:
-                    await asyncio.sleep(1)
-                    time.sleep(2)
-
-            # 识别免费附加内容
-            if not context.get("review"):
-                await self.parse_free_dlc(content, session)
-
-    async def advance(self, workers):
-        await super().subvert(workers)
+    def control_driver(self, context, session=None):
+        """Deprecated"""
 
 
 class ClaimerScheduler:
@@ -242,6 +211,7 @@ class BaseInstance:
         self._ctx_cookies = None
 
     def __enter__(self):
+        """激活挑战者并获取身份令牌"""
         try:
             _manager = self.bricklayer.cookie_manager
             if _manager.refresh_ctx_cookies(keep_live=True, silence=self.silence):
@@ -417,35 +387,10 @@ class GameClaimerInstance(BaseInstance):
         self, silence: bool, log_ignore: Optional[bool] = False, tun: Optional[bool] = True
     ):
         super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer", tun=tun)
-
         self.explorer = Explorer(silence=silence)
 
-        self.promotions_review = []
-        self.promotions_context = []
-        self.steel_torrent = None
-
-    def __enter__(self):
-        super().__enter__()
-        # 初始化协同任务
-        self.promotions_context = [
-            {"url": p[0], "name": p[-1]} for p in self.get_promotions().items()
-        ]
-        new_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(new_loop)
-
-        self.steel_torrent = SteelTorrent(
-            docker=self.promotions_context,
-            ctx_cookies=self._ctx_cookies,
-            explorer=self.explorer,
-            bricklayer=self.bricklayer,
-            task_queue_pending=self.task_queue_pending,
-            tun=self.tun,
-        )
-
-        return self
-
     def get_promotions(self) -> Optional[Dict[str, Union[List[str], str]]]:
-        """获取促销信息的顶级接口"""
+        """获取游戏促销信息"""
         try:
             return self.explorer.get_promotions(self._ctx_cookies)
         except Exception as err:  # skipcq: - 应力表达式的无感切换
@@ -453,41 +398,72 @@ class GameClaimerInstance(BaseInstance):
             return self.explorer.get_promotions_by_stress_expressions(self._ctx_session)
 
     def promotions_filter(self):
-        if self.promotions_review:
-            self.steel_torrent.docker = self.promotions_review
+        """获取游戏在库信息"""
+        promotions = [{"url": p[0], "name": p[-1]} for p in self.get_promotions().items()]
+        order_history = self.explorer.game_manager.get_order_history(self._ctx_cookies)
 
-        if sys.platform.startswith("win") or "cygwin" in sys.platform:
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-            asyncio.run(self.steel_torrent.advance(workers="fast"))
-        else:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self.steel_torrent.advance(workers="fast"))
+        # 判断促销实体的在库状态
+        for promotion in promotions:
+            if self.depth == 0:
+                self.logger.debug(
+                    ToolBox.runtime_report(
+                        motive="GET",
+                        action_name=self.action_name,
+                        message="获取促销实体数据",
+                        promotion=promotion,
+                    )
+                )
+            # 接口不可用时建立缓存通道
+            if not order_history:
+                result = SynergyTunnel.get_combat(promotion["url"])
+                promotion["in_library"] = bool(result)
+            else:
+                promotion["in_library"] = order_history.get(promotion["name"])
+                result = self.ok if self.depth == 0 else self.coco
+            # 标记已在库的促销实体
+            if promotion["in_library"] is True:
+                SynergyTunnel.set_combat(promotion["url"], result)
+            # 将已登记的促销实体灌入任务队列
+            # 跳过已在库促销实体的领取任务，启动待认领任务
+            self.task_queue_pending.put(promotion)
 
     def inline_bricklayer(self):
-        # 将购物车商品移至愿望清单
-        # if self.task_queue_worker.qsize() > 1:
-        #     self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session, tun=self.tun)
-        #     self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
-        # else:
-        #     self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_GET
+        """优先使用广度任务"""
 
-        # 将商品逐渐添加至购物车
-        # GET/ADD 模式切换： 任务数大于1时使用 AddMode
-        while not self.task_queue_worker.empty():
-            job = self.task_queue_worker.get()
+        def breadth_challenge():
+            self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
+
+            # 将购物车内容移至愿望清单
+            self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session)
+
+            # 将促销商品移至购物车
+            pending_combat = []
+            while not self.task_queue_worker.empty():
+                job = self.task_queue_worker.get()
+                self.bricklayer.claim_stabilizer(job["url"], self._ctx_cookies, self._ctx_session)
+                # 标记待认领游戏实体
+                if not SynergyTunnel.get_combat(job["url"]):
+                    pending_combat.append(job["url"])
+
+            # 检查游戏在库状态
+            # 有任意一款游戏处于待认领状态 --> 清空购物车
+            if pending_combat:
+                self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
+
+            # 将待认领游戏实体全部标记为<领取成功>状态
+            for combat in pending_combat:
+                if not SynergyTunnel.get_combat(combat):
+                    SynergyTunnel.set_combat(combat, self.coco)
+
+        def depth_challenge():
             self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_GET
-            # SynergyTunnel.LEAVES.append(job["url"])
-            self.bricklayer.claim_stabilizer(job["url"], self._ctx_cookies, self._ctx_session)
-            job["review"] = True
-            self.promotions_review.append(job)
+            while not self.task_queue_worker.empty():
+                job = self.task_queue_worker.get()
+                self.bricklayer.claim_stabilizer(job["url"], self._ctx_cookies, self._ctx_session)
 
-        # # 清空购物车
-        # if self.bricklayer.claim_mode == self.bricklayer.CLAIM_MODE_ADD:
-        #     for leave in SynergyTunnel.LEAVES:
-        #         if not SynergyTunnel.get_combat(leave):
-        #             self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
-        #             SynergyTunnel.set_combat(leave, self.coco)
-        #             break
+        if self.task_queue_worker.qsize() > 1:
+            return breadth_challenge()
+        return depth_challenge()
 
 
 class UnrealClaimerInstance(BaseInstance):
@@ -500,6 +476,9 @@ class UnrealClaimerInstance(BaseInstance):
     def promotions_filter(self):
         content_objs = self.bricklayer.get_claimer_response(self._ctx_cookies)
         for content_obj in content_objs:
+            if content_obj["in_library"]:
+                result = self.ok if not self.depth else self.coco
+                SynergyTunnel.set_combat(content_obj["url"], result)
             self.task_queue_pending.put(content_obj)
 
     def inline_bricklayer(self):

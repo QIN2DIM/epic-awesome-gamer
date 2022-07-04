@@ -3,12 +3,14 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import json
 import os.path
 import time
 from hashlib import sha256
 from typing import List, Optional, Union, Dict
 
 import cloudscraper
+import requests.exceptions
 import yaml
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 from selenium.common.exceptions import WebDriverException, InvalidCookieDomainException
@@ -39,6 +41,9 @@ class EpicAwesomeExplorer:
         "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=zh-CN"
     )
     URL_PRODUCT_PAGE = "https://store.epicgames.com/zh-CN/p/"
+    URL_ORDER_HISTORY = (
+        "https://www.epicgames.com/account/v2/payment/ajaxGetOrderHistory?locale=zh-CN"
+    )
 
     def __init__(self, silence: bool = None):
         self.silence = True if silence is None else silence
@@ -424,6 +429,41 @@ class GameLibManager(EpicAwesomeExplorer):
             return response_wrapper(
                 {"assert": assert_message, "warning": warning_message, "status": None}
             )
+
+    def get_order_history(self, ctx_cookies) -> Optional[Dict[str, bool]]:
+        """
+        获取订单历史信息
+        :param ctx_cookies:
+        :return: container:Dict[str, bool] = {"game_name_1": boolean, ...}
+        """
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+            " Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44",
+            "cookie": ctx_cookies
+            if isinstance(ctx_cookies, str)
+            else ToolBox.transfer_cookies(ctx_cookies),
+        }
+        # 订单项目
+        container = {}
+
+        # 解析订单数据
+        try:
+            scraper = cloudscraper.create_scraper()
+            resp = scraper.get(self.URL_ORDER_HISTORY, headers=headers)
+        except requests.exceptions.RequestException as err:
+            logger.exception(err)
+        else:
+            try:
+                data = json.loads(resp.text)
+                orders: List[dict] = data["orders"]
+                for order in orders:
+                    items: List[dict] = order["items"]
+                    for item in items:
+                        container[item["description"]] = bool(order["orderStatus"] == "COMPLETED")
+            except (json.decoder.JSONDecodeError, KeyError) as err:
+                logger.exception(err)
+        finally:
+            return container
 
 
 class _Game:

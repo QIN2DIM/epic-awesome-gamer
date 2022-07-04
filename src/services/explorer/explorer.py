@@ -95,7 +95,9 @@ class Explorer(EpicAwesomeExplorer):
                         )
                     except IndexError:
                         url = self.URL_PRODUCT_PAGE + promotion["productSlug"]
-                    free_game_objs[url] = promotion["title"]
+                    free_game_objs[url] = (
+                        promotion["title"].replace("《", "").replace("》", "").strip()
+                    )
                     try:
                         image_url = promotion["keyImages"][-1]["url"]
                         Explorer.cdn_image_urls.append(image_url)

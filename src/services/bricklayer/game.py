@@ -135,7 +135,7 @@ class GameClaimer(EpicAwesomeGamer):
             return None
         return False
 
-    def cart_balancing(self, ctx_cookies: List[dict], ctx_session, init=True, tun=False):
+    def cart_balancing(self, ctx_cookies: List[dict], ctx_session, init=True):
         """
         购物车|愿望清单的内容转移
 
@@ -183,14 +183,6 @@ class GameClaimer(EpicAwesomeGamer):
         _loop_start = time.time()
         init = True
         while True:
-            # [🚀] 判断购物车状态
-            logger.debug("[🛵] 判断购物车状态")
-            if not init and SynergyTunnel.is_convert():
-                break
-            # resp: none --> OMS challenge
-            # if self.is_empty_cart(ctx_cookies, init=init):
-            #     break
-
             # [🚀] 重载身份令牌
             logger.debug("[🛵] 重载身份令牌")
             self._reset_page(
@@ -201,8 +193,15 @@ class GameClaimer(EpicAwesomeGamer):
             )
 
             # [🚀] 激活游戏订单
-            logger.debug("[🛵] 激活游戏订单")
-            self._activate_payment(ctx_session, mode=self.ACTIVE_BINGO)
+            logger.debug("[🛵] 审查购物车状态")
+            resp = self._activate_payment(ctx_session, mode=self.ACTIVE_BINGO, init_cart=init)
+            if not init and not resp:
+                logger.success(
+                    ToolBox.runtime_report(
+                        motive="ADVANCE", action_name=self.action_name, message="✔ 购物车已清空"
+                    )
+                )
+                break
 
             # [🚀] 新用户首次购买游戏需要处理许可协议书
             if init and self.assert_.surprise_license(ctx_session):
@@ -211,7 +210,7 @@ class GameClaimer(EpicAwesomeGamer):
                 continue
 
             # [🚀] 处理游戏订单
-            logger.debug("[🛵] 处理游戏订单...")
+            logger.debug("[🛵] 处理购物订单...")
             self.cart_handle_payment(ctx_session)
 
             # [🚀] 更新上下文状态
@@ -265,7 +264,7 @@ class GameClaimer(EpicAwesomeGamer):
             # [🚀] 激活游戏订单
             self._activate_payment(ctx, mode=self.claim_mode)
 
-            # 上下文切换
+            # ------ 上下文切换 | [GET/ADD] ------
             self.captcha_runtime_memory(ctx, suffix="_switch")
             if self.claim_mode == self.CLAIM_MODE_ADD:
                 break

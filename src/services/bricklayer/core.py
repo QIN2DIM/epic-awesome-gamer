@@ -931,7 +931,9 @@ class EpicAwesomeGamer:
     # Business Action Chains
     # ======================================================
 
-    def _activate_payment(self, api: ChallengerContext, mode="get") -> Optional[bool]:
+    def _activate_payment(
+        self, api: ChallengerContext, mode="get", init_cart=None
+    ) -> Optional[bool]:
         """激活游戏订单"""
         element_xpath = {
             self.CLAIM_MODE_GET: "//button[@data-testid='purchase-cta-button']",
@@ -947,6 +949,9 @@ class EpicAwesomeGamer:
                 return True
             # 加载超时，继续测试
             except TimeoutException:
+                # 购物车为空 无法点击下单按钮
+                if mode == self.ACTIVE_BINGO and init_cart is False:
+                    return
                 logger.debug(f"[🔖] 资源订单加载超时 - mode={mode}")
                 continue
             # 出现弹窗遮挡
