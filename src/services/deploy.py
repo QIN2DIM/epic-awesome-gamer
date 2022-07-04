@@ -149,11 +149,14 @@ class ClaimerScheduler:
 
     def job_loop_claim(self, log_ignore: Optional[bool] = False, tun: Optional[bool] = True):
         """wrap function for claimer instance"""
+        self.logger.success(
+            ToolBox.runtime_report(self.action_name, "STARTUP", f"SynergyTunnel Pattern: {tun}")
+        )
+
         if self.unreal:
             with UnrealClaimerInstance(silence=self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
         else:
-            self.logger.debug(f"SynergyTunnel Pattern: {tun}")
             with GameClaimerInstance(
                 silence=self.silence, log_ignore=log_ignore, tun=tun
             ) as claimer:
@@ -337,6 +340,7 @@ class BaseInstance:
                         action_name=self.action_name,
                         message=message,
                         game=f"『{resource_obj['name']}』",
+                        url=resource_obj["url"],
                     )
                 )
             # 待领取资源 将实例移动至 worker 分治队列
@@ -404,15 +408,6 @@ class GameClaimerInstance(BaseInstance):
 
         # 判断促销实体的在库状态
         for promotion in promotions:
-            if self.depth == 0:
-                self.logger.debug(
-                    ToolBox.runtime_report(
-                        motive="GET",
-                        action_name=self.action_name,
-                        message="获取促销实体数据",
-                        promotion=promotion,
-                    )
-                )
             # 接口不可用时建立缓存通道
             if not order_history:
                 result = SynergyTunnel.get_combat(promotion["url"])

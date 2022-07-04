@@ -7,7 +7,7 @@ from typing import Optional
 
 from loguru import logger
 
-from apis.scaffold import get, challenge, install, claimer
+from apis.scaffold import get, challenge, install, claimer, console
 
 
 class Scaffold:
@@ -167,5 +167,10 @@ class Scaffold:
         claimer.deploy(platform, unreal=unreal)
 
     @staticmethod
-    def log():
-        """显示最近一次的运行日志。"""
+    def log(start: Optional[bool] = False):
+        """
+        显示最近一次的运行日志。
+        :param start: Default False. 自动打开日志目录（linux无效，仅会显示文件目录）。
+        :return:
+        """
+        console.get_logger(start=start)
