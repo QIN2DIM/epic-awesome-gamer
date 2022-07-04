@@ -22,6 +22,7 @@ import yaml
 from gevent.queue import Queue
 from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Chrome
 from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
@@ -348,22 +349,22 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
 
     # Create challenger
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
-    if "linux" in sys.platform:
+    run_mode = "goto"
+    try:
+        ctx = uc.Chrome(
+            headless=silence, options=options, driver_executable_path=driver_executable_path
+        )
+    except WebDriverException:
+        run_mode = "hook-based"
         ctx = uc.Chrome(
             headless=silence,
             options=options,
             version_main=int(version_main) if version_main.isdigit() else None,
         )
-    else:
-        ctx = uc.Chrome(
-            headless=silence,
-            options=options,
-            driver_executable_path=driver_executable_path,
-        )
 
     # Record necessary startup information
     hook_ = "GitHub Action" if os.getenv("GITHUB_ACTIONS") else "base"
     logger.debug(ctx.execute_script("return navigator.userAgent"))
-    logger.debug(f"Setup info: hook={hook_} platform={sys.platform}")
+    logger.debug(f"Setup info: hook={hook_} platform={sys.platform} run_mode={run_mode}")
 
     return ctx

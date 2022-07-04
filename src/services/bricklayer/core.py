@@ -162,21 +162,30 @@ class ArmorUtils(ArmorCaptcha):
         assert AssertTimeout
 
     @staticmethod
-    def fall_in_captcha_runtime(ctx: ChallengerContext) -> Optional[bool]:
+    def fall_in_captcha_runtime(ctx: ChallengerContext, window: str) -> Optional[bool]:
         """
         判断在下单时是否遇到人机挑战
 
         # "//div[@id='talon_frame_checkout_free_prod']"
         :param ctx:
+        :param window:
         :return:
         """
         try:
+            if window == "free":
+                ctx.switch_to.default_content()
+                WebDriverWait(ctx, 5).until(
+                    EC.frame_to_be_available_and_switch_to_it((By.XPATH, ArmorUtils.HOOK_PURCHASE))
+                )
             WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
                 EC.presence_of_element_located((By.XPATH, ArmorUtils.HOOK_CHALLENGE))
             )
             return True
         except TimeoutException:
             return False
+        finally:
+            if window == "free":
+                ctx.switch_to.default_content()
 
     @staticmethod
     def face_the_checkbox(ctx: Chrome) -> Optional[bool]:
