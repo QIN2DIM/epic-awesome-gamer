@@ -450,15 +450,13 @@ class GameClaimerInstance(BaseInstance):
                 if not SynergyTunnel.get_combat(combat):
                     SynergyTunnel.set_combat(combat, self.coco)
 
-        def depth_challenge():
+        def unused_depth_challenge():
             self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_GET
             while not self.task_queue_worker.empty():
                 job = self.task_queue_worker.get()
                 self.bricklayer.claim_stabilizer(job["url"], self._ctx_cookies, self._ctx_session)
 
-        if self.task_queue_worker.qsize() > 1:
-            return breadth_challenge()
-        return depth_challenge()
+        return breadth_challenge()
 
 
 class UnrealClaimerInstance(BaseInstance):
