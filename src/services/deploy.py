@@ -420,6 +420,7 @@ class GameClaimerInstance(BaseInstance):
                 SynergyTunnel.set_combat(promotion["url"], result)
             # 将已登记的促销实体灌入任务队列
             # 跳过已在库促销实体的领取任务，启动待认领任务
+            SynergyTunnel.url2name.update({promotion["url"]: promotion["name"]})
             self.task_queue_pending.put(promotion)
 
     def inline_bricklayer(self):

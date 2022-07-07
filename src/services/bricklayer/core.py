@@ -35,6 +35,7 @@ from services.settings import (
     EPIC_PASSWORD,
     PATH_RAINBOW,
     DIR_SCREENSHOT,
+    SynergyTunnel,
 )
 from services.utils import (
     ToolBox,
@@ -602,7 +603,7 @@ class AssertUtils:
 
             if "内容品当前在您所在平台或地区不可用。" in surprise_warnings:
                 raise UnableToGet
-            if "本游戏包含成人内容，仅限18岁以上玩家选购" in surprise_warnings:
+            if "本游戏包含成人内容" in surprise_warnings:
                 WebDriverWait(ctx, 5, ignored_exceptions=ElementClickInterceptedException).until(
                     EC.element_to_be_clickable((By.XPATH, "//span[text()='继续']/parent::button"))
                 ).click()
@@ -681,19 +682,7 @@ class AssertUtils:
             return AssertUtils.ASSERT_OBJECT_EXCEPTION
 
         # 游戏名 超时的空对象主动抛出异常
-        game_name = (
-            WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException)
-            .until(EC.visibility_of_element_located((By.XPATH, "//h1")))
-            .text
-        )
-
-        if game_name[-1] == "。":
-            logger.warning(
-                ToolBox.runtime_report(
-                    motive="SKIP", action_name=action_name, message=f"🚫 {game_name}", url=page_link
-                )
-            )
-            return AssertUtils.ASSERT_OBJECT_EXCEPTION
+        game_name = SynergyTunnel.url2name.get(page_link)
 
         # 游戏状态 在库|获取|购买
         purchase_msg = purchase_button.text

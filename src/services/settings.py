@@ -166,6 +166,9 @@ class SynergyTunnel:
 
     LEAVES = []
 
+    # 暂存任务促销
+    url2name = {}
+
     @staticmethod
     def set_combat(k, v):
         SynergyTunnel._CHANNEL.update({k: v})
