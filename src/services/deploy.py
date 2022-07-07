@@ -353,6 +353,7 @@ class BaseInstance:
                             action_name=self.action_name,
                             message=f"🍜 发现{self.tag}",
                             game=f"『{resource_obj['name']}』",
+                            url=resource_obj["url"],
                         )
                     )
 

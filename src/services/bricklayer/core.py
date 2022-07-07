@@ -599,7 +599,7 @@ class AssertUtils:
             return True
         else:
             surprise_warning_objs = ctx.find_elements(By.XPATH, "//h1//span")
-            surprise_warnings = [i.text for i in surprise_warning_objs]
+            surprise_warnings: List[str] = [i.text for i in surprise_warning_objs]
 
             if "内容品当前在您所在平台或地区不可用。" in surprise_warnings:
                 raise UnableToGet
