@@ -603,7 +603,10 @@ class AssertUtils:
 
             if "内容品当前在您所在平台或地区不可用。" in surprise_warnings:
                 raise UnableToGet
-            if "本游戏包含成人内容" in surprise_warnings:
+            if (
+                "本游戏包含成人内容，仅限17岁以上玩家选购" in surprise_warnings
+                or "本游戏包含成人内容，仅限18岁以上玩家选购" in surprise_warnings
+            ):
                 WebDriverWait(ctx, 5, ignored_exceptions=ElementClickInterceptedException).until(
                     EC.element_to_be_clickable((By.XPATH, "//span[text()='继续']/parent::button"))
                 ).click()
