@@ -12,6 +12,7 @@ from webdriver_manager.utils import get_browser_version_from_os
 
 from services.settings import DIR_MODEL, logger, PATH_RAINBOW
 from services.utils import ElephantsDrawnWithLeaves
+from services.utils import ResNetDomesticCat
 from services.utils import ResNetSeaplane
 from services.utils import YOLO
 from services.utils import get_challenge_ctx
@@ -23,8 +24,10 @@ def _download_model(onnx_prefix: Optional[str] = None):
     logger.debug("Downloading YOLOv5(ONNX) object detection model...")
 
     YOLO(dir_model=DIR_MODEL, onnx_prefix=onnx_prefix).download_model()
-    ElephantsDrawnWithLeaves(dir_model=DIR_MODEL).download_model()
-    ResNetSeaplane(dir_model=DIR_MODEL).download_model()
+
+    # Patch pluggable ONNX models
+    for resnet_model in [ResNetDomesticCat, ResNetSeaplane, ElephantsDrawnWithLeaves]:
+        resnet_model(dir_model=DIR_MODEL).download_model()
 
 
 def _download_driver():

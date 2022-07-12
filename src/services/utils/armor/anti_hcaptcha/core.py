@@ -47,6 +47,7 @@ class ArmorCaptcha:
             "天空中向左飞行的飞机": "airplane in the sky flying left",
             "请选择天空中所有向右飞行的飞机": "airplanes in the sky that are flying to the right",
             "请选择所有用树叶画的大象": "elephants drawn with leaves",
+            "家猫": "domestic cat",
         }
 
         # 样本标签映射 {挑战图片1: locator1, ...}

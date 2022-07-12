@@ -9,8 +9,8 @@ import time
 import cv2
 import numpy as np
 
-from .kernel import Solutions
 from .kernel import ChallengeStyle
+from .kernel import Solutions
 
 
 class YOLO:
@@ -21,7 +21,7 @@ class YOLO:
 
         # Select default onnx model.
         self.onnx_prefix = (
-            "yolov6n"
+            "yolov6t"
             if onnx_prefix
             not in [
                 # Reference - Ultralytics YOLOv5 https://github.com/ultralytics/yolov5
@@ -30,8 +30,8 @@ class YOLO:
                 "yolov5n6",
                 # Reference - MT-YOLOv6 https://github.com/meituan/YOLOv6
                 "yolov6n",
-                "yolov6s",
                 "yolov6t",
+                "yolov6s",
                 # "yolov7"  # Vision Transformer
             ]
             else onnx_prefix
@@ -42,7 +42,7 @@ class YOLO:
             self.name = f"MT-YOLOv6{self.onnx_prefix[-1]}"
 
         self.onnx_model = {
-            "name": f"{self.name}(onnx)_model",
+            "name": f"{self.name}(ONNX)_model",
             "path": os.path.join(self.dir_model, f"{self.onnx_prefix}.onnx"),
             "src": f"https://github.com/QIN2DIM/hcaptcha-challenger/releases/download/model/{self.onnx_prefix}.onnx",
         }

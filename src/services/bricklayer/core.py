@@ -224,6 +224,8 @@ class ArmorUtils(ArmorCaptcha):
     def switch_solution(self, dir_model):
         """模型卸载"""
         label = self.label_alias.get(self.label)
+        if label in ["domestic cat"]:
+            return resnet.ResNetDomesticCat(dir_model, path_rainbow=PATH_RAINBOW)
         if label in ["seaplane"]:
             return resnet.ResNetSeaplane(dir_model)
         if label in ["elephants drawn with leaves"]:
