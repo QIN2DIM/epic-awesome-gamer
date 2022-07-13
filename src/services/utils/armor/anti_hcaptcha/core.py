@@ -31,7 +31,6 @@ class ArmorCaptcha:
 
         # 博大精深！
         self.label_alias = {
-            "水上飞机": "seaplane",
             "自行车": "bicycle",
             "火车": "train",
             "卡车": "truck",
@@ -47,7 +46,10 @@ class ArmorCaptcha:
             "天空中向左飞行的飞机": "airplane in the sky flying left",
             "请选择天空中所有向右飞行的飞机": "airplanes in the sky that are flying to the right",
             "请选择所有用树叶画的大象": "elephants drawn with leaves",
+            "水上飞机": "seaplane",
+            "汽车": "car",
             "家猫": "domestic cat",
+            "卧室": "bedroom",
         }
 
         # 样本标签映射 {挑战图片1: locator1, ...}

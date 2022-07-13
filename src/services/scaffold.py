@@ -13,10 +13,13 @@ from apis.scaffold import get, challenge, install, claimer, console
 class Scaffold:
     """系统脚手架 顶级接口指令"""
 
+    DEFAULT_YOLO_MODEL = "yolov6t"
+
     @staticmethod
-    def install(onnx_prefix: Optional[str] = None):
+    def install(onnx_prefix: Optional[str] = None, upgrade: Optional[bool] = True):
         """下载运行依赖"""
-        install.run(onnx_prefix=onnx_prefix)
+        onnx_prefix = Scaffold.DEFAULT_YOLO_MODEL if onnx_prefix is None else onnx_prefix
+        install.run(model=onnx_prefix, upgrade=upgrade)
 
     @staticmethod
     def test():
@@ -147,6 +150,9 @@ class Scaffold:
           业务内容保持一致。脚手架指令 unreal 与此入口意义相同。
         :return:
         """
+        install.download_yolo_model(onnx_prefix=Scaffold.DEFAULT_YOLO_MODEL)
+        install.refresh_pluggable_onnx_model(upgrade=True)
+
         claimer.run(silence=silence, log_ignore=ignore, unreal=unreal)
 
     @staticmethod

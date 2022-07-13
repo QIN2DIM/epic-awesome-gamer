@@ -13,8 +13,9 @@ from .armor.anti_hcaptcha.exceptions import (
 )
 from .armor.anti_hcaptcha.solutions import sk_recognition
 from .armor.anti_hcaptcha.solutions.resnet import ElephantsDrawnWithLeaves
-from .armor.anti_hcaptcha.solutions.resnet import ResNetSeaplane
+from .armor.anti_hcaptcha.solutions.resnet import ResNetBedroom
 from .armor.anti_hcaptcha.solutions.resnet import ResNetDomesticCat
+from .armor.anti_hcaptcha.solutions.resnet import ResNetSeaplane
 from .armor.anti_hcaptcha.solutions.yolo import YOLO
 from .toolbox.toolbox import ChallengerContext
 from .toolbox.toolbox import MessagePusher
@@ -34,6 +35,8 @@ __all__ = [
     "YOLO",
     "ElephantsDrawnWithLeaves",
     "ResNetSeaplane",
+    "ResNetBedroom",
+    "ResNetDomesticCat",
     "MessagePusher",
     "ToolBox",
     "get_challenge_ctx",
