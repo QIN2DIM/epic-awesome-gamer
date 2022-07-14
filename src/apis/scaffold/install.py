@@ -13,9 +13,10 @@ from webdriver_manager.chrome import ChromeType
 from webdriver_manager.utils import get_browser_version_from_os
 
 from services.settings import DIR_MODEL, logger, PATH_RAINBOW
-from services.utils import ElephantsDrawnWithLeaves
 from services.utils import ResNetBedroom
+from services.utils import ResNetBridge
 from services.utils import ResNetDomesticCat
+from services.utils import ResNetLion
 from services.utils import ResNetSeaplane
 from services.utils import YOLO
 from services.utils import get_challenge_ctx
@@ -49,7 +50,7 @@ def download_yolo_model(onnx_prefix):
 
 def refresh_pluggable_onnx_model(upgrade: Optional[bool] = None):
     def need_to_refresh():
-        _flag = "253fa44d6747e5068326a64fce1cf3aeba0bc28fed457c7f2fc140b1587c61fc"
+        _flag = "734b700810311e1ace4a3610b9cf48a0217dd3c2c6183ea7ac5d2bcd51e3507e"
         if not os.path.exists(PATH_RAINBOW):
             return True
         with open(PATH_RAINBOW, "rb") as file:
@@ -58,10 +59,12 @@ def refresh_pluggable_onnx_model(upgrade: Optional[bool] = None):
     if need_to_refresh():
         sk_recognition.SKRecognition.sync_rainbow(path_rainbow=PATH_RAINBOW, convert=True)
         for resnet_model in [
+            ResNetBridge,
+            ResNetLion,
             ResNetDomesticCat,
             ResNetBedroom,
             ResNetSeaplane,
-            ElephantsDrawnWithLeaves,
+            # ElephantsDrawnWithLeaves,
         ]:
             resnet_model(dir_model=DIR_MODEL).download_model(upgrade)
 

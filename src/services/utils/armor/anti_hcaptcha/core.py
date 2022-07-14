@@ -50,6 +50,8 @@ class ArmorCaptcha:
             "汽车": "car",
             "家猫": "domestic cat",
             "卧室": "bedroom",
+            "桥梁": "bridge",
+            "狮子": "lion",
         }
 
         # 样本标签映射 {挑战图片1: locator1, ...}

@@ -87,6 +87,30 @@ class ResNetFactory(Solutions):
         """Implementation process of solution"""
 
 
+class ResNetBridge(ResNetFactory):
+    """Handle challenge 「bridge」"""
+
+    def __init__(self, dir_model: str, path_rainbow=None):
+        _onnx_prefix = "bridge"
+        self.rainbow_key = _onnx_prefix
+        super().__init__(_onnx_prefix, f"{_onnx_prefix}(ResNet)_model", dir_model, path_rainbow)
+
+    def solution(self, img_stream, **kwargs) -> bool:
+        return self.classifier(img_stream, self.rainbow_key, feature_filters=None)
+
+
+class ResNetLion(ResNetFactory):
+    """Handle challenge 「lion」"""
+
+    def __init__(self, dir_model: str, path_rainbow=None):
+        _onnx_prefix = "lion"
+        self.rainbow_key = _onnx_prefix
+        super().__init__(_onnx_prefix, f"{_onnx_prefix}(ResNet)_model", dir_model, path_rainbow)
+
+    def solution(self, img_stream, **kwargs) -> bool:
+        return self.classifier(img_stream, self.rainbow_key, feature_filters=None)
+
+
 class ResNetBedroom(ResNetFactory):
     """Handle challenge 「bedroom」"""
 
