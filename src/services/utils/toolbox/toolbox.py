@@ -360,7 +360,6 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
 
     # Record necessary startup information
     hook_ = "GitHub Action" if os.getenv("GITHUB_ACTIONS") else "base"
-    logger.debug(ctx.execute_script("return navigator.userAgent"))
     logger.debug(f"Setup info: hook={hook_} platform={sys.platform} run_mode={run_mode}")
 
     return ctx

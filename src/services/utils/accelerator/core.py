@@ -14,6 +14,11 @@ class AshFramework:
     """轻量化的协程控件"""
 
     def __init__(self, docker: Optional[List] = None):
+        if sys.platform.startswith("win") or "cygwin" in sys.platform:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        else:
+            asyncio.set_event_loop(asyncio.new_event_loop())
+
         # 任务容器：queue
         self.worker, self.done = asyncio.Queue(), asyncio.Queue()
         # 任务容器
@@ -76,6 +81,4 @@ class AshFramework:
 
     def perform(self, workers: Union[str, int] = "fast"):
         """Start the highest power coroutine task"""
-        if sys.platform.startswith("win") or "cygwin" in sys.platform:
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.run(self.subvert(workers))
