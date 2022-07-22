@@ -161,16 +161,15 @@ class Scaffold:
         Scaffold.claim(silence=silence, ignore=ignore, unreal=True)
 
     @staticmethod
-    def deploy(platform: Optional[str] = None, unreal: Optional[bool] = False):
+    def deploy(unreal: Optional[bool] = False):
         """
         部署系统定时任务。
 
         :param unreal: 默认False。虚幻商城月供砖家。将任务句柄由<游戏商店>切换至<虚幻商店>，
           业务内容保持一致。
-        :param platform: 弃用。
         :return:
         """
-        claimer.deploy(platform, unreal=unreal)
+        claimer.deploy(unreal=unreal)
 
     @staticmethod
     def log(start: Optional[bool] = False):

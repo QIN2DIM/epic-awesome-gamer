@@ -4,6 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import asyncio
+import sys
 from typing import Optional, List, Union
 
 import aiohttp
@@ -53,15 +54,7 @@ class AshFramework:
             await self.control_driver(context, session=session)
 
     async def subvert(self, workers: Union[str, int]):
-        """
-        框架接口
-
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(fl.go(workers))
-
-        :param workers: ["fast", power]
-        :return:
-        """
+        """Framework runtime interface"""
         # 任务重载
         self.overload()
 
@@ -77,6 +70,12 @@ class AshFramework:
         task_list = []
         async with aiohttp.ClientSession() as session:
             for _ in range(workers):
-                task = self.launcher(session=session)
+                task = asyncio.create_task(self.launcher(session=session))
                 task_list.append(task)
             await asyncio.wait(task_list)
+
+    def perform(self, workers: Union[str, int] = "fast"):
+        """Start the highest power coroutine task"""
+        if sys.platform.startswith("win") or "cygwin" in sys.platform:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        asyncio.run(self.subvert(workers))

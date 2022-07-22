@@ -39,7 +39,7 @@ def get_logger(start: Optional[bool] = False):
         data = file.readlines()
     for i in data[::-1]:
         _session.append(i.strip())
-        if "> STARTUP [" in i:
+        if ">> STARTUP [AwesomeScheduler]" in i:
             break
 
     # 打印回显日志
