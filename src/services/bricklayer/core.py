@@ -282,7 +282,11 @@ class ArmorUtils(ArmorCaptcha):
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
             asyncio.run(ImageDownloader(docker=docker_).subvert(workers="fast"))
         else:
-            loop = asyncio.get_event_loop()
+            try:
+                loop = asyncio.get_event_loop()
+            except:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
             loop.run_until_complete(ImageDownloader(docker=docker_).subvert(workers="fast"))
 
         self.runtime_workspace = workspace_
