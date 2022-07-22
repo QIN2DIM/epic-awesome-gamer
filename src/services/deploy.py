@@ -5,11 +5,13 @@
 # Description:
 import random
 import sys
+import time
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Union
 
 import pytz
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.job import Job
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from gevent.queue import Queue
 
@@ -69,51 +71,45 @@ class ClaimerScheduler:
 
     def __init__(self, silence: Optional[bool] = None, unreal: Optional[bool] = False):
         self.action_name = "AwesomeScheduler"
-        self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(days=180)
+        self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(days=360)
         self.silence = silence
         self.unreal = unreal
 
         # 服务注册
-        self.scheduler = BlockingScheduler()
+        self._scheduler = BackgroundScheduler()
+        self._job = None
+        self._job_id = "tango"
         self.logger = logger
 
     def deploy_on_vps(self):
-        """部署最佳实践的 VPS 定时任务"""
-
-        # [⏰] 北京时间每周五凌晨 4 点的 两个任意时刻 执行任务
         jitter_minute = [random.randint(10, 20), random.randint(35, 57)]
 
         # [⚔] 首发任务用于主动认领，备用方案用于非轮询审核
-        self.scheduler.add_job(
-            func=self.job_loop_claim,
+        self._job: Job = self._scheduler.add_job(
+            func=self._on_job_claim,
             trigger=CronTrigger(
                 day_of_week="fri",
-                hour="4",
+                hour="0",
                 minute=f"{jitter_minute[0]},{jitter_minute[-1]}",
-                second="30",
                 timezone="Asia/Shanghai",
-                # 必须使用 `end_date` 续订生产环境 定时重启
                 end_date=self.end_date,
-                # 必须使用 `jitter` 弥散任务发起时间
                 jitter=15,
             ),
-            name="loop_claim",
+            id=self._job_id,
         )
 
-        self.logger.debug(
+        # [⚔] Gracefully run scheduler.
+        self._scheduler.start()
+        self.logger.info(
             ToolBox.runtime_report(
-                motive="JOB",
-                action_name=self.action_name,
-                message=f"任务将在北京时间每周五 04:{jitter_minute[0]} " f"以及 04:{jitter_minute[-1]} 执行。",
-                end_date=str(self.end_date),
+                motive="JOB", action_name=self.action_name, next_run_time=self._job.next_run_time
             )
         )
-
-        # [⚔] Gracefully run scheduler.`
         try:
-            self.scheduler.start()
+            while True:
+                time.sleep(3600)
         except (KeyboardInterrupt, EOFError):
-            self.scheduler.shutdown(wait=False)
+            self._scheduler.shutdown()
             self.logger.debug(
                 ToolBox.runtime_report(
                     motive="EXITS",
@@ -122,44 +118,31 @@ class ClaimerScheduler:
                 )
             )
 
-    def deploy_jobs(self, platform: Optional[str] = None):
-        """部署系统任务"""
-        if platform is not None:
-            self.logger.warning(
-                ToolBox.runtime_report(
-                    motive="MODIFY",
-                    action_name=self.action_name,
-                    message="deploy_jobs.platform 参数已弃用，自动修正为 `vps`",
-                )
-            )
-        platform = "vps"
-
-        self.logger.debug(
-            ToolBox.runtime_report(
-                motive="JOB",
-                action_name=self.action_name,
-                message="部署任务调度器",
-                platform=platform.upper(),
-            )
-        )
-
-        # [⚔] Distribute common state machine patterns
-        if platform == "vps":
-            self.deploy_on_vps()
-
-    def job_loop_claim(self, log_ignore: Optional[bool] = False, tun: Optional[bool] = True):
-        """wrap function for claimer instance"""
+    def _on_job_claim(self):
+        self.job_loop_claim(log_ignore=False)
         self.logger.success(
-            ToolBox.runtime_report(self.action_name, "STARTUP", f"SynergyTunnel Pattern: {tun}")
+            ToolBox.runtime_report(self.action_name, "OFFLOAD", f"Job has been safely released")
+        )
+        try:
+            next_run_time = self._job.next_run_time
+        except AttributeError:
+            next_run_time = None
+        self.logger.info(
+            ToolBox.runtime_report(
+                motive="JOB", action_name=self.action_name, next_run_time=next_run_time
+            )
         )
 
+    def job_loop_claim(self, log_ignore: Optional[bool] = False):
+        """wrap function for claimer instance"""
+        self.logger.info(
+            ToolBox.runtime_report(self.action_name, "STARTUP", f"SynergyTunnel Pattern: True")
+        )
         if self.unreal:
-            with UnrealClaimerInstance(silence=self.silence, log_ignore=log_ignore) as claimer:
+            with UnrealClaimerInstance(self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
         else:
-            with GameClaimerInstance(
-                silence=self.silence, log_ignore=log_ignore, tun=tun
-            ) as claimer:
+            with GameClaimerInstance(self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
 
 
@@ -167,11 +150,7 @@ class BaseInstance:
     """Atomic Scheduler"""
 
     def __init__(
-        self,
-        silence: bool,
-        log_ignore: Optional[bool] = False,
-        action_name: Optional[str] = None,
-        tun: Optional[bool] = True,
+        self, silence: bool, log_ignore: Optional[bool] = False, action_name: Optional[str] = None
     ):
         """
 
@@ -186,7 +165,6 @@ class BaseInstance:
         self.depth = 0
         # 服务注册
         self.logger = logger
-        self.tun = tun
         self.bricklayer = GameClaimer(silence=silence)
         # 尚未初始化的挑战者上下文容器
         self._ctx_session = None
@@ -321,24 +299,16 @@ class BaseInstance:
         """实体分治 <已在库><领取成功><待领取>"""
         while not self.task_queue_pending.empty():
             resource_obj = self.task_queue_pending.get()
+
             # 实例已在库
             if resource_obj["in_library"]:
-                if self.tun is True:
-                    result = SynergyTunnel.get_combat(resource_obj["url"])
-                    message = result
-                # 初见判断在库，资源已在库；多轮判断在库，资源领取成功
-                elif self.depth == 0:
-                    result = self.ok
-                    message = "🛴 资源已在库"
-                else:
-                    result = self.coco
-                    message = "🥂 领取成功"
+                result = SynergyTunnel.get_combat(resource_obj["url"])
                 self._pusher_putter(result=result, obj=resource_obj)
                 self.logger.info(
                     ToolBox.runtime_report(
                         motive="GET",
                         action_name=self.action_name,
-                        message=message,
+                        message=result,
                         game=f"『{resource_obj['name']}』",
                         url=resource_obj["url"],
                     )
@@ -388,10 +358,8 @@ class BaseInstance:
 class GameClaimerInstance(BaseInstance):
     """单步子任务 认领周免游戏"""
 
-    def __init__(
-        self, silence: bool, log_ignore: Optional[bool] = False, tun: Optional[bool] = True
-    ):
-        super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer", tun=tun)
+    def __init__(self, silence: bool, log_ignore: Optional[bool] = False):
+        super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer")
         self.explorer = Explorer(silence=silence)
 
     def get_promotions(self) -> Optional[Dict[str, Union[List[str], str]]]:

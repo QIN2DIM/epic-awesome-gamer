@@ -3,9 +3,7 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import asyncio
 import os
-import sys
 import time
 from hashlib import sha256
 from typing import List, Optional, NoReturn, Union, Tuple
@@ -256,36 +254,25 @@ class ArmorUtils(ArmorCaptcha):
         class ImageDownloader(AshFramework):
             """协程助推器 提高挑战图片的下载效率"""
 
-            def __init__(self, docker=None):
-                super().__init__(docker=docker)
-
             async def control_driver(self, context, session=None):
+                """下载挑战图片"""
                 path_challenge_img, url = context
-
-                # 下载挑战图片
                 async with session.get(url) as response:
                     with open(path_challenge_img, "wb") as file:
                         file.write(await response.read())
 
         # 初始化挑战图片下载目录
-        workspace_ = self._init_workspace()
+        self.runtime_workspace = self._init_workspace()
 
         # 初始化数据容器
         docker_ = []
         for alias_, url_ in self.alias2url.items():
-            path_challenge_img_ = os.path.join(workspace_, f"{alias_}.png")
+            path_challenge_img_ = os.path.join(self.runtime_workspace, f"{alias_}.png")
             self.alias2path.update({alias_: path_challenge_img_})
             docker_.append((path_challenge_img_, url_))
 
-        # 启动最高功率的协程任务
-        if sys.platform.startswith("win") or "cygwin" in sys.platform:
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-            asyncio.run(ImageDownloader(docker=docker_).subvert(workers="fast"))
-        else:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(ImageDownloader(docker=docker_).subvert(workers="fast"))
-
-        self.runtime_workspace = workspace_
+        # 执行下载器
+        ImageDownloader(docker=docker_).perform()
 
     def challenge_success(self, ctx: ChallengerContext, window=None, **kwargs) -> Tuple[str, str]:
         """
