@@ -336,11 +336,7 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
     run_mode = "goto"
     try:
         ctx = uc.Chrome(
-            headless=silence,
-            options=options,
-            driver_executable_path=driver_executable_path,
-            suppress_welcome=False,
-            use_subprocess=True,
+            headless=silence, options=options, driver_executable_path=driver_executable_path
         )
     except WebDriverException:
         run_mode = "hook-based"
