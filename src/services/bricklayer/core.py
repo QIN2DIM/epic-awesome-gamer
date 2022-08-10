@@ -937,6 +937,27 @@ class EpicAwesomeGamer:
         with open(f"{_finger}.mhtml", "w", newline="") as file:
             file.write(content)
 
+    def _game_login_prerequisite_actions(self, ctx: Chrome):
+        """處理游戲賬號登陸的先決條件 甩開追蹤器"""
+        _button_sign_text = "//span[contains(@class,'sign-text')]"
+        _button_login_with_epic = "//div[@id='login-with-epic']"
+
+        ctx.get("https://store.epicgames.com/zh-CN/p/hazel-sky-478373")
+        current_url = ctx.current_url
+
+        try:
+            WebDriverWait(ctx, 5).until(
+                EC.presence_of_element_located((By.XPATH, _button_sign_text))
+            ).click()
+            WebDriverWait(ctx, 10).until(EC.url_changes(current_url))
+            WebDriverWait(ctx, 20).until(
+                EC.element_to_be_clickable((By.XPATH, _button_login_with_epic))
+            ).click()
+        except TimeoutException:
+            return self._game_login_prerequisite_actions(ctx)
+        else:
+            WebDriverWait(ctx, 30).until(EC.url_contains("id/login/epic?"))
+
     def login(self, email: str, password: str, ctx: ChallengerContext, auth_url: str):
         """
         作为被动方式，登陆账号，刷新 identity token。
@@ -949,6 +970,7 @@ class EpicAwesomeGamer:
         :return:
         """
         ctx.get(auth_url)
+        # self._game_login_prerequisite_actions(ctx)
 
         WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
             EC.presence_of_element_located((By.ID, "email"))
