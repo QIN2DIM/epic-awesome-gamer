@@ -25,7 +25,8 @@ __all__ = [
     "PATH_USR_COOKIES",
     "DIR_MODEL",
     "DIR_SCREENSHOT",
-    "PATH_RAINBOW",
+    "PATH_RAINBOW_YAML",
+    "PATH_OBJECTS_YAML",
     "DIR_LOG",
     # ------------------------------
     # CONFIG
@@ -56,7 +57,7 @@ PROJECT_DATABASE = join(PROJECT_ROOT, "database")
 # YOLO模型
 DIR_MODEL = join(PROJECT_ROOT, "model")
 # Reinforcement of memory
-PATH_RAINBOW = join(DIR_MODEL, "rainbow.yaml")
+PATH_RAINBOW_YAML = join(DIR_MODEL, "rainbow.yaml")
 # Cookie 工作目录
 DIR_COOKIES = join(PROJECT_DATABASE, "cookies")
 PATH_USR_COOKIES = join(DIR_COOKIES, "user_cookies.txt")
@@ -70,6 +71,8 @@ DIR_CHALLENGE = join(DIR_TEMP_CACHE, "_challenge")
 # 服务日志目录
 DIR_LOG = join(PROJECT_DATABASE, "logs")
 DIR_SCREENSHOT = join(DIR_LOG, "screenshot")
+# Settings of pluggable ONNX models
+PATH_OBJECTS_YAML = join(PROJECT_ROOT, "objects.yaml")
 # ---------------------------------------------------
 # [√]服务器日志配置
 # ---------------------------------------------------
@@ -162,6 +165,7 @@ for _k in _0x1:
 
 
 class SynergyTunnel:
+    ARMOR = None
     _CHANNEL = {}
 
     LEAVES = []

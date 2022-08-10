@@ -13,11 +13,8 @@ from .armor.anti_hcaptcha.exceptions import (
 )
 from .armor.anti_hcaptcha.solutions import sk_recognition
 from .armor.anti_hcaptcha.solutions.resnet import ElephantsDrawnWithLeaves
-from .armor.anti_hcaptcha.solutions.resnet import ResNetBedroom
-from .armor.anti_hcaptcha.solutions.resnet import ResNetBridge
-from .armor.anti_hcaptcha.solutions.resnet import ResNetDomesticCat
-from .armor.anti_hcaptcha.solutions.resnet import ResNetLion
-from .armor.anti_hcaptcha.solutions.resnet import ResNetSeaplane
+from .armor.anti_hcaptcha.solutions.resnet import PluggableONNXModels
+from .armor.anti_hcaptcha.solutions.sk_recognition import SKRecognition
 from .armor.anti_hcaptcha.solutions.yolo import YOLO
 from .toolbox.toolbox import ChallengerContext
 from .toolbox.toolbox import MessagePusher
@@ -36,15 +33,12 @@ __all__ = [
     "sk_recognition",
     "YOLO",
     "ElephantsDrawnWithLeaves",
-    "ResNetSeaplane",
-    "ResNetBedroom",
-    "ResNetDomesticCat",
-    "ResNetLion",
-    "ResNetBridge",
     "MessagePusher",
     "ToolBox",
     "get_challenge_ctx",
     "get_ctx",
     "ChallengerContext",
     "StandardContext",
+    "SKRecognition",
+    "PluggableONNXModels",
 ]

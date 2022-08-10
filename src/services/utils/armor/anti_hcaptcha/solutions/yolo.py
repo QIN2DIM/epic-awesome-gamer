@@ -4,7 +4,6 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
-import time
 
 import cv2
 import numpy as np
@@ -16,7 +15,90 @@ from .kernel import Solutions
 class YOLO:
     """YOLO model for image classification"""
 
-    def __init__(self, dir_model, onnx_prefix: str = None):
+    classes = [
+        "person",
+        "bicycle",
+        "car",
+        "motorcycle",
+        "airplane",
+        "bus",
+        "train",
+        "truck",
+        "boat",
+        "traffic light",
+        "fire hydrant",
+        "stop sign",
+        "parking meter",
+        "bench",
+        "bird",
+        "cat",
+        "dog",
+        "horse",
+        "sheep",
+        "cow",
+        "elephant",
+        "bear",
+        "zebra",
+        "giraffe",
+        "backpack",
+        "umbrella",
+        "handbag",
+        "tie",
+        "suitcase",
+        "frisbee",
+        "skis",
+        "snowboard",
+        "sports ball",
+        "kite",
+        "baseball bat",
+        "baseball glove",
+        "skateboard",
+        "surfboard",
+        "tennis racket",
+        "bottle",
+        "wine glass",
+        "cup",
+        "fork",
+        "knife",
+        "spoon",
+        "bowl",
+        "banana",
+        "apple",
+        "sandwich",
+        "orange",
+        "broccoli",
+        "carrot",
+        "hot dog",
+        "pizza",
+        "donut",
+        "cake",
+        "chair",
+        "couch",
+        "potted plant",
+        "bed",
+        "dining table",
+        "toilet",
+        "tv",
+        "laptop",
+        "mouse",
+        "remote",
+        "keyboard",
+        "cell phone",
+        "microwave",
+        "oven",
+        "toaster",
+        "sink",
+        "refrigerator",
+        "book",
+        "clock",
+        "vase",
+        "scissors",
+        "teddy bear",
+        "hair drier",
+        "toothbrush",
+    ]
+
+    def __init__(self, dir_model: str = None, onnx_prefix: str = None):
         self.dir_model = "./model" if dir_model is None else dir_model
 
         # Select default onnx model.
@@ -30,8 +112,8 @@ class YOLO:
                 "yolov5n6",
                 # Reference - MT-YOLOv6 https://github.com/meituan/YOLOv6
                 "yolov6n",
-                "yolov6t",
                 "yolov6s",
+                "yolov6t",
                 # "yolov7"  # Vision Transformer
             ]
             else onnx_prefix
@@ -49,89 +131,8 @@ class YOLO:
 
         self.flag = self.onnx_model["name"]
 
-        # COCO namespace
-        self.classes = [
-            "person",
-            "bicycle",
-            "car",
-            "motorcycle",
-            "airplane",
-            "bus",
-            "train",
-            "truck",
-            "boat",
-            "traffic light",
-            "fire hydrant",
-            "stop sign",
-            "parking meter",
-            "bench",
-            "bird",
-            "cat",
-            "dog",
-            "horse",
-            "sheep",
-            "cow",
-            "elephant",
-            "bear",
-            "zebra",
-            "giraffe",
-            "backpack",
-            "umbrella",
-            "handbag",
-            "tie",
-            "suitcase",
-            "frisbee",
-            "skis",
-            "snowboard",
-            "sports ball",
-            "kite",
-            "baseball bat",
-            "baseball glove",
-            "skateboard",
-            "surfboard",
-            "tennis racket",
-            "bottle",
-            "wine glass",
-            "cup",
-            "fork",
-            "knife",
-            "spoon",
-            "bowl",
-            "banana",
-            "apple",
-            "sandwich",
-            "orange",
-            "broccoli",
-            "carrot",
-            "hot dog",
-            "pizza",
-            "donut",
-            "cake",
-            "chair",
-            "couch",
-            "potted plant",
-            "bed",
-            "dining table",
-            "toilet",
-            "tv",
-            "laptop",
-            "mouse",
-            "remote",
-            "keyboard",
-            "cell phone",
-            "microwave",
-            "oven",
-            "toaster",
-            "sink",
-            "refrigerator",
-            "book",
-            "clock",
-            "vase",
-            "scissors",
-            "teddy bear",
-            "hair drier",
-            "toothbrush",
-        ]
+        self.download_model()
+        self.net = cv2.dnn.readNetFromONNX(self.onnx_model["path"])
 
     def download_model(self):
         """Download YOLOv5(ONNX) model"""
@@ -140,6 +141,7 @@ class YOLO:
             path_model=self.onnx_model["path"],
             model_src=self.onnx_model["src"],
             model_name=self.onnx_model["name"],
+            upgrade=False,
         )
 
     def detect_common_objects(self, img: np.ndarray, confidence=0.4, nms_thresh=0.4):
@@ -155,18 +157,14 @@ class YOLO:
         """
         height, width = img.shape[:2]
 
-        blob = cv2.dnn.blobFromImage(img, 1 / 255.0, (128, 128), (0, 0, 0), swapRB=True, crop=False)
-        self.download_model()
-
-        net = cv2.dnn.readNetFromONNX(self.onnx_model["path"])
-
-        net.setInput(blob)
-
         class_ids = []
         confidences = []
         boxes = []
 
-        outs = net.forward()
+        blob = cv2.dnn.blobFromImage(img, 1 / 255.0, (128, 128), (0, 0, 0), swapRB=True, crop=False)
+
+        self.net.setInput(blob)
+        outs = self.net.forward()
 
         for out in outs:
             for detection in out:
@@ -203,7 +201,14 @@ class YOLO:
         """
         confidence = kwargs.get("confidence", 0.4)
         nms_thresh = kwargs.get("nms_thresh", 0.4)
-        img = self.preprocessing(img_stream)
+
+        np_array = np.frombuffer(img_stream, np.uint8)
+        img = cv2.imdecode(np_array, flags=1)
+        img = (
+            cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+            if img.shape[0] == ChallengeStyle.WATERMARK
+            else img
+        )
         try:
             labels = self.detect_common_objects(img, confidence, nms_thresh)
             return bool(label in labels)
@@ -211,28 +216,3 @@ class YOLO:
         # at code `class_id=np.argmax(scores)`
         except ValueError:
             return False
-
-    def preprocessing(self, img_stream: bytes) -> np.ndarray:
-        np_array = np.frombuffer(img_stream, np.uint8)
-        img = cv2.imdecode(np_array, flags=1)
-        return img
-
-
-class YOLOWithAugmentation(YOLO):
-    def __init__(self, rainbow_key: str, dir_model: str, path_rainbow=None):
-        super().__init__(dir_model)
-        self.rainbow_key = rainbow_key
-        self.ks = Solutions(name=self.flag, path_rainbow=path_rainbow)
-
-    def preprocessing(self, img_stream: bytes) -> np.ndarray:
-        img = super().preprocessing(img_stream)
-        if img.shape[0] == ChallengeStyle.WATERMARK:
-            return cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
-        return img
-
-    def solution(self, img_stream: bytes, label: str, **kwargs) -> bool:
-        match_output = self.ks.match_rainbow(img_stream, rainbow_key=self.rainbow_key)
-        if match_output is not None:
-            time.sleep(0.17)
-            return match_output
-        return super().solution(img_stream, label, **kwargs)

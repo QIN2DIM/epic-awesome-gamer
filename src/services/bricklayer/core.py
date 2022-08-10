@@ -26,12 +26,13 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from services.settings import (
     logger,
-    DIR_COOKIES,
     DIR_CHALLENGE,
-    EPIC_EMAIL,
+    PATH_OBJECTS_YAML,
     DIR_MODEL,
+    PATH_RAINBOW_YAML,
+    DIR_COOKIES,
+    EPIC_EMAIL,
     EPIC_PASSWORD,
-    PATH_RAINBOW,
     DIR_SCREENSHOT,
     SynergyTunnel,
 )
@@ -45,9 +46,6 @@ from services.utils import (
     ChallengeTimeout,
     ChallengerContext,
 )
-from services.utils.armor.anti_hcaptcha.solutions import resnet
-from services.utils.armor.anti_hcaptcha.solutions import sk_recognition
-from services.utils.armor.anti_hcaptcha.solutions import yolo
 from .exceptions import (
     AssertTimeout,
     UnableToGet,
@@ -60,9 +58,6 @@ from .exceptions import (
     LoginException,
 )
 
-# 显示人机挑战的DEBUG日志
-ARMOR_DEBUG = True
-
 
 class ArmorUtils(ArmorCaptcha):
     """人机对抗模组"""
@@ -71,26 +66,8 @@ class ArmorUtils(ArmorCaptcha):
     AUTH_ERROR = "error"
     AUTH_CHALLENGE = "challenge"
 
-    # <success> Challenge Passed by following the expected
-    CHALLENGE_SUCCESS = "success"
-    # <continue> Continue the challenge
-    CHALLENGE_CONTINUE = "continue"
-    # <crash> Failure of the challenge as expected
-    CHALLENGE_CRASH = "crash"
-    # <retry> Your proxy IP may have been flagged
-    CHALLENGE_RETRY = "retry"
-    # <refresh> Skip the specified label as expected
-    CHALLENGE_REFRESH = "refresh"
-    # <backcall> (New Challenge) Types of challenges not yet scheduled
-    CHALLENGE_BACKCALL = "backcall"
-
     # //iframe[@id='talon_frame_checkout_free_prod']
-    HOOK_CHALLENGE = "//iframe[contains(@title,'content')]"
     HOOK_PURCHASE = "//div[@id='webPurchaseContainer']//iframe"
-
-    def __init__(self, debug: bool = ARMOR_DEBUG):
-        super().__init__(dir_workspace=DIR_CHALLENGE, debug=debug)
-        self.critical_threshold = 3
 
     @staticmethod
     def fall_in_captcha_login(ctx: ChallengerContext, flag_url: str = None) -> Optional[str]:
@@ -196,7 +173,7 @@ class ArmorUtils(ArmorCaptcha):
         except TimeoutException:
             return False
 
-    def switch_challenge_iframe(self, ctx: ChallengerContext, window: str):
+    def switch_to_challenge_frame(self, ctx: ChallengerContext, window: str):
         # turn to dom root
         ctx.switch_to.default_content()
 
@@ -219,31 +196,6 @@ class ArmorUtils(ArmorCaptcha):
             EC.frame_to_be_available_and_switch_to_it((By.XPATH, self.HOOK_CHALLENGE))
         )
 
-    def switch_solution(self, dir_model):
-        """模型卸载"""
-        label = self.label_alias.get(self.label)
-        if label in ["lion"]:
-            return resnet.ResNetLion(dir_model, path_rainbow=PATH_RAINBOW)
-        if label in ["bridge"]:
-            return resnet.ResNetBridge(dir_model, path_rainbow=PATH_RAINBOW)
-        if label in ["domestic cat"]:
-            return resnet.ResNetDomesticCat(dir_model, path_rainbow=PATH_RAINBOW)
-        if label in ["bedroom"]:
-            return resnet.ResNetBedroom(dir_model, path_rainbow=PATH_RAINBOW)
-        if label in ["seaplane"]:
-            return resnet.ResNetSeaplane(dir_model)
-        if label in ["elephants drawn with leaves"]:
-            return resnet.ElephantsDrawnWithLeaves(dir_model, path_rainbow=PATH_RAINBOW)
-        if label in ["vertical river"]:
-            return sk_recognition.VerticalRiverRecognition(path_rainbow=PATH_RAINBOW)
-        if label in ["airplane in the sky flying left"]:
-            return sk_recognition.LeftPlaneRecognition(path_rainbow=PATH_RAINBOW)
-        if label in ["airplanes in the sky that are flying to the right"]:
-            return sk_recognition.RightPlaneRecognition(path_rainbow=PATH_RAINBOW)
-        if label in ["horses drawn with flowers"]:
-            return resnet.HorsesDrawnWithFlowers(dir_model, path_rainbow=PATH_RAINBOW)
-        return yolo.YOLOWithAugmentation(label, dir_model, path_rainbow=PATH_RAINBOW)
-
     def download_images(self) -> None:
         """
         植入协程框架加速下载。
@@ -255,8 +207,9 @@ class ArmorUtils(ArmorCaptcha):
             """协程助推器 提高挑战图片的下载效率"""
 
             async def control_driver(self, context, session=None):
-                """下载挑战图片"""
                 path_challenge_img, url = context
+
+                # Download Challenge Image
                 async with session.get(url) as response:
                     with open(path_challenge_img, "wb") as file:
                         file.write(await response.read())
@@ -380,17 +333,7 @@ class ArmorUtils(ArmorCaptcha):
                     pass
                 return self.CHALLENGE_SUCCESS, "退火成功"
 
-    def tactical_retreat(self) -> Optional[str]:
-        """模型存在泛化死角，遇到指定标签时主动进入下一轮挑战，节约时间"""
-        # 新挑战
-        if self.label not in self.label_alias:
-            self.log(message="暂未编排的挑战类型", label=self.label)
-            return self.CHALLENGE_BACKCALL
-        return self.CHALLENGE_CONTINUE
-
-    def anti_hcaptcha(
-        self, ctx: ChallengerContext, dir_model, window: str = "login"
-    ) -> Union[bool, str]:
+    def anti_hcaptcha(self, ctx, window: str = "login") -> Union[bool, str]:
         """
         Handle hcaptcha challenge
 
@@ -405,7 +348,6 @@ class ArmorUtils(ArmorCaptcha):
         # print(ctx.find_elements(By.TAG_NAME, "p")[1].text)
 
         :param window: [login free]
-        :param dir_model:
         :param ctx:
         :return:
         """
@@ -413,7 +355,7 @@ class ArmorUtils(ArmorCaptcha):
         try:
             for index in range(3):
                 # [👻] 进入人机挑战关卡
-                self.switch_challenge_iframe(ctx, window)
+                self.switch_to_challenge_frame(ctx, window)
 
                 # [👻] 获取挑战标签
                 self.get_label(ctx)
@@ -425,14 +367,14 @@ class ArmorUtils(ArmorCaptcha):
                 self.download_images()
 
                 # [👻] 滤除无法处理的挑战类别
-                drop = self.tactical_retreat()
+                drop = self.tactical_retreat(ctx)
                 if drop in [self.CHALLENGE_BACKCALL, self.CHALLENGE_REFRESH]:
                     ctx.switch_to.default_content()
                     return drop
 
                 # [👻] 注册解决方案
                 # 根据挑战类型自动匹配不同的模型
-                model = self.switch_solution(dir_model)
+                model = self.switch_solution()
 
                 # [👻] 識別|點擊|提交
                 self.challenge(ctx, model=model)
@@ -450,28 +392,6 @@ class ArmorUtils(ArmorCaptcha):
             return self.CHALLENGE_CRASH
         finally:
             ctx.switch_to.default_content()
-
-    def anti_checkbox(self, ctx):
-        """处理复选框"""
-        for _ in range(8):
-            try:
-                # [👻] 进入复选框
-                WebDriverWait(ctx, 2, ignored_exceptions=ElementNotVisibleException).until(
-                    EC.frame_to_be_available_and_switch_to_it(
-                        (By.XPATH, "//div[@id='cf-hcaptcha-container']//div[not(@style)]//iframe")
-                    )
-                )
-                # [👻] 点击复选框
-                WebDriverWait(ctx, 2).until(EC.element_to_be_clickable((By.ID, "checkbox"))).click()
-                self.log("Handle hCaptcha checkbox")
-                return True
-            except ElementClickInterceptedException:
-                return False
-            except TimeoutException:
-                pass
-            finally:
-                # [👻] 回到主线剧情
-                ctx.switch_to.default_content()
 
 
 class AssertUtils:
@@ -821,8 +741,20 @@ class EpicAwesomeGamer:
         # 游戏获取结果的状态
         self.result = ""
 
-        # 注册拦截机
-        self.armor = ArmorUtils()
+        # 注册挑战者
+        if not SynergyTunnel.ARMOR:
+            self.armor = ArmorUtils(
+                dir_workspace=DIR_CHALLENGE,
+                dir_model=DIR_MODEL,
+                path_objects_yaml=PATH_OBJECTS_YAML,
+                path_rainbow_yaml=PATH_RAINBOW_YAML,
+                screenshot=True,
+                debug=True,
+            )
+            SynergyTunnel.ARMOR = self.armor
+        else:
+            self.armor = SynergyTunnel.ARMOR
+
         self.assert_ = AssertUtils()
 
     # ======================================================
@@ -905,7 +837,7 @@ class EpicAwesomeGamer:
         if self.armor.fall_in_captcha_runtime(ctx, window):
             self.assert_.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
-                resp = self.armor.anti_hcaptcha(ctx, dir_model=DIR_MODEL, window=window)
+                resp = self.armor.anti_hcaptcha(ctx, window=window)
                 self.captcha_runtime_memory(ctx, suffix=f"_{window}")
                 return resp
             except (ChallengeReset, WebDriverException):
@@ -1357,7 +1289,7 @@ class CookieManager(EpicAwesomeGamer):
                         break
                     # Winter is coming, so hear me roar!
                     elif result == self.armor.AUTH_CHALLENGE:
-                        resp = self.armor.anti_hcaptcha(ctx, dir_model=DIR_MODEL, window="login")
+                        resp = self.armor.anti_hcaptcha(ctx, window="login")
                         if resp == self.armor.CHALLENGE_SUCCESS:
                             break
                         elif resp == self.armor.CHALLENGE_REFRESH:

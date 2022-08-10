@@ -23,8 +23,7 @@ from gevent.queue import Queue
 from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 from selenium.common.exceptions import WebDriverException
-from selenium.webdriver import Chrome
-from selenium.webdriver import ChromeOptions
+from selenium.webdriver import Chrome, ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.utils import get_browser_version_from_os, ChromeType
 
@@ -294,36 +293,17 @@ class ToolBox:
         return tree_, response_
 
 
-def _set_ctx(language: Optional[str] = None) -> ChromeOptions:
-    """
-    统一的 ChromeOptions 启动参数
-
-    # 卸载代理
-    options.add_argument("--no-proxy-server")
-
-    :param language:
-    :return:
-    """
-    options = ChromeOptions()
-    options.add_argument("--log-level=3")
-    options.add_argument("--disable-dev-shm-usage")
-
-    # 统一挑战语言
-    os.environ["LANGUAGE"] = "zh_CN" if language is None else language
-    options.add_argument(f"--lang={os.getenv('LANGUAGE', '')}")
-
-    return options
-
-
 def get_ctx(silence: Optional[bool] = None) -> StandardContext:
     """普通的 Selenium 驱动上下文，用于常规并发任务"""
+    options = ChromeOptions()
 
     silence = True if silence is None or "linux" in sys.platform else silence
-
-    options = _set_ctx()
     if silence is True:
-        options.add_argument("--no-sandbox")
+        options.add_argument("--log-level=3")
         options.add_argument("--headless")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--start-maximized")
+        options.add_argument("--no-sandbox")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-software-rasterizer")
 
@@ -333,8 +313,6 @@ def get_ctx(silence: Optional[bool] = None) -> StandardContext:
 
 def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
     """挑战者驱动 用于处理人机挑战"""
-    options = _set_ctx()
-
     silence = True if silence is None or "linux" in sys.platform else silence
 
     # - Use chromedriver cache to improve application startup speed
@@ -343,12 +321,26 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
     driver_executable_path = ChromeDriverManager(log_level=0).install()
     version_main = get_browser_version_from_os(ChromeType.GOOGLE).split(".")[0]
 
+    # Modify necessary browser parameters
+    options = uc.ChromeOptions()
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-software-rasterizer")
+
+    # Unified Challenge Language
+    os.environ["LANGUAGE"] = "zh"
+    options.add_argument(f"--lang={os.getenv('LANGUAGE', '')}")
+
     # Create challenger
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
     run_mode = "goto"
     try:
         ctx = uc.Chrome(
-            headless=silence, options=options, driver_executable_path=driver_executable_path
+            headless=silence,
+            options=options,
+            driver_executable_path=driver_executable_path,
+            suppress_welcome=False,
+            use_subprocess=True,
         )
     except WebDriverException:
         run_mode = "hook-based"
@@ -361,5 +353,4 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
     # Record necessary startup information
     hook_ = "GitHub Action" if os.getenv("GITHUB_ACTIONS") else "base"
     logger.debug(f"Setup info: hook={hook_} platform={sys.platform} run_mode={run_mode}")
-
     return ctx

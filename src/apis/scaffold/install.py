@@ -12,15 +12,9 @@ from typing import Optional
 from webdriver_manager.chrome import ChromeType
 from webdriver_manager.utils import get_browser_version_from_os
 
-from services.settings import DIR_MODEL, logger, PATH_RAINBOW
-from services.utils import ResNetBedroom
-from services.utils import ResNetBridge
-from services.utils import ResNetDomesticCat
-from services.utils import ResNetLion
-from services.utils import ResNetSeaplane
-from services.utils import YOLO
+from services.settings import DIR_MODEL, logger, PATH_RAINBOW_YAML, PATH_OBJECTS_YAML
+from services.utils import YOLO, SKRecognition, PluggableONNXModels
 from services.utils import get_challenge_ctx
-from services.utils import sk_recognition
 
 
 def download_driver():
@@ -51,22 +45,14 @@ def download_yolo_model(onnx_prefix):
 def refresh_pluggable_onnx_model(upgrade: Optional[bool] = None):
     def need_to_refresh():
         _flag = "15482b5ab24d600efdf2def260c830ab1ba2f04ce011ddfb885adc2d8e1797da"
-        if not os.path.exists(PATH_RAINBOW):
+        if not os.path.exists(PATH_RAINBOW_YAML):
             return True
-        with open(PATH_RAINBOW, "rb") as file:
+        with open(PATH_RAINBOW_YAML, "rb") as file:
             return hashlib.sha256(file.read()).hexdigest() != _flag
 
     if need_to_refresh():
-        sk_recognition.SKRecognition.sync_rainbow(path_rainbow=PATH_RAINBOW, convert=True)
-        for resnet_model in [
-            ResNetBridge,
-            ResNetLion,
-            ResNetDomesticCat,
-            ResNetBedroom,
-            ResNetSeaplane,
-            # ElephantsDrawnWithLeaves,
-        ]:
-            resnet_model(dir_model=DIR_MODEL).download_model(upgrade)
+        SKRecognition.sync_rainbow(path_rainbow=PATH_RAINBOW_YAML, convert=True)
+        PluggableONNXModels(PATH_OBJECTS_YAML).summon(dir_model=DIR_MODEL, upgrade=upgrade)
 
 
 def run(model: str = None, upgrade: Optional[bool] = None):
