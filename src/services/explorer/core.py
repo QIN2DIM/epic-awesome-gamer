@@ -102,7 +102,7 @@ class EpicAwesomeExplorer:
         while True:
             ctx.get(_url_store_free)
             time.sleep(1)
-            WebDriverWait(ctx, 10, ignored_exceptions=WebDriverException).until(
+            WebDriverWait(ctx, 10, ignored_exceptions=(WebDriverException,)).until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//section[@data-testid='section-wrapper']")
                 )
@@ -120,7 +120,7 @@ class EpicAwesomeExplorer:
                 raise DiscoveryTimeoutException(f"获取{flag}链接超时")
 
             # 断言最后一页
-            WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
+            WebDriverWait(ctx, 5, ignored_exceptions=(WebDriverException,)).until(
                 EC.element_to_be_clickable((By.XPATH, "//a[@data-component='PaginationItem']"))
             )
             page_switcher = ctx.find_elements(By.XPATH, "//a[@data-component='PaginationItem']")[-1]
@@ -174,7 +174,7 @@ class EpicAwesomeExplorer:
                 time.sleep(3)
 
                 # 定位周免游戏的绝对位置
-                WebDriverWait(ctx, 45, ignored_exceptions=WebDriverException).until(
+                WebDriverWait(ctx, 45, ignored_exceptions=(WebDriverException,)).until(
                     EC.presence_of_element_located((By.XPATH, "//a[contains(string(),'当前免费')]"))
                 )
 

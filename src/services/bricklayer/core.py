@@ -152,7 +152,7 @@ class ArmorUtils(ArmorCaptcha):
                 WebDriverWait(ctx, 5).until(
                     EC.frame_to_be_available_and_switch_to_it((By.XPATH, ArmorUtils.HOOK_PURCHASE))
                 )
-            WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
+            WebDriverWait(ctx, 5, ignored_exceptions=(WebDriverException,)).until(
                 EC.presence_of_element_located((By.XPATH, ArmorUtils.HOOK_CHALLENGE))
             )
             return True
@@ -166,7 +166,7 @@ class ArmorUtils(ArmorCaptcha):
     def face_the_checkbox(ctx: Chrome) -> Optional[bool]:
         """遇见 hCaptcha checkbox"""
         try:
-            WebDriverWait(ctx, 8, ignored_exceptions=WebDriverException).until(
+            WebDriverWait(ctx, 8, ignored_exceptions=(WebDriverException,)).until(
                 EC.presence_of_element_located((By.XPATH, "//iframe[contains(@title,'checkbox')]"))
             )
             return True
@@ -460,7 +460,7 @@ class AssertUtils:
         """新用户首次购买游戏需要处理许可协议书"""
         try:
             surprise_obj = WebDriverWait(
-                ctx, 3, ignored_exceptions=ElementNotVisibleException
+                ctx, 3, ignored_exceptions=(ElementNotVisibleException,)
             ).until(EC.presence_of_element_located((By.XPATH, "//label[@for='agree']")))
         except TimeoutException:
             return
@@ -469,12 +469,12 @@ class AssertUtils:
                 if surprise_obj.text == "我已阅读并同意最终用户许可协议书":
                     # 勾选协议
                     tos_agree = WebDriverWait(
-                        ctx, 3, ignored_exceptions=ElementClickInterceptedException
+                        ctx, 3, ignored_exceptions=(ElementClickInterceptedException,)
                     ).until(EC.element_to_be_clickable((By.ID, "agree")))
 
                     # 点击接受
                     tos_submit = WebDriverWait(
-                        ctx, 3, ignored_exceptions=ElementClickInterceptedException
+                        ctx, 3, ignored_exceptions=(ElementClickInterceptedException,)
                     ).until(
                         EC.element_to_be_clickable((By.XPATH, "//span[text()='接受']/parent::button"))
                     )
@@ -490,7 +490,7 @@ class AssertUtils:
     def fall_in_captcha_runtime(ctx: ChallengerContext) -> Optional[bool]:
         """捕获隐藏在周免游戏订单中的人机挑战"""
         try:
-            WebDriverWait(ctx, 5, ignored_exceptions=WebDriverException).until(
+            WebDriverWait(ctx, 5, ignored_exceptions=(WebDriverException,)).until(
                 EC.presence_of_element_located((By.XPATH, ArmorUtils.HOOK_CHALLENGE))
             )
             return True
@@ -522,7 +522,7 @@ class AssertUtils:
                 "本游戏包含成人内容，仅限17岁以上玩家选购" in surprise_warnings
                 or "本游戏包含成人内容，仅限18岁以上玩家选购" in surprise_warnings
             ):
-                WebDriverWait(ctx, 5, ignored_exceptions=ElementClickInterceptedException).until(
+                WebDriverWait(ctx, 5, ignored_exceptions=(ElementClickInterceptedException,)).until(
                     EC.element_to_be_clickable((By.XPATH, "//span[text()='继续']/parent::button"))
                 ).click()
                 return True
@@ -545,7 +545,7 @@ class AssertUtils:
         # 需要在 webPurchaseContainer 里执行
         try:
             warning_text = (
-                WebDriverWait(ctx, 3, ignored_exceptions=WebDriverException)
+                WebDriverWait(ctx, 3, ignored_exceptions=(WebDriverException,))
                 .until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//h2[@class='payment-blocked__msg']")
@@ -588,7 +588,7 @@ class AssertUtils:
         for _ in range(15):
             try:
                 purchase_button = WebDriverWait(ctx, 2).until(
-                    EC.element_to_be_clickable(
+                    EC.presence_of_element_located(
                         (By.XPATH, "//button[@data-testid='purchase-cta-button']")
                     )
                 )
@@ -667,7 +667,7 @@ class AssertUtils:
         :return:
         """
         try:
-            WebDriverWait(ctx, 2, ignored_exceptions=StaleElementReferenceException).until(
+            WebDriverWait(ctx, 2, ignored_exceptions=(StaleElementReferenceException,)).until(
                 EC.element_to_be_clickable((By.XPATH, "//span[text()='我同意']/ancestor::button"))
             ).click()
             logger.debug("[🍜] 处理 UK 地区账号的「退款及撤销权信息」。")
@@ -799,15 +799,15 @@ class EpicAwesomeGamer:
 
     @staticmethod
     def _switch_to_payment_iframe(ctx):
-        payment_frame = WebDriverWait(ctx, 5, ignored_exceptions=ElementNotVisibleException).until(
-            EC.presence_of_element_located((By.XPATH, ArmorUtils.HOOK_PURCHASE))
-        )
+        payment_frame = WebDriverWait(
+            ctx, 5, ignored_exceptions=(ElementNotVisibleException,)
+        ).until(EC.presence_of_element_located((By.XPATH, ArmorUtils.HOOK_PURCHASE)))
         ctx.switch_to.frame(payment_frame)
 
     @staticmethod
     def _accept_agreement(ctx):
         try:
-            WebDriverWait(ctx, 2, ignored_exceptions=ElementClickInterceptedException).until(
+            WebDriverWait(ctx, 2, ignored_exceptions=(ElementClickInterceptedException,)).until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//div[contains(@class,'payment-check-box')]")
                 )
@@ -819,7 +819,9 @@ class EpicAwesomeGamer:
     def _click_order_button(ctx, timeout: int = 20) -> Optional[bool]:
         try:
             time.sleep(0.5)
-            WebDriverWait(ctx, timeout, ignored_exceptions=ElementClickInterceptedException).until(
+            WebDriverWait(
+                ctx, timeout, ignored_exceptions=(ElementClickInterceptedException,)
+            ).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'payment-btn')]"))
             ).click()
             return True
@@ -858,7 +860,7 @@ class EpicAwesomeGamer:
         }
         for _ in range(5):
             try:
-                WebDriverWait(api, 5, ignored_exceptions=ElementClickInterceptedException).until(
+                WebDriverWait(api, 5, ignored_exceptions=(ElementClickInterceptedException,)).until(
                     EC.element_to_be_clickable((By.XPATH, element_xpath[mode]))
                 ).click()
                 logger.debug(f"[🔖] 资源订单加载完毕 - mode={mode}")
@@ -972,15 +974,15 @@ class EpicAwesomeGamer:
         ctx.get(auth_url)
         # self._game_login_prerequisite_actions(ctx)
 
-        WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
+        WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
             EC.presence_of_element_located((By.ID, "email"))
         ).send_keys(email)
 
-        WebDriverWait(ctx, 10, ignored_exceptions=ElementNotVisibleException).until(
+        WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
             EC.presence_of_element_located((By.ID, "password"))
         ).send_keys(password)
 
-        WebDriverWait(ctx, 60, ignored_exceptions=ElementClickInterceptedException).until(
+        WebDriverWait(ctx, 60, ignored_exceptions=(ElementClickInterceptedException,)).until(
             EC.element_to_be_clickable((By.ID, "sign-in"))
         ).click()
 

@@ -1,4 +1,5 @@
 import os
+import random
 import re
 import time
 from typing import Optional
@@ -194,7 +195,7 @@ class ArmorCaptcha:
         :return:
         """
         # 等待图片加载完成
-        WebDriverWait(ctx, 25, ignored_exceptions=ElementNotVisibleException).until(
+        WebDriverWait(ctx, 25, ignored_exceptions=(ElementNotVisibleException,)).until(
             EC.presence_of_all_elements_located((By.XPATH, "//div[@class='task-image']"))
         )
         time.sleep(0.3)
@@ -237,9 +238,9 @@ class ArmorCaptcha:
 
         try:
             time.sleep(1)
-            label_obj = WebDriverWait(ctx, 30, ignored_exceptions=ElementNotVisibleException).until(
-                EC.presence_of_element_located((By.XPATH, "//h2[@class='prompt-text']"))
-            )
+            label_obj = WebDriverWait(
+                ctx, 30, ignored_exceptions=(ElementNotVisibleException,)
+            ).until(EC.presence_of_element_located((By.XPATH, "//h2[@class='prompt-text']")))
         except TimeoutException:
             raise ChallengeReset("人机挑战意外通过")
         else:
@@ -334,6 +335,7 @@ class ArmorCaptcha:
             # Pass: Hit at least one object
             if result:
                 try:
+                    time.sleep(random.uniform(0.2, 0.5))
                     self.alias2locator[alias].click()
                 except StaleElementReferenceException:
                     pass
@@ -346,7 +348,7 @@ class ArmorCaptcha:
 
         # {{< SUBMIT ANSWER >}}
         try:
-            WebDriverWait(ctx, 35, ignored_exceptions=ElementClickInterceptedException).until(
+            WebDriverWait(ctx, 35, ignored_exceptions=(ElementClickInterceptedException,)).until(
                 EC.element_to_be_clickable((By.XPATH, "//div[@class='button-submit button']"))
             ).click()
         except ElementClickInterceptedException:
@@ -369,7 +371,7 @@ class ArmorCaptcha:
         for _ in range(8):
             try:
                 # [👻] 进入复选框
-                WebDriverWait(ctx, 2, ignored_exceptions=ElementNotVisibleException).until(
+                WebDriverWait(ctx, 2, ignored_exceptions=(ElementNotVisibleException,)).until(
                     EC.frame_to_be_available_and_switch_to_it(
                         (By.XPATH, "//div[@id='cf-hcaptcha-container']//div[not(@style)]//iframe")
                     )
