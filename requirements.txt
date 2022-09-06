@@ -18,13 +18,13 @@ lxml>=4.7.1
 aiohttp>=3.8.1
 
 # {{< Object Detection >}}
-opencv-python>=4.5.5.62
+opencv-python~=4.5.5.62
 scikit-image>=0.19.2
 numpy==1.21.5
 
 # {{< Challenger Drive >}}
 gevent>=21.12.0
-selenium>=4.1.0
+selenium~=4.4.3
 webdriver_manager==3.5.2
 undetected_chromedriver==3.1.5.post4
 

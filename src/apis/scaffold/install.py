@@ -3,8 +3,6 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import hashlib
-import os
 import sys
 import webbrowser
 from typing import Optional
@@ -12,20 +10,22 @@ from typing import Optional
 from webdriver_manager.chrome import ChromeType
 from webdriver_manager.utils import get_browser_version_from_os
 
-from services.settings import DIR_MODEL, logger, PATH_RAINBOW_YAML, PATH_OBJECTS_YAML
-from services.utils import YOLO, SKRecognition, PluggableONNXModels
-from services.utils import get_challenge_ctx
+from services.settings import DIR_MODEL, logger, PATH_OBJECTS_YAML, DIR_ASSETS
+from services.utils import YOLO, PluggableONNXModels, get_challenge_ctx
+from services.utils.armor.anti_hcaptcha.solutions.kernel import Rainbow
 
 
 def download_driver():
-    """下载浏览器驱动"""
-    # 自动下载并授权对应版本的 ChromeDriver
+    # Detect environment variable `google-chrome`.
     browser_version = get_browser_version_from_os(ChromeType.GOOGLE)
     if browser_version != "UNKNOWN":
         return
 
-    # 环境变量中缺少 `google-chrome` 提示玩家手动安装
-    logger.critical("当前环境变量缺少 `google-chrome`，请为你的设备手动安装 Chrome 浏览器。")
+    # `google-chrome` is missing from environment variables, prompting players to install manually.
+    logger.critical(
+        "The current environment variable is missing `google-chrome`, "
+        "please install Chrome for your system"
+    )
     logger.info(
         "Ubuntu: https://linuxize.com/post/how-to-install-google-chrome-web-browser-on-ubuntu-20-04/"
     )
@@ -35,40 +35,31 @@ def download_driver():
     if "linux" not in sys.platform:
         webbrowser.open("https://www.google.com/chrome/")
 
-    logger.info("安装完毕后重新执行 `install` 脚手架指令。")
+    logger.info("Re-execute the `install` scaffolding command after the installation is complete.")
 
 
-def download_yolo_model(onnx_prefix):
-    YOLO(dir_model=DIR_MODEL, onnx_prefix=onnx_prefix).download_model()
-
-
-def refresh_pluggable_onnx_model(upgrade: Optional[bool] = None):
-    def need_to_refresh():
-        _flag = "15482b5ab24d600efdf2def260c830ab1ba2f04ce011ddfb885adc2d8e1797da"
-        if not os.path.exists(PATH_RAINBOW_YAML):
-            return True
-        with open(PATH_RAINBOW_YAML, "rb") as file:
-            return hashlib.sha256(file.read()).hexdigest() != _flag
-
-    if need_to_refresh():
-        SKRecognition.sync_rainbow(path_rainbow=PATH_RAINBOW_YAML, convert=True)
-        PluggableONNXModels(PATH_OBJECTS_YAML).summon(dir_model=DIR_MODEL, upgrade=upgrade)
-
-
-def run(model: str = None, upgrade: Optional[bool] = None):
+def do(yolo_onnx_prefix: Optional[str] = None, upgrade: Optional[bool] = False):
     """下载项目运行所需的各项依赖"""
     download_driver()
-    download_yolo_model(onnx_prefix=model)
-    refresh_pluggable_onnx_model(upgrade=upgrade)
+
+    # PULL rainbow table
+    Rainbow(DIR_ASSETS).sync()
+
+    # PULL YOLO ONNX Model by the prefix flag
+    YOLO(DIR_MODEL, yolo_onnx_prefix).pull_model()
+
+    # PULL ResNet ONNX Model(s) by objects.yaml
+    if upgrade is True:
+        PluggableONNXModels(PATH_OBJECTS_YAML).summon(DIR_MODEL)
 
 
 @logger.catch()
 def test():
-    """检查挑战者驱动版本是否适配"""
+    """Check if the Challenger driver version is compatible"""
     ctx = get_challenge_ctx(silence=True)
     try:
-        ctx.get("https://www.epicgames.com/account/personal")
+        ctx.get("https://blog.echosec.top/p/spider_performance/")
     finally:
         ctx.quit()
 
-    logger.success("驱动适配成功")
+    logger.success("The adaptation is successful")

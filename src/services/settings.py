@@ -24,6 +24,7 @@ __all__ = [
     "DIR_EXPLORER",
     "PATH_USR_COOKIES",
     "DIR_MODEL",
+    "DIR_ASSETS",
     "DIR_SCREENSHOT",
     "PATH_RAINBOW_YAML",
     "PATH_OBJECTS_YAML",
@@ -58,6 +59,7 @@ PROJECT_DATABASE = join(PROJECT_ROOT, "database")
 DIR_MODEL = join(PROJECT_ROOT, "model")
 # Reinforcement of memory
 PATH_RAINBOW_YAML = join(DIR_MODEL, "rainbow.yaml")
+DIR_ASSETS = join(DIR_MODEL, "_assets")
 # Cookie 工作目录
 DIR_COOKIES = join(PROJECT_DATABASE, "cookies")
 PATH_USR_COOKIES = join(DIR_COOKIES, "user_cookies.txt")

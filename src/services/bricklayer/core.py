@@ -4,6 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
+import random
 import time
 from hashlib import sha256
 from typing import List, Optional, NoReturn, Union, Tuple
@@ -19,7 +20,7 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     InvalidCookieDomainException,
 )
-from selenium.webdriver import Chrome
+from selenium.webdriver import Chrome, ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -29,7 +30,6 @@ from services.settings import (
     DIR_CHALLENGE,
     PATH_OBJECTS_YAML,
     DIR_MODEL,
-    PATH_RAINBOW_YAML,
     DIR_COOKIES,
     EPIC_EMAIL,
     EPIC_PASSWORD,
@@ -353,7 +353,7 @@ class ArmorUtils(ArmorCaptcha):
         """
         # [👻] 人机挑战！
         try:
-            for index in range(3):
+            for index in range(2):
                 # [👻] 进入人机挑战关卡
                 self.switch_to_challenge_frame(ctx, window)
 
@@ -747,7 +747,7 @@ class EpicAwesomeGamer:
                 dir_workspace=DIR_CHALLENGE,
                 dir_model=DIR_MODEL,
                 path_objects_yaml=PATH_OBJECTS_YAML,
-                path_rainbow_yaml=PATH_RAINBOW_YAML,
+                on_rainbow=True,
                 screenshot=True,
                 debug=True,
             )
@@ -886,6 +886,10 @@ class EpicAwesomeGamer:
 
         逻辑过于复杂，需要重构。此处为了一套代码涵盖各种情况，做了很多妥协。
         需要针对 周免游戏的订单处理 设计一套执行效率更高的业务模型。
+
+        # 连接错误
+        ctx.find_element(By.XPATH, "//span[@class='payment-alert__content']"
+
         :param ctx:
         :return:
         """
@@ -941,19 +945,24 @@ class EpicAwesomeGamer:
 
     def _game_login_prerequisite_actions(self, ctx: Chrome):
         """處理游戲賬號登陸的先決條件 甩開追蹤器"""
+        root = "https://www.epicgames.com/"
         _button_sign_text = "//span[contains(@class,'sign-text')]"
         _button_login_with_epic = "//div[@id='login-with-epic']"
 
-        ctx.get("https://store.epicgames.com/zh-CN/p/hazel-sky-478373")
+        # rdc --> https://store.epicgames.com/zh-CN/
+        ctx.get(root)
+        WebDriverWait(ctx, 5).until(EC.url_changes(root))
+
         current_url = ctx.current_url
 
         try:
-            WebDriverWait(ctx, 5).until(
+            WebDriverWait(ctx, 15).until(
                 EC.presence_of_element_located((By.XPATH, _button_sign_text))
             ).click()
             WebDriverWait(ctx, 10).until(EC.url_changes(current_url))
+            time.sleep(2)
             WebDriverWait(ctx, 20).until(
-                EC.element_to_be_clickable((By.XPATH, _button_login_with_epic))
+                EC.presence_of_element_located((By.XPATH, _button_login_with_epic))
             ).click()
         except TimeoutException:
             return self._game_login_prerequisite_actions(ctx)
@@ -965,6 +974,28 @@ class EpicAwesomeGamer:
         作为被动方式，登陆账号，刷新 identity token。
 
         此函数不应被主动调用，应当作为 refresh identity token / Challenge 的辅助函数。
+
+        email_field = WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
+            EC.presence_of_element_located((By.ID, "email"))
+        )
+
+        psw_field = WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
+            EC.presence_of_element_located((By.ID, "password"))
+        )
+
+        def slow_type(pageElem, pageInput):
+            action = ActionChains(ctx)
+            for x_offset, y_offset in ToolBox.gen_motion()[:10]:
+                action.move_to_element_with_offset(pageElem, x_offset, y_offset)
+            action.perform()
+            for letter in pageInput:
+                time.sleep(random.uniform(.05, .3))
+                pageElem.send_keys(letter)
+
+        slow_type(email_field, email)
+        slow_type(psw_field, password)
+        time.sleep(random.uniform(0.5, 1))
+
         :param auth_url:
         :param ctx:
         :param email:
@@ -972,7 +1003,6 @@ class EpicAwesomeGamer:
         :return:
         """
         ctx.get(auth_url)
-        # self._game_login_prerequisite_actions(ctx)
 
         WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
             EC.presence_of_element_located((By.ID, "email"))
@@ -1050,7 +1080,7 @@ class EpicAwesomeGamer:
 
         # [🍜] Click the [order] button.
         logger.debug("[⚔] 激活人机挑战...")
-        response = self._click_order_button(ctx, 12)
+        response = self._click_order_button(ctx, 5)
         if not response:
             return
 
@@ -1281,7 +1311,6 @@ class CookieManager(EpicAwesomeGamer):
         # {{< Done >}}
 
         # {{< Insert Challenger Context >}}
-        ctx = get_challenge_ctx(silence=silence) if ctx_session is None else ctx_session
         logger.success(
             ToolBox.runtime_report(
                 motive="MATCH",
@@ -1290,6 +1319,14 @@ class CookieManager(EpicAwesomeGamer):
                 ctx_session=bool(ctx_session),
             )
         )
+
+        from services.settings import DIR_USERS
+
+        if ctx_session is None:
+            ctx = get_challenge_ctx(silence=silence, user_data_dir=DIR_USERS)
+        else:
+            ctx = ctx_session
+
         auth_url = (
             self.URL_LOGIN_GAMES if self.auth_str == self.AUTH_STR_GAMES else self.URL_LOGIN_UNREAL
         )

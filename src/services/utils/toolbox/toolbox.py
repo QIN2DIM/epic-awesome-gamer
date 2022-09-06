@@ -13,16 +13,18 @@ from datetime import datetime
 from datetime import timedelta
 from typing import List, Union, Dict, Optional, Any
 from urllib.parse import urlparse
+from urllib.request import getproxies
 
 import apprise
 import cloudscraper
 import pytz
+import requests
 import undetected_chromedriver as uc
 import yaml
+from bs4 import BeautifulSoup
 from gevent.queue import Queue
 from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
-from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Chrome, ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.utils import get_browser_version_from_os, ChromeType
@@ -139,6 +141,7 @@ class ToolBox:
     """可移植的工具箱"""
 
     logger_tracer = Queue()
+    motion = None
 
     @staticmethod
     def check_sample_yaml(path_output: str, path_sample: str) -> Optional[Dict[str, Any]]:
@@ -292,6 +295,56 @@ class ToolBox:
         tree_ = etree.HTML(response_.content)
         return tree_, response_
 
+    @staticmethod
+    def gen_motion():
+        def pull_motion():
+            url = "https://github.com/QIN2DIM/hcaptcha-challenger/wiki/Motion"
+            headers = {
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.27"
+            }
+            res = requests.get(url, headers=headers, proxies=getproxies())
+            soup = BeautifulSoup(res.text, "html.parser")
+            body = soup.find("div", id="wiki-body").find("p")
+            return [i.split(",") for i in body.text.split("\n")][:200]
+
+        ToolBox.motion = ToolBox.motion or pull_motion()
+        return ToolBox.motion or pull_motion()
+
+
+def _patch_headless(ctx: Chrome):
+    logger.debug("patch headless")
+    ctx.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {
+            "source": """
+                Object.defineProperty(navigator.connection, 'rtt', {
+                        get: () => 200
+                })"""
+        },
+    )
+    ctx.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {
+            "source": """
+                Object.defineProperty(Notification, 'permission', {
+                    get: () => "default"
+                })
+            """
+        },
+    )
+
+    ctx.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {
+            "source": """
+                Object.defineProperty(navigator.plugins, 'length', {
+                    get: () => 5
+                })
+            """
+        },
+    )
+
 
 def get_ctx(silence: Optional[bool] = None) -> StandardContext:
     """普通的 Selenium 驱动上下文，用于常规并发任务"""
@@ -311,7 +364,9 @@ def get_ctx(silence: Optional[bool] = None) -> StandardContext:
     return Chrome(ChromeDriverManager(log_level=0).install(), options=options)
 
 
-def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
+def get_challenge_ctx(
+    silence: Optional[bool] = None, user_data_dir: Optional[str] = None
+) -> ChallengerContext:
     """挑战者驱动 用于处理人机挑战"""
     silence = True if silence is None or "linux" in sys.platform else silence
 
@@ -333,22 +388,18 @@ def get_challenge_ctx(silence: Optional[bool] = None) -> ChallengerContext:
 
     # Create challenger
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
-    run_mode = "goto"
-    try:
-        ctx = uc.Chrome(
-            headless=silence, options=options, driver_executable_path=driver_executable_path
-        )
-    except WebDriverException:
-        run_mode = "hook-based"
-        ctx = uc.Chrome(
-            headless=silence,
-            options=options,
-            version_main=int(version_main) if version_main.isdigit() else None,
-        )
+
+    ctx = uc.Chrome(
+        headless=silence,
+        options=options,
+        # driver_executable_path=driver_executable_path,
+        user_data_dir=user_data_dir,
+        version_main=version_main,
+    )
 
     # Record necessary startup information
     hook_ = "GitHub Action" if os.getenv("GITHUB_ACTIONS") else "base"
-    logger.debug(f"Setup info: hook={hook_} platform={sys.platform} run_mode={run_mode}")
+    logger.debug(f"Setup info: hook={hook_} platform={sys.platform}")
 
-    ctx.silence = silence
+    _patch_headless(ctx)
     return ctx
