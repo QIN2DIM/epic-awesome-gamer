@@ -312,7 +312,9 @@ class ToolBox:
         return ToolBox.motion or pull_motion()
 
 
-def _patch_headless(ctx: Chrome):
+def _patch_headless(ctx: Chrome, silence: bool = True):
+    if not silence:
+        return
     logger.debug("patch headless")
     ctx.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
@@ -392,14 +394,13 @@ def get_challenge_ctx(
     ctx = uc.Chrome(
         headless=silence,
         options=options,
-        # driver_executable_path=driver_executable_path,
+        driver_executable_path=driver_executable_path,
         user_data_dir=user_data_dir,
-        version_main=version_main,
     )
 
     # Record necessary startup information
     hook_ = "GitHub Action" if os.getenv("GITHUB_ACTIONS") else "base"
     logger.debug(f"Setup info: hook={hook_} platform={sys.platform}")
 
-    _patch_headless(ctx)
+    _patch_headless(ctx, silence)
     return ctx
