@@ -8,6 +8,8 @@ import json
 import os
 import shutil
 import time
+import typing
+from os.path import dirname, join
 from typing import Optional, Dict, List, Any
 from urllib.request import getproxies
 
@@ -26,6 +28,8 @@ class ChallengeStyle:
 class Memory:
     _fn2memory = {}
 
+    ASSET_TOKEN = "RA_kw"
+
     def __init__(self, fn: str, dir_memory: str = None):
         self.fn = fn
         self._dir_memory = "model/_memory" if dir_memory is None else dir_memory
@@ -40,7 +44,8 @@ class Memory:
                 fn = memory_name.split(".")[0]
                 fn = fn if fn.endswith(".onnx") else f"{fn}.onnx"
                 node_id = memory_name.split(".")[-1]
-                self._fn2memory[fn] = node_id
+                if node_id.startswith(self.ASSET_TOKEN):
+                    self._fn2memory[fn] = node_id
         return self._fn2memory
 
     def get_node_id(self) -> Optional[str]:
@@ -51,17 +56,35 @@ class Memory:
         self._fn2memory[self.fn] = new_node_id
 
         if not old_node_id:
-            memory_name = os.path.join(self._dir_memory, f"{self.fn}.{new_node_id}")
+            memory_name = join(self._dir_memory, f"{self.fn}.{new_node_id}")
             with open(memory_name, "w", encoding="utf8") as file:
                 file.write(memory_name)
         else:
-            memory_src = os.path.join(self._dir_memory, f"{self.fn}.{old_node_id}")
-            memory_dst = os.path.join(self._dir_memory, f"{self.fn}.{new_node_id}")
+            memory_src = join(self._dir_memory, f"{self.fn}.{old_node_id}")
+            memory_dst = join(self._dir_memory, f"{self.fn}.{new_node_id}")
             shutil.move(memory_src, memory_dst)
+
+    def is_outdated(self, remote_node_id: str) -> typing.Optional[bool]:
+        """延迟反射的诊断步骤，保持分布式网络的两端一致性"""
+        local_node_id = self.get_node_id()
+
+        # Invalid judgment
+        if (
+            not local_node_id
+            or not remote_node_id
+            or not isinstance(remote_node_id, str)
+            or not remote_node_id.startswith(self.ASSET_TOKEN)
+        ):
+            return
+
+        if local_node_id != remote_node_id:
+            return True
+        return False
 
 
 class Assets:
     GITHUB_RELEASE_API = "https://api.github.com/repos/qin2dim/hcaptcha-challenger/releases"
+
     NAME_ASSETS = "assets"
     NAME_ASSET_NAME = "name"
     NAME_ASSET_SIZE = "size"
@@ -89,7 +112,7 @@ class Assets:
         if len(assets) >= 1:
             asset_name = assets[-1]
             if int(asset_name) + self.CACHE_CONTROL > int(time.time()):
-                recoded_name = os.path.join(self._dir_assets, asset_name)
+                recoded_name = join(self._dir_assets, asset_name)
                 try:
                     with open(recoded_name, "r", encoding="utf8") as file:
                         self._fn2assets = json.load(file)
@@ -100,15 +123,17 @@ class Assets:
         """仅在 Assets._pull 网络请求发起后实现，用于更新本地缓存的内容及时间戳"""
         os.makedirs(self._dir_assets, exist_ok=True)
         for asset_fn in os.listdir(self._dir_assets):
-            asset_src = os.path.join(self._dir_assets, asset_fn)
-            asset_dst = os.path.join(self._dir_assets, f"_{asset_fn}")
+            asset_src = join(self._dir_assets, asset_fn)
+            asset_dst = join(self._dir_assets, f"_{asset_fn}")
             shutil.move(asset_src, asset_dst)
-        recoded_name = os.path.join(self._dir_assets, str(int(time.time())))
+        recoded_name = join(self._dir_assets, str(int(time.time())))
         with open(recoded_name, "w", encoding="utf8") as file:
             json.dump(self._fn2assets, file)
 
     def _pull(self, skip_preload: bool = False) -> Optional[Dict[str, dict]]:
         def request_assets():
+            logger.debug(f"Pulling AssetsObject from {self.GITHUB_RELEASE_API}")
+
             try:
                 session = requests.session()
                 resp = session.get(self.GITHUB_RELEASE_API, proxies=getproxies(), timeout=3)
@@ -134,6 +159,9 @@ class Assets:
     def _get_asset(self, key: str, oncall_default: Any):
         return self._fn2assets.get(self.fn, {}).get(key, oncall_default)
 
+    def sync(self, force: typing.Optional[bool] = None, **kwargs):
+        raise NotImplementedError
+
     @property
     def dir_assets(self):
         return self._dir_assets
@@ -148,12 +176,29 @@ class Assets:
         return self._get_asset(self.NAME_ASSET_SIZE, 0)
 
 
+class PluggableObjects:
+    URL_REMOTE_OBJECTS = (
+        "https://raw.githubusercontent.com/QIN2DIM/hcaptcha-challenger/main/src/objects.yaml"
+    )
+
+    DEFAULT_FILENAME = "objects.yaml"
+
+    def __init__(self, path_objects: str):
+        self.path_objects = path_objects
+        if not os.path.isfile(self.path_objects):
+            self.path_objects = self.DEFAULT_FILENAME
+        self.fn = os.path.basename(self.path_objects)
+
+    def sync(self):
+        _request_asset(self.URL_REMOTE_OBJECTS, self.path_objects, self.fn)
+
+
 class Rainbow(Assets):
     _table = {}
 
     def __init__(self, dir_assets: str):
         super().__init__(fn="rainbow.yaml", dir_assets=dir_assets)
-        self.path_rainbow = os.path.join(os.path.dirname(dir_assets), self.fn)
+        self.path_rainbow = join(dirname(dir_assets), self.fn)
 
         self._build()
 
@@ -161,7 +206,7 @@ class Rainbow(Assets):
         if self._table:
             return self._table
 
-        os.makedirs(os.path.dirname(self.path_rainbow), exist_ok=True)
+        os.makedirs(dirname(self.path_rainbow), exist_ok=True)
         if os.path.exists(self.path_rainbow):
             with open(self.path_rainbow, "r", encoding="utf8") as file:
                 stream = yaml.safe_load(file)
@@ -185,12 +230,15 @@ class Rainbow(Assets):
             pass
         return None
 
-    def sync(self):
+    def sync(self, force: typing.Optional[bool] = None, **kwargs):
         url = self.get_download_url()
 
         # Check for extreme cases
         if not isinstance(url, str) or not url.startswith("https:"):
             return
+
+        if force is True:
+            os.remove(self.path_rainbow)
 
         # 1. local > static_remote
         #   - rainbow: 玩家手動下載了最新版本文件（本地 _assets 靜態緩存過期）
@@ -204,8 +252,11 @@ class Rainbow(Assets):
             not os.path.exists(self.path_rainbow)
             or os.path.getsize(self.path_rainbow) != self.get_size()
         ):
+            # 更新 Assets 本地缓存
             self._pull(skip_preload=True)
+            # 更新 Rainbow 本地缓存
             _request_asset(url, self.path_rainbow, self.fn)
+            # 刷新 Rainbow 运行缓存
             self._build()
 
 
@@ -224,12 +275,12 @@ class ModelHub:
         self.net = None
         self.flag = name
         self.fn = f"{onnx_prefix}.onnx" if not onnx_prefix.endswith(".onnx") else onnx_prefix
-        self.path_model = os.path.join(dir_model, self.fn)
+        self.path_model = join(dir_model, self.fn)
 
-        self.memory = Memory(fn=self.fn, dir_memory=os.path.join(dir_model, "_memory"))
-        self.assets = Assets(fn=self.fn, dir_assets=os.path.join(dir_model, "_assets"))
+        self.memory = Memory(fn=self.fn, dir_memory=join(dir_model, "_memory"))
+        self.assets = Assets(fn=self.fn, dir_assets=join(dir_model, "_assets"))
         if on_rainbow:
-            self.rainbow = Rainbow(dir_assets=os.path.join(dir_model, "_assets"))
+            self.rainbow = Rainbow(dir_assets=join(dir_model, "_assets"))
 
     @logger.catch()
     def pull_model(self, fn: str = None, path_model: str = None):
@@ -249,7 +300,6 @@ class ModelHub:
         fn = self.fn if fn is None else fn
         path_model = self.path_model if path_model is None else path_model
 
-        local_node_id = self.memory.get_node_id()
         asset_node_id = self.assets.get_node_id()
         asset_download_url = self.assets.get_download_url()
         asset_size = self.assets.get_size()
@@ -266,7 +316,7 @@ class ModelHub:
         if (
             not os.path.exists(path_model)
             or os.path.getsize(path_model) != asset_size
-            or local_node_id != asset_node_id
+            or self.memory.is_outdated(remote_node_id=asset_node_id)
         ):
             _request_asset(asset_download_url, path_model, fn)
             self.memory.dump(new_node_id=asset_node_id)
@@ -274,7 +324,10 @@ class ModelHub:
     @logger.catch()
     def register_model(self) -> Optional[bool]:
         """Load and register an existing model"""
-        if os.path.exists(self.path_model):
+        # Update AssetsObject local cache
+        if os.path.exists(self.path_model) and not self.memory.is_outdated(
+            self.assets.get_node_id()
+        ):
             self.net = cv2.dnn.readNetFromONNX(self.path_model)
             self._fn2net[self.fn] = self.net
             return True
@@ -283,14 +336,14 @@ class ModelHub:
     def match_net(self):
         """
         PluggableONNXModel 对象实例化时：
-        - 自动读取并注册 objects.yaml 中注明的且已存在指定目录的模型对象。
+        - 自动读取并注册 objects.yaml 中注明的且已存在指定目录的模型对象，
         - 然而，objects.yaml 中表达的标签组所对应的模型文件不一定都已存在。
-        - 所以，初始化时不包含新的网络请求。
+        - 初始化时不包含新的网络请求，即，不在初始化阶段下载缺失模型。
 
         match_net 模型被动拉取：
         - 在挑战进行时被动下载缺失的用于处理特定二分类任务的 ONNX 模型。
         - 匹配的模型会被自动下载、注册并返回。
-        - 匹配基于 self.net 实现，也即不在 objects.yaml 名单中的模型不会被下载
+        - 不在 objects.yaml 名单中的模型不会被下载
         :return:
         """
         if not self.net:
@@ -315,15 +368,23 @@ class ModelHub:
             for filename in files:
                 if not filename.endswith(_suffix):
                     continue
-                path_img = os.path.join(_prefix, filename)
+                path_img = join(_prefix, filename)
                 with open(path_img, "rb") as file:
                     yield path_img, self.solution(file.read(), **kwargs)
 
 
 def _request_asset(asset_download_url: str, asset_path: str, fn_tag: str):
+    headers = {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.27"
+    }
     logger.debug(f"Downloading {fn_tag} from {asset_download_url}")
-    with requests.get(asset_download_url, stream=True, proxies=getproxies()) as response:
-        with open(asset_path, "wb") as file:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    file.write(chunk)
+
+    # FIXME: PTC-W6004
+    #  Audit required: External control of file name or path
+    with open(asset_path, "wb") as file, requests.get(
+        asset_download_url, headers=headers, stream=True, proxies=getproxies()
+    ) as response:
+        for chunk in response.iter_content(chunk_size=1024):
+            if chunk:
+                file.write(chunk)

@@ -383,6 +383,8 @@ def get_challenge_ctx(
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--incognito")
+    options.add_argument("--disable-infobars")
 
     # Unified Challenge Language
     os.environ["LANGUAGE"] = "zh"
@@ -392,15 +394,13 @@ def get_challenge_ctx(
     logger.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
 
     ctx = uc.Chrome(
-        headless=silence,
-        options=options,
-        driver_executable_path=driver_executable_path,
-        user_data_dir=user_data_dir,
+        headless=silence, options=options, driver_executable_path=driver_executable_path
     )
 
     # Record necessary startup information
     hook_ = "GitHub Action" if os.getenv("GITHUB_ACTIONS") else "base"
     logger.debug(f"Setup info: hook={hook_} platform={sys.platform}")
+    setattr(ctx, "is_silence", silence)
 
-    _patch_headless(ctx, silence)
+    # _patch_headless(ctx, silence)
     return ctx

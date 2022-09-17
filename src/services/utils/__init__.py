@@ -11,6 +11,8 @@ from .armor.anti_hcaptcha.exceptions import (
     ChallengeTimeout,
     SubmitException,
 )
+from .armor.anti_hcaptcha.solutions.kernel import PluggableObjects
+from .armor.anti_hcaptcha.solutions.kernel import Rainbow
 from .armor.anti_hcaptcha.solutions.resnet import PluggableONNXModels
 from .armor.anti_hcaptcha.solutions.yolo import YOLO
 from .toolbox.toolbox import ChallengerContext
@@ -35,4 +37,6 @@ __all__ = [
     "ChallengerContext",
     "StandardContext",
     "PluggableONNXModels",
+    "Rainbow",
+    "PluggableObjects",
 ]

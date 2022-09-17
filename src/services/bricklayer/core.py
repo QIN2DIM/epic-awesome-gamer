@@ -4,10 +4,10 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
-import random
 import time
 from hashlib import sha256
 from typing import List, Optional, NoReturn, Union, Tuple
+from urllib.request import getproxies
 
 import cloudscraper
 import yaml
@@ -20,7 +20,7 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     InvalidCookieDomainException,
 )
-from selenium.webdriver import Chrome, ActionChains
+from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -206,11 +206,13 @@ class ArmorUtils(ArmorCaptcha):
         class ImageDownloader(AshFramework):
             """协程助推器 提高挑战图片的下载效率"""
 
+            http_proxy = getproxies().get("http")
+
             async def control_driver(self, context, session=None):
                 path_challenge_img, url = context
 
                 # Download Challenge Image
-                async with session.get(url) as response:
+                async with session.get(url, proxy=self.http_proxy) as response:
                     with open(path_challenge_img, "wb") as file:
                         file.write(await response.read())
 
@@ -1003,6 +1005,10 @@ class EpicAwesomeGamer:
         :return:
         """
         ctx.get(auth_url)
+
+        if hasattr(ctx, "is_silence") and getattr(ctx, "is_silence") is False:
+            logger.info("Downgrading threat score ...")
+            time.sleep(10)
 
         WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
             EC.presence_of_element_located((By.ID, "email"))
