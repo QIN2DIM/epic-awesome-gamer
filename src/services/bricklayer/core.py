@@ -1285,11 +1285,18 @@ class CookieManager(EpicAwesomeGamer):
         if not ctx_cookies:
             return False
 
-        headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
+        headers = {
+            "cookie": ToolBox.transfer_cookies(ctx_cookies),
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+            " Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.42",
+            "origin": "https://www.epicgames.com",
+            "referer": "https://www.epicgames.com/",
+        }
 
         scraper = cloudscraper.create_scraper()
-        response = scraper.get(self.URL_ACCOUNT_PERSONAL, headers=headers, allow_redirects=False)
-
+        response = scraper.get(
+            self.URL_ACCOUNT_PERSONAL, headers=headers, allow_redirects=False, proxies=getproxies()
+        )
         if response.status_code == 200:
             return True
         return False

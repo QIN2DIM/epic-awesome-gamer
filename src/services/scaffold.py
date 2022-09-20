@@ -150,7 +150,7 @@ class Scaffold:
           业务内容保持一致。脚手架指令 unreal 与此入口意义相同。
         :return:
         """
-        install.do()
+        # install.do()
         claimer.run(silence=silence, log_ignore=ignore, unreal=unreal)
 
     @staticmethod
