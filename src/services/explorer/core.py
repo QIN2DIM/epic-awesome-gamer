@@ -7,7 +7,7 @@ import json
 import os.path
 import time
 from hashlib import sha256
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Dict
 
 import cloudscraper
 import requests.exceptions
@@ -22,7 +22,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from services.settings import DIR_EXPLORER, EPIC_EMAIL
 from services.settings import logger
-from services.utils import ToolBox, ChallengerContext, StandardContext
+from services.utils import ToolBox
 from .exceptions import DiscoveryTimeoutException, ProtocolOutdatedWarning
 
 
@@ -68,12 +68,7 @@ class EpicAwesomeExplorer:
         self.runtime_workspace = "." if not os.path.exists(DIR_EXPLORER) else DIR_EXPLORER
         self.path_free_games = os.path.join(self.runtime_workspace, self.path_free_games)
 
-    def _discovery_free_games(
-        self,
-        ctx: Union[ChallengerContext, StandardContext],
-        ctx_cookies: List[dict],
-        category: str = "game",
-    ) -> None:
+    def _discovery_free_games(self, ctx, ctx_cookies: List[dict], category: str = "game") -> None:
         """发现玩家所属地区可视的常驻免费游戏数据"""
         url = self.category_details[category]["url"]
         flag = self.category_details[category]["flag"]
@@ -157,7 +152,7 @@ class EpicAwesomeExplorer:
             )
         )
 
-    def stress_expressions(self, ctx: Union[ChallengerContext, StandardContext]) -> Dict[str, str]:
+    def stress_expressions(self, ctx) -> Dict[str, str]:
         """应力表达式的主要实现"""
         logger.debug(
             ToolBox.runtime_report(

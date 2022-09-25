@@ -25,8 +25,7 @@ numpy==1.21.5
 # {{< Challenger Drive >}}
 gevent>=21.12.0
 selenium~=4.4.3
-webdriver_manager==3.5.2
-undetected_chromedriver==3.1.5.post4
+webdriver_manager>=3.5.2
 
 # {{< Message Push >}}
 apprise>=0.9.6

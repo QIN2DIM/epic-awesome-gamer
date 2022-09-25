@@ -17,17 +17,11 @@ __all__ = [
     # SETTINGS
     # ------------------------------
     "logger",
-    "DIR_CHALLENGE",
     "DIR_COOKIES",
     "DIR_USERS",
-    "DIR_TEMP_CACHE",
     "DIR_EXPLORER",
     "PATH_USR_COOKIES",
-    "DIR_MODEL",
-    "DIR_ASSETS",
     "DIR_SCREENSHOT",
-    "PATH_RAINBOW_YAML",
-    "PATH_OBJECTS_YAML",
     "DIR_LOG",
     # ------------------------------
     # CONFIG
@@ -54,27 +48,16 @@ __version__ = "0.3.5.dev"
 # 系统根目录
 PROJECT_ROOT = dirname(dirname(__file__))
 # 文件数据库目录
-PROJECT_DATABASE = join(PROJECT_ROOT, "database")
-# YOLO模型
-DIR_MODEL = join(PROJECT_ROOT, "model")
-# Reinforcement of memory
-PATH_RAINBOW_YAML = join(DIR_MODEL, "rainbow.yaml")
-DIR_ASSETS = join(DIR_MODEL, "_assets")
+PROJECT_DATABASE = join(PROJECT_ROOT, "datas")
 # Cookie 工作目录
 DIR_COOKIES = join(PROJECT_DATABASE, "cookies")
 PATH_USR_COOKIES = join(DIR_COOKIES, "user_cookies.txt")
 DIR_USERS = join(PROJECT_DATABASE, "users")
 # FreeGame Mining Workspace
 DIR_EXPLORER = join(PROJECT_DATABASE, "explorer")
-# 运行缓存目录
-DIR_TEMP_CACHE = join(PROJECT_DATABASE, "temp_cache")
-# 挑战缓存
-DIR_CHALLENGE = join(DIR_TEMP_CACHE, "_challenge")
 # 服务日志目录
 DIR_LOG = join(PROJECT_DATABASE, "logs")
 DIR_SCREENSHOT = join(DIR_LOG, "screenshot")
-# Settings of pluggable ONNX models
-PATH_OBJECTS_YAML = join(PROJECT_ROOT, "objects.yaml")
 # ---------------------------------------------------
 # [√]服务器日志配置
 # ---------------------------------------------------
@@ -85,17 +68,13 @@ logger = ToolBox.init_log(error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG
 # ---------------------------------------------------
 for _pending in [
     PROJECT_DATABASE,
-    DIR_MODEL,
     DIR_EXPLORER,
     DIR_COOKIES,
     DIR_USERS,
-    DIR_TEMP_CACHE,
-    DIR_CHALLENGE,
     DIR_LOG,
     DIR_SCREENSHOT,
 ]:
-    if not os.path.exists(_pending):
-        os.mkdir(_pending)
+    os.makedirs(_pending, exist_ok=True)
 """
 ================================================== ʕ•ﻌ•ʔ ==================================================
                                   若您并非项目开发者 请勿修改以下变量的默认参数

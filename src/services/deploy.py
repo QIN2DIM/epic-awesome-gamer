@@ -27,43 +27,7 @@ from services.settings import (
     ACTIVE_PUSHERS,
     SynergyTunnel,
 )
-from services.utils import ToolBox, get_challenge_ctx, MessagePusher, AshFramework
-
-
-class SteelTorrent(AshFramework):
-    """加速嵌套循环"""
-
-    def __init__(self, docker, ctx_cookies, explorer, bricklayer, task_queue_pending, tun):
-        super().__init__(docker=docker)
-
-        self.ctx_cookies = ctx_cookies
-        self.explorer = explorer
-        self.bricklayer: GameClaimer = bricklayer
-        self.task_queue_pending = task_queue_pending
-        self.headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/101.0.4951.41 Safari/537.36 Edg/101.0.1210.32",
-            "cookie": ToolBox.transfer_cookies(self.ctx_cookies),
-        }
-        self.tun = tun
-
-    async def parse_free_dlc(self, game_page_content, session):
-        dlc_page = self.bricklayer.has_attach(game_page_content)
-        if not dlc_page:
-            return
-
-        async with session.get(dlc_page, headers=self.headers) as response:
-            content = await response.read()
-            if not self.bricklayer.has_free_dlc(content):
-                return
-            dlc_details = self.bricklayer.parse_free_dlc_details(
-                url=response.url, status_code=response.status, content=content
-            )
-            for dlc in dlc_details:
-                self.worker.put(dlc)
-
-    def control_driver(self, context, session=None):
-        """Deprecated"""
+from services.utils import ToolBox, get_challenge_ctx, MessagePusher
 
 
 class ClaimerScheduler:

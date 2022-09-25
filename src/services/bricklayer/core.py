@@ -10,7 +10,10 @@ from typing import List, Optional, NoReturn, Union, Tuple
 from urllib.request import getproxies
 
 import cloudscraper
+import hcaptcha_challenger as solver
 import yaml
+from hcaptcha_challenger.exceptions import ChallengeTimeout
+from loguru import logger
 from selenium.common.exceptions import (
     TimeoutException,
     ElementNotVisibleException,
@@ -25,27 +28,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from services.settings import (
-    logger,
-    DIR_CHALLENGE,
-    PATH_OBJECTS_YAML,
-    DIR_MODEL,
-    DIR_COOKIES,
-    EPIC_EMAIL,
-    EPIC_PASSWORD,
-    DIR_SCREENSHOT,
-    SynergyTunnel,
-)
-from services.utils import (
-    ToolBox,
-    ArmorCaptcha,
-    SubmitException,
-    AshFramework,
-    ChallengeReset,
-    get_challenge_ctx,
-    ChallengeTimeout,
-    ChallengerContext,
-)
+from services.settings import DIR_COOKIES, EPIC_EMAIL, EPIC_PASSWORD, DIR_SCREENSHOT, SynergyTunnel
+from services.utils import ToolBox, get_challenge_ctx, Challenger
 from .exceptions import (
     AssertTimeout,
     UnableToGet,
@@ -59,18 +43,13 @@ from .exceptions import (
 )
 
 
-class ArmorUtils(ArmorCaptcha):
-    """人机对抗模组"""
-
+class ArmorUtils:
     AUTH_SUCCESS = "success"
     AUTH_ERROR = "error"
     AUTH_CHALLENGE = "challenge"
 
-    # //iframe[@id='talon_frame_checkout_free_prod']
-    HOOK_PURCHASE = "//div[@id='webPurchaseContainer']//iframe"
-
     @staticmethod
-    def fall_in_captcha_login(ctx: ChallengerContext, flag_url: str = None) -> Optional[str]:
+    def fall_in_captcha_login(ctx, flag_url: str = None) -> Optional[str]:
         """
         判断在登录时是否遇到人机挑战
 
@@ -129,7 +108,7 @@ class ArmorUtils(ArmorCaptcha):
                 # {{< 挑戰框架可見 >}}
                 try:
                     WebDriverWait(ctx, 2, 0.1).until(
-                        EC.visibility_of_element_located((By.XPATH, ArmorUtils.HOOK_CHALLENGE))
+                        EC.visibility_of_element_located((By.XPATH, ArmorKnight.HOOK_CHALLENGE))
                     )
                     return ArmorUtils.AUTH_CHALLENGE
                 except TimeoutException:
@@ -137,7 +116,7 @@ class ArmorUtils(ArmorCaptcha):
         assert AssertTimeout
 
     @staticmethod
-    def fall_in_captcha_runtime(ctx: ChallengerContext, window: str) -> Optional[bool]:
+    def fall_in_captcha_runtime(ctx, window: str) -> Optional[bool]:
         """
         判断在下单时是否遇到人机挑战
 
@@ -150,10 +129,10 @@ class ArmorUtils(ArmorCaptcha):
             if window == "free":
                 ctx.switch_to.default_content()
                 WebDriverWait(ctx, 5).until(
-                    EC.frame_to_be_available_and_switch_to_it((By.XPATH, ArmorUtils.HOOK_PURCHASE))
+                    EC.frame_to_be_available_and_switch_to_it((By.XPATH, ArmorKnight.HOOK_PURCHASE))
                 )
             WebDriverWait(ctx, 5, ignored_exceptions=(WebDriverException,)).until(
-                EC.presence_of_element_located((By.XPATH, ArmorUtils.HOOK_CHALLENGE))
+                EC.presence_of_element_located((By.XPATH, ArmorKnight.HOOK_CHALLENGE))
             )
             return True
         except TimeoutException:
@@ -173,7 +152,22 @@ class ArmorUtils(ArmorCaptcha):
         except TimeoutException:
             return False
 
-    def switch_to_challenge_frame(self, ctx: ChallengerContext, window: str):
+
+class ArmorKnight(solver.HolyChallenger):
+    """人机对抗模组"""
+
+    # //iframe[@id='talon_frame_checkout_free_prod']
+    HOOK_PURCHASE = "//div[@id='webPurchaseContainer']//iframe"
+
+    def __init__(self, debug: Optional[bool] = False, screenshot: Optional[bool] = False):
+        super().__init__(debug=debug, screenshot=screenshot, lang="zh")
+        self.critical_threshold = 3
+
+    @property
+    def utils(self):
+        return ArmorUtils
+
+    def switch_to_challenge_iframe(self, ctx, window: str):
         # turn to dom root
         ctx.switch_to.default_content()
 
@@ -196,53 +190,9 @@ class ArmorUtils(ArmorCaptcha):
             EC.frame_to_be_available_and_switch_to_it((By.XPATH, self.HOOK_CHALLENGE))
         )
 
-    def download_images(self) -> None:
-        """
-        植入协程框架加速下载。
-
-        :return:
-        """
-
-        class ImageDownloader(AshFramework):
-            """协程助推器 提高挑战图片的下载效率"""
-
-            http_proxy = getproxies().get("http")
-
-            async def control_driver(self, context, session=None):
-                path_challenge_img, url = context
-
-                # Download Challenge Image
-                async with session.get(url, proxy=self.http_proxy) as response:
-                    with open(path_challenge_img, "wb") as file:
-                        file.write(await response.read())
-
-        # 初始化挑战图片下载目录
-        self.runtime_workspace = self._init_workspace()
-
-        # 初始化数据容器
-        docker_ = []
-        for alias_, url_ in self.alias2url.items():
-            path_challenge_img_ = os.path.join(self.runtime_workspace, f"{alias_}.png")
-            self.alias2path.update({alias_: path_challenge_img_})
-            docker_.append((path_challenge_img_, url_))
-
-        # 执行下载器
-        ImageDownloader(docker=docker_).perform()
-
-    def challenge_success(self, ctx: ChallengerContext, window=None, **kwargs) -> Tuple[str, str]:
+    def challenge_success(self, ctx: Challenger, window=None, **kwargs) -> Tuple[str, str]:
         """
         判断挑战是否成功的复杂逻辑
-
-        IF index is True:
-        经过首轮识别点击后，出现四种结果：
-        - 直接通过验证（小概率）
-        - 进入第二轮（正常情况）
-          通过短时间内可否继续点击拼图来断言是否陷入第二轮测试
-        - 要求重试（小概率）
-          特征被识别或网络波动，需要重试
-        - 通过验证，弹出 2FA 双重认证
-          无法处理，任务结束
-
         :param window:
         :param ctx: 挑战者驱动上下文
         :return:
@@ -254,9 +204,20 @@ class ArmorUtils(ArmorCaptcha):
                 WebDriverWait(ctx, 1, 0.1).until(
                     EC.presence_of_element_located((By.XPATH, "//div[@class='task-image']"))
                 )
-                return True
             except TimeoutException:
                 return False
+            else:
+                try:
+                    prompts_obj = WebDriverWait(ctx, 2, 0.1).until(
+                        EC.visibility_of_element_located((By.XPATH, "//div[@class='error-text']"))
+                    )
+                except TimeoutException:
+                    pass
+                else:
+                    logger.warning(prompts_obj.text)
+
+                # Is clickable
+                return True
 
         flag = ctx.current_url
 
@@ -338,58 +299,37 @@ class ArmorUtils(ArmorCaptcha):
     def anti_hcaptcha(self, ctx, window: str = "login") -> Union[bool, str]:
         """
         Handle hcaptcha challenge
-
-        ## Reference
-
-        M. I. Hossen and X. Hei, "A Low-Cost Attack against the hCaptcha System," 2021 IEEE Security
-        and Privacy Workshops (SPW), 2021, pp. 422-431, doi: 10.1109/SPW53761.2021.00061.
-
-        > ps:该篇文章中的部分内容已过时，现在 hcaptcha challenge 远没有作者说的那么容易应付。
-
-        # Output sessionId
-        # print(ctx.find_elements(By.TAG_NAME, "p")[1].text)
-
         :param window: [login free]
         :param ctx:
         :return:
         """
         # [👻] 人机挑战！
         try:
-            for index in range(2):
+            for index in range(5):
                 # [👻] 进入人机挑战关卡
-                self.switch_to_challenge_frame(ctx, window)
-
+                self.switch_to_challenge_iframe(ctx, window)
                 # [👻] 获取挑战标签
                 self.get_label(ctx)
-
                 # [👻] 編排定位器索引
                 self.mark_samples(ctx)
-
                 # [👻] 拉取挑戰圖片
                 self.download_images()
-
                 # [👻] 滤除无法处理的挑战类别
-                drop = self.tactical_retreat(ctx)
-                if drop in [self.CHALLENGE_BACKCALL, self.CHALLENGE_REFRESH]:
+                if drop := self.tactical_retreat(ctx) in [self.CHALLENGE_BACKCALL]:
                     ctx.switch_to.default_content()
                     return drop
-
                 # [👻] 注册解决方案
                 # 根据挑战类型自动匹配不同的模型
                 model = self.switch_solution()
-
                 # [👻] 識別|點擊|提交
                 self.challenge(ctx, model=model)
-
                 # [👻] 輪詢控制臺響應
                 result, message = self.challenge_success(ctx, window=window)
-
                 self.log("获取响应", desc=f"{message}({result})")
                 if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:
                     return result
-
         # 提交结果断言超时或 mark_samples() 等待超时
-        except (WebDriverException, SubmitException) as err:
+        except WebDriverException as err:
             logger.exception(err)
             return self.CHALLENGE_CRASH
         finally:
@@ -411,7 +351,7 @@ class AssertUtils:
     ONE_MORE_STEP = "🥊 进位挑战"
 
     @staticmethod
-    def login_error(ctx: ChallengerContext) -> bool:
+    def login_error(ctx) -> bool:
         """登录失败 可能原因为账号或密码错误"""
 
         threshold_timeout = 3
@@ -458,7 +398,7 @@ class AssertUtils:
             raise SwitchContext(msg)
 
     @staticmethod
-    def surprise_license(ctx: ChallengerContext) -> Optional[bool]:
+    def surprise_license(ctx) -> Optional[bool]:
         """新用户首次购买游戏需要处理许可协议书"""
         try:
             surprise_obj = WebDriverWait(
@@ -489,18 +429,18 @@ class AssertUtils:
                 return
 
     @staticmethod
-    def fall_in_captcha_runtime(ctx: ChallengerContext) -> Optional[bool]:
+    def fall_in_captcha_runtime(ctx) -> Optional[bool]:
         """捕获隐藏在周免游戏订单中的人机挑战"""
         try:
             WebDriverWait(ctx, 5, ignored_exceptions=(WebDriverException,)).until(
-                EC.presence_of_element_located((By.XPATH, ArmorUtils.HOOK_CHALLENGE))
+                EC.presence_of_element_located((By.XPATH, ArmorKnight.HOOK_CHALLENGE))
             )
             return True
         except TimeoutException:
             return False
 
     @staticmethod
-    def surprise_warning_purchase(ctx: ChallengerContext) -> Optional[bool]:
+    def surprise_warning_purchase(ctx) -> Optional[bool]:
         """
         处理弹窗遮挡消息。
 
@@ -531,7 +471,7 @@ class AssertUtils:
             return False
 
     @staticmethod
-    def payment_auto_submit(ctx: ChallengerContext) -> Optional[bool]:
+    def payment_auto_submit(ctx) -> Optional[bool]:
         """认领游戏后订单自动提交 仅在常驻游戏中出现"""
         try:
             WebDriverWait(ctx, 5).until(
@@ -542,7 +482,7 @@ class AssertUtils:
             return False
 
     @staticmethod
-    def payment_blocked(ctx: ChallengerContext) -> NoReturn:
+    def payment_blocked(ctx) -> NoReturn:
         """判断游戏锁区"""
         # 需要在 webPurchaseContainer 里执行
         try:
@@ -661,7 +601,7 @@ class AssertUtils:
         return AssertUtils.ASSERT_OBJECT_EXCEPTION
 
     @staticmethod
-    def refund_info(ctx: ChallengerContext):
+    def refund_info(ctx):
         """
         处理订单中的 退款及撤销权信息
 
@@ -677,7 +617,7 @@ class AssertUtils:
             pass
 
     @staticmethod
-    def unreal_resource_load(ctx: ChallengerContext):
+    def unreal_resource_load(ctx):
         """等待虚幻商店月供资源加载"""
         pending_locator = [
             "//i[text()='添加到购物车']",
@@ -694,7 +634,7 @@ class AssertUtils:
                 continue
 
     @staticmethod
-    def unreal_surprise_license(ctx: ChallengerContext):
+    def unreal_surprise_license(ctx):
         try:
             WebDriverWait(ctx, 5).until(
                 EC.presence_of_element_located((By.XPATH, "//span[text()='我已阅读并同意《最终用户许可协议》']"))
@@ -744,27 +684,13 @@ class EpicAwesomeGamer:
         self.result = ""
 
         # 注册挑战者
-        if not SynergyTunnel.ARMOR:
-            self.armor = ArmorUtils(
-                dir_workspace=DIR_CHALLENGE,
-                dir_model=DIR_MODEL,
-                path_objects_yaml=PATH_OBJECTS_YAML,
-                on_rainbow=True,
-                screenshot=True,
-                debug=True,
-            )
-            SynergyTunnel.ARMOR = self.armor
-        else:
-            self.armor = SynergyTunnel.ARMOR
-
+        self.armor = SynergyTunnel.ARMOR or ArmorKnight(debug=True, screenshot=False)
         self.assert_ = AssertUtils()
 
     # ======================================================
     # Reused Action Chains
     # ======================================================
-    def _reset_page(
-        self, ctx: ChallengerContext, page_link: str, ctx_cookies: List[dict], auth_str: str
-    ):
+    def _reset_page(self, ctx, page_link: str, ctx_cookies: List[dict], auth_str: str):
         if auth_str == self.AUTH_STR_GAMES:
             ctx.get(self.URL_ACCOUNT_PERSONAL)
         elif auth_str == self.AUTH_STR_UNREAL:
@@ -787,7 +713,7 @@ class EpicAwesomeGamer:
         ctx.get(page_link)
 
     @staticmethod
-    def _move_product_to_wishlist(ctx: ChallengerContext):
+    def _move_product_to_wishlist(ctx):
         try:
             move_buttons = ctx.find_elements(By.XPATH, "//span[text()='移至愿望清单']")
         except NoSuchElementException:
@@ -803,7 +729,7 @@ class EpicAwesomeGamer:
     def _switch_to_payment_iframe(ctx):
         payment_frame = WebDriverWait(
             ctx, 5, ignored_exceptions=(ElementNotVisibleException,)
-        ).until(EC.presence_of_element_located((By.XPATH, ArmorUtils.HOOK_PURCHASE)))
+        ).until(EC.presence_of_element_located((By.XPATH, ArmorKnight.HOOK_PURCHASE)))
         ctx.switch_to.frame(payment_frame)
 
     @staticmethod
@@ -838,22 +764,20 @@ class EpicAwesomeGamer:
         :param ctx:
         :return: True挑战成功，False挑战失败/需要跳过，None其他信号
         """
-        if self.armor.fall_in_captcha_runtime(ctx, window):
+        if self.armor.utils.fall_in_captcha_runtime(ctx, window):
             self.assert_.wrong_driver(ctx, "任务中断，请使用挑战者上下文处理意外弹出的人机验证。")
             try:
                 resp = self.armor.anti_hcaptcha(ctx, window=window)
                 self.captcha_runtime_memory(ctx, suffix=f"_{window}")
                 return resp
-            except (ChallengeReset, WebDriverException):
+            except WebDriverException:
                 pass
 
     # ======================================================
     # Business Action Chains
     # ======================================================
 
-    def _activate_payment(
-        self, api: ChallengerContext, mode="get", init_cart=None
-    ) -> Optional[bool]:
+    def _activate_payment(self, api, mode="get", init_cart=None) -> Optional[bool]:
         """激活游戏订单"""
         element_xpath = {
             self.CLAIM_MODE_GET: "//button[@data-testid='purchase-cta-button']",
@@ -882,7 +806,7 @@ class EpicAwesomeGamer:
                 except UnableToGet:
                     return False
 
-    def _handle_payment(self, ctx: ChallengerContext) -> None:
+    def _handle_payment(self, ctx) -> None:
         """
         处理游戏订单
 
@@ -934,7 +858,7 @@ class EpicAwesomeGamer:
         ctx.refresh()
 
     @staticmethod
-    def captcha_runtime_memory(ctx: ChallengerContext, suffix: str = ""):
+    def captcha_runtime_memory(ctx, suffix: str = ""):
         _finger = os.path.join(DIR_SCREENSHOT, f"{int(time.time())}{suffix}")
 
         # 保存截图
@@ -945,24 +869,27 @@ class EpicAwesomeGamer:
         with open(f"{_finger}.mhtml", "w", newline="") as file:
             file.write(content)
 
-    def _game_login_prerequisite_actions(self, ctx: Chrome):
+    def _game_login_prerequisite_actions(self, ctx):
         """處理游戲賬號登陸的先決條件 甩開追蹤器"""
-        root = "https://www.epicgames.com/"
         _button_sign_text = "//span[contains(@class,'sign-text')]"
         _button_login_with_epic = "//div[@id='login-with-epic']"
 
-        # rdc --> https://store.epicgames.com/zh-CN/
-        ctx.get(root)
-        WebDriverWait(ctx, 5).until(EC.url_changes(root))
-
+        ctx.get("https://store.epicgames.com/zh-CN/")
         current_url = ctx.current_url
 
+        if "再进行一步操作" in ctx.page_source:
+            logger.warning("ONE MORE STEP CHALLENGE")
+            return False
+
         try:
-            WebDriverWait(ctx, 15).until(
+            sign_tag = WebDriverWait(ctx, 45).until(
                 EC.presence_of_element_located((By.XPATH, _button_sign_text))
-            ).click()
+            )
+            # UserData 生效，账号已登入
+            if sign_tag.text != "登录":
+                return True
+            sign_tag.click()
             WebDriverWait(ctx, 10).until(EC.url_changes(current_url))
-            time.sleep(2)
             WebDriverWait(ctx, 20).until(
                 EC.presence_of_element_located((By.XPATH, _button_login_with_epic))
             ).click()
@@ -971,44 +898,20 @@ class EpicAwesomeGamer:
         else:
             WebDriverWait(ctx, 30).until(EC.url_contains("id/login/epic?"))
 
-    def login(self, email: str, password: str, ctx: ChallengerContext, auth_url: str):
+    def login(self, email: str, password: str, ctx, auth_url: str):
         """
         作为被动方式，登陆账号，刷新 identity token。
 
         此函数不应被主动调用，应当作为 refresh identity token / Challenge 的辅助函数。
-
-        email_field = WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
-            EC.presence_of_element_located((By.ID, "email"))
-        )
-
-        psw_field = WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
-            EC.presence_of_element_located((By.ID, "password"))
-        )
-
-        def slow_type(pageElem, pageInput):
-            action = ActionChains(ctx)
-            for x_offset, y_offset in ToolBox.gen_motion()[:10]:
-                action.move_to_element_with_offset(pageElem, x_offset, y_offset)
-            action.perform()
-            for letter in pageInput:
-                time.sleep(random.uniform(.05, .3))
-                pageElem.send_keys(letter)
-
-        slow_type(email_field, email)
-        slow_type(psw_field, password)
-        time.sleep(random.uniform(0.5, 1))
-
         :param auth_url:
         :param ctx:
         :param email:
         :param password:
         :return:
         """
+        # IF True: in store page
+        # ELSE: in login page
         ctx.get(auth_url)
-
-        if hasattr(ctx, "is_silence") and getattr(ctx, "is_silence") is False:
-            logger.info("Downgrading threat score ...")
-            time.sleep(10)
 
         WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
             EC.presence_of_element_located((By.ID, "email"))
@@ -1026,7 +929,7 @@ class EpicAwesomeGamer:
             ToolBox.runtime_report(motive="MATCH", action_name=self.action_name, message="实体信息注入完毕")
         )
 
-    def cart_success(self, ctx: ChallengerContext):
+    def cart_success(self, ctx):
         """
         提高跳过人机挑战的期望，使用轮询的方式检测运行状态
         确保进入此函数时，已经点击 order 按钮，并已处理欧盟和新手协议，无任何遮挡。
@@ -1044,7 +947,7 @@ class EpicAwesomeGamer:
             ctx.switch_to.default_content()
             try:
                 payment_iframe = WebDriverWait(ctx, 0.5).until(
-                    EC.presence_of_element_located((By.XPATH, ArmorUtils.HOOK_PURCHASE))
+                    EC.presence_of_element_located((By.XPATH, ArmorKnight.HOOK_PURCHASE))
                 )
             # 订单消失
             except TimeoutException:
@@ -1064,7 +967,7 @@ class EpicAwesomeGamer:
                     return False
                 # 进入必然存在的人机挑战框架
                 try:
-                    ctx.switch_to.frame(ctx.find_element(By.XPATH, ArmorUtils.HOOK_CHALLENGE))
+                    ctx.switch_to.frame(ctx.find_element(By.XPATH, ArmorKnight.HOOK_CHALLENGE))
                 except WebDriverException:
                     continue
                 else:
@@ -1075,7 +978,7 @@ class EpicAwesomeGamer:
                     else:
                         _fall_in_challenge += 1
 
-    def cart_handle_payment(self, ctx: ChallengerContext):
+    def cart_handle_payment(self, ctx):
         # [🍜] Switch to the [Purchase Container] iframe.
         try:
             self._switch_to_payment_iframe(ctx)
@@ -1106,7 +1009,7 @@ class EpicAwesomeGamer:
 
         return True
 
-    def unreal_activate_payment(self, ctx: ChallengerContext, init=True):
+    def unreal_activate_payment(self, ctx, init=True):
         """从虚幻商店购物车激活订单"""
         # =======================================================
         # [🍜] 将月供内容添加到购物车
@@ -1204,7 +1107,7 @@ class EpicAwesomeGamer:
 
         return AssertUtils.GAME_PENDING
 
-    def unreal_handle_payment(self, ctx: ChallengerContext):
+    def unreal_handle_payment(self, ctx):
         # [🍜] Switch to the [Purchase Container] iframe.
         try:
             self._switch_to_payment_iframe(ctx)
@@ -1333,36 +1236,29 @@ class CookieManager(EpicAwesomeGamer):
             )
         )
 
-        from services.settings import DIR_USERS
+        ctx = ctx_session or get_challenge_ctx(silence=silence)
+        auth_url = self.URL_LOGIN_UNREAL
+        if self.auth_str == self.AUTH_STR_GAMES:
+            auth_url = self.URL_LOGIN_GAMES
 
-        if ctx_session is None:
-            ctx = get_challenge_ctx(silence=silence, user_data_dir=DIR_USERS)
-        else:
-            ctx = ctx_session
-
-        auth_url = (
-            self.URL_LOGIN_GAMES if self.auth_str == self.AUTH_STR_GAMES else self.URL_LOGIN_UNREAL
-        )
         balance_operator = -1
         try:
             while balance_operator < 8:
                 balance_operator += 1
-
                 # Enter the account information and jump to the man-machine challenge page.
                 self.login(self.email, self.password, ctx=ctx, auth_url=auth_url)
-
                 # Assert if you are caught in a man-machine challenge.
                 try:
-                    result = self.armor.fall_in_captcha_login(ctx=ctx)
+                    result = self.armor.utils.fall_in_captcha_login(ctx=ctx)
                 except AssertTimeout:
                     balance_operator += 1
                     continue
                 else:
                     # Skip Challenge.
-                    if result == self.armor.AUTH_SUCCESS:
+                    if result == ArmorUtils.AUTH_SUCCESS:
                         break
                     # Winter is coming, so hear me roar!
-                    elif result == self.armor.AUTH_CHALLENGE:
+                    elif result == ArmorUtils.AUTH_CHALLENGE:
                         resp = self.armor.anti_hcaptcha(ctx, window="login")
                         if resp == self.armor.CHALLENGE_SUCCESS:
                             break
@@ -1382,8 +1278,6 @@ class CookieManager(EpicAwesomeGamer):
                     )
                 )
                 return False
-        except ChallengeReset:
-            pass
         except AuthException as err:
             raise err
         except ChallengeTimeout as error:
@@ -1406,5 +1300,3 @@ class CookieManager(EpicAwesomeGamer):
                 else:
                     self.ctx_session = ctx
         # {{< Done >}}
-
-        return True

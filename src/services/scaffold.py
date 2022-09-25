@@ -47,6 +47,7 @@ class Scaffold:
           该项在 Linux 上始终为True，无法手动指定。
         :return:
         """
+        install.do()
         challenge.run(silence=silence)
 
     @staticmethod
@@ -114,7 +115,7 @@ class Scaffold:
 
     @staticmethod
     def claim(
-        silence: Optional[bool] = True,
+        silence: Optional[bool] = False,
         ignore: Optional[bool] = False,
         unreal: Optional[bool] = False,
     ):
@@ -150,7 +151,6 @@ class Scaffold:
           业务内容保持一致。脚手架指令 unreal 与此入口意义相同。
         :return:
         """
-        # install.do()
         claimer.run(silence=silence, log_ignore=ignore, unreal=unreal)
 
     @staticmethod

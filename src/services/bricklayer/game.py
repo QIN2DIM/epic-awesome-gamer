@@ -4,8 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import time
-from typing import List, Optional, Dict, Union
-
+import typing
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 
 from services.settings import logger, SynergyTunnel
@@ -39,7 +38,7 @@ class GameClaimer(EpicAwesomeGamer):
         self.action_name = "GameClaimer"
         self.cookie_manager = CookieManager(auth_str=self.AUTH_STR_GAMES)
 
-    def has_attach(self, content: bytes = None, tree=None) -> Optional[str]:
+    def has_attach(self, content: bytes = None, tree=None) -> typing.Optional[str]:
         """检测当前游戏商品是否有DLC urlIn游戏页"""
         tree = etree.HTML(content) if tree is None else tree
         dlc_tag = tree.xpath(
@@ -94,7 +93,9 @@ class GameClaimer(EpicAwesomeGamer):
         # [🚀] 清洗返回值使之符合接口规则
         return list(dlc_details.values())
 
-    def get_free_dlc_details(self, ctx_url: str, cookie: str) -> List[Dict[str, Union[str, bool]]]:
+    def get_free_dlc_details(
+        self, ctx_url: str, cookie: str
+    ) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """
         1. 检测一个游戏实体是否存在免费附加内容
         2. 将可领取的免费附加内容编织成任务对象并返回
@@ -117,7 +118,7 @@ class GameClaimer(EpicAwesomeGamer):
         # [🚀] 获取当前商品所有免费DLC链接
         return self.parse_free_dlc_details(dlc_page, response.status_code, tree=dlc_tree)
 
-    def is_empty_cart(self, ctx_cookies: List[dict], init=True) -> Optional[bool]:
+    def is_empty_cart(self, ctx_cookies: typing.List[dict], init=True) -> typing.Optional[bool]:
         """判断商城购物车是否为空"""
         cookie = ToolBox.transfer_cookies(ctx_cookies)
         tree, resp_ = ToolBox.handle_html(self.URL_GAME_CART, cookie)
@@ -135,7 +136,7 @@ class GameClaimer(EpicAwesomeGamer):
             return None
         return False
 
-    def cart_balancing(self, ctx_cookies: List[dict], ctx_session, init=True):
+    def cart_balancing(self, ctx_cookies: typing.List[dict], ctx_session, init=True):
         """
         购物车|愿望清单的内容转移
 
@@ -178,7 +179,7 @@ class GameClaimer(EpicAwesomeGamer):
         )
         self._move_product_to_wishlist(ctx=ctx_session)
 
-    def empty_shopping_payment(self, ctx_cookies: List[dict], ctx_session):
+    def empty_shopping_payment(self, ctx_cookies: typing.List[dict], ctx_session):
         """清空购物车"""
         _loop_start = time.time()
         init = True
@@ -217,7 +218,9 @@ class GameClaimer(EpicAwesomeGamer):
             init = False
             self.assert_.timeout(_loop_start, self.loop_timeout)
 
-    def get_free_game(self, page_link: str, ctx_cookies: List[dict], ctx) -> Optional[str]:
+    def get_free_game(
+        self, page_link: str, ctx_cookies: typing.List[dict], ctx
+    ) -> typing.Optional[str]:
         """获取周免资源 游戏本体/附加内容 集成接口"""
         if not ctx_cookies:
             raise CookieExpired(self.assert_.COOKIE_EXPIRED)
@@ -244,7 +247,7 @@ class GameClaimer(EpicAwesomeGamer):
                 )
                 if self.result != self.assert_.ONE_MORE_STEP:
                     break
-                if self.armor.face_the_checkbox(ctx) and self.armor.anti_checkbox(ctx):
+                if self.armor.utils.face_the_checkbox(ctx) and self.armor.anti_checkbox(ctx):
                     self._duel_with_challenge(ctx, window="oms")
                     time.sleep(5)
             else:
@@ -288,7 +291,7 @@ class GameClaimer(EpicAwesomeGamer):
 
         return self.result
 
-    def claim_booster(self, ctx_cookies: List[dict], ctx_session):
+    def claim_booster(self, ctx_cookies: typing.List[dict], ctx_session):
         try:
             return self.empty_shopping_payment(ctx_cookies=ctx_cookies, ctx_session=ctx_session)
         except AssertTimeout:
@@ -299,8 +302,8 @@ class GameClaimer(EpicAwesomeGamer):
             )
 
     def claim_stabilizer(
-        self, page_link: str, ctx_cookies: List[dict], ctx_session, get_blocked_warning=None
-    ) -> Optional[str]:
+        self, page_link: str, ctx_cookies: typing.List[dict], ctx_session, get_blocked_warning=None
+    ) -> typing.Optional[str]:
         """获取周免资源 游戏本体/附加内容 集成接口"""
         try:
             return self.get_free_game(page_link=page_link, ctx_cookies=ctx_cookies, ctx=ctx_session)

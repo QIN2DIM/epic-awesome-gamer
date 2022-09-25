@@ -3,16 +3,14 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import shutil
 import sys
 import webbrowser
 from typing import Optional
 
+import hcaptcha_challenger as solver
+from loguru import logger
 from webdriver_manager.chrome import ChromeType
-from webdriver_manager.utils import get_browser_version_from_os
-
-from services.settings import DIR_MODEL, logger, DIR_ASSETS
-from services.utils import YOLO, get_challenge_ctx, Rainbow, PluggableObjects
+from webdriver_manager.core.utils import get_browser_version_from_os
 
 
 def download_driver():
@@ -40,27 +38,9 @@ def download_driver():
 
 def do(yolo_onnx_prefix: Optional[str] = None, upgrade: Optional[bool] = False):
     """下载项目运行所需的各项依赖"""
-    dir_assets = DIR_ASSETS
-
-    download_driver()
-
-    if upgrade is True:
-        logger.debug(f"Reloading the local cache of Assets {dir_assets}")
-        shutil.rmtree(dir_assets, ignore_errors=True)
-    Rainbow(dir_assets).sync(force=upgrade)
-    PluggableObjects(dir_assets).sync()
-
-    # PULL YOLO ONNX Model by the prefix flag
-    YOLO(DIR_MODEL, yolo_onnx_prefix).pull_model()
+    solver.install(onnx_prefix=yolo_onnx_prefix, upgrade=upgrade)
 
 
 @logger.catch()
 def test():
     """Check if the Challenger driver version is compatible"""
-    ctx = get_challenge_ctx(silence=True)
-    try:
-        ctx.get("https://blog.echosec.top/p/spider_performance/")
-    finally:
-        ctx.quit()
-
-    logger.success("The adaptation is successful")

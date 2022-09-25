@@ -138,3 +138,4 @@ docs/
 .github/workflows/automated_claim.yaml
 .github/workflows/sync_repo.yaml
 docker-compose.yaml
+src/datas

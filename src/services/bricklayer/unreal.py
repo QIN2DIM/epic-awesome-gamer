@@ -8,8 +8,8 @@ from typing import List, Optional, Dict, Union
 
 from bs4 import BeautifulSoup
 from cloudscraper import create_scraper
+from loguru import logger
 
-from services.settings import logger
 from services.utils import ToolBox
 from .core import CookieManager, EpicAwesomeGamer
 from .exceptions import AuthException, AssertTimeout, CookieExpired
