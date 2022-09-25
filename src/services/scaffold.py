@@ -9,11 +9,13 @@ from loguru import logger
 
 from apis.scaffold import get, challenge, install, claimer, console
 
+install.do(upgrade=False)
+
 
 class Scaffold:
     """系统脚手架 顶级接口指令"""
 
-    DEFAULT_YOLO_MODEL = "yolov6t"
+    DEFAULT_YOLO_MODEL = "yolov6n"
 
     @staticmethod
     def install(onnx_prefix: Optional[str] = None, upgrade: Optional[bool] = None):
@@ -24,7 +26,6 @@ class Scaffold:
     @staticmethod
     def test():
         """检查挑战者驱动版本是否适配"""
-        install.test()
 
     @staticmethod
     def challenge(silence: Optional[bool] = True):
@@ -47,7 +48,6 @@ class Scaffold:
           该项在 Linux 上始终为True，无法手动指定。
         :return:
         """
-        install.do()
         challenge.run(silence=silence)
 
     @staticmethod

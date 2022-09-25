@@ -66,14 +66,7 @@ logger = ToolBox.init_log(error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG
 # ---------------------------------------------------
 # 路径补全
 # ---------------------------------------------------
-for _pending in [
-    PROJECT_DATABASE,
-    DIR_EXPLORER,
-    DIR_COOKIES,
-    DIR_USERS,
-    DIR_LOG,
-    DIR_SCREENSHOT,
-]:
+for _pending in [PROJECT_DATABASE, DIR_EXPLORER, DIR_COOKIES, DIR_USERS, DIR_LOG, DIR_SCREENSHOT]:
     os.makedirs(_pending, exist_ok=True)
 """
 ================================================== ʕ•ﻌ•ʔ ==================================================
