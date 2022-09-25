@@ -38,7 +38,8 @@ def download_driver():
 
 def do(yolo_onnx_prefix: Optional[str] = None, upgrade: Optional[bool] = False):
     """下载项目运行所需的各项依赖"""
-    solver.install(onnx_prefix=yolo_onnx_prefix, upgrade=upgrade)
+    onnx_prefix = yolo_onnx_prefix or solver.Prefix.YOLOv6n
+    solver.install(onnx_prefix=onnx_prefix, upgrade=upgrade)
 
 
 @logger.catch()

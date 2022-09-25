@@ -15,12 +15,9 @@ install.do(upgrade=False)
 class Scaffold:
     """系统脚手架 顶级接口指令"""
 
-    DEFAULT_YOLO_MODEL = "yolov6n"
-
     @staticmethod
     def install(onnx_prefix: Optional[str] = None, upgrade: Optional[bool] = None):
         """下载运行依赖"""
-        onnx_prefix = Scaffold.DEFAULT_YOLO_MODEL if onnx_prefix is None else onnx_prefix
         install.do(yolo_onnx_prefix=onnx_prefix, upgrade=upgrade)
 
     @staticmethod
