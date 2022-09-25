@@ -48,7 +48,7 @@ __version__ = "0.3.5.dev"
 # 系统根目录
 PROJECT_ROOT = dirname(dirname(__file__))
 # 文件数据库目录
-PROJECT_DATABASE = join(PROJECT_ROOT, "datas")
+PROJECT_DATABASE = join(PROJECT_ROOT, "database")
 # Cookie 工作目录
 DIR_COOKIES = join(PROJECT_DATABASE, "cookies")
 PATH_USR_COOKIES = join(DIR_COOKIES, "user_cookies.txt")

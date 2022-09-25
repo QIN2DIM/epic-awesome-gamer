@@ -4,6 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import os
+import random
 import time
 from hashlib import sha256
 from typing import List, Optional, NoReturn, Union, Tuple
@@ -898,6 +899,35 @@ class EpicAwesomeGamer:
         else:
             WebDriverWait(ctx, 30).until(EC.url_contains("id/login/epic?"))
 
+    @staticmethod
+    def _reflect_features(ctx):
+        url_claim = "https://store.epicgames.com/zh-CN/free-games"
+        url_login = f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={url_claim}"
+
+        button_sign = "//span[contains(@class,'sign-text')]"
+        button_login_with_epic = "//div[@id='login-with-epic']"
+
+        ctx.get(url_claim)
+        try:
+            sign_tag = WebDriverWait(ctx, 45).until(
+                EC.presence_of_element_located((By.XPATH, button_sign))
+            )
+        except TimeoutException:
+            if "再进行一步操作" in ctx.page_source:
+                logger.warning("ONE MORE STEP CHALLENGE")
+        else:
+            # UserData 生效，账号已登入
+            if sign_tag.text not in ["登录"]:
+                return True
+            ctx.get(url_login)
+            try:
+                WebDriverWait(ctx, 10).until(EC.url_changes(url_claim))
+                WebDriverWait(ctx, 20).until(
+                    EC.presence_of_element_located((By.XPATH, button_login_with_epic))
+                ).click()
+            except TimeoutException:
+                return
+
     def login(self, email: str, password: str, ctx, auth_url: str):
         """
         作为被动方式，登陆账号，刷新 identity token。
@@ -911,15 +941,24 @@ class EpicAwesomeGamer:
         """
         # IF True: in store page
         # ELSE: in login page
-        ctx.get(auth_url)
+        if auth_url == self.URL_LOGIN_GAMES and self._reflect_features(ctx):
+            return ArmorUtils.AUTH_SUCCESS
+        if "id/login/epic" not in ctx.current_url:
+            ctx.get(auth_url)
+
+        time.sleep(random.uniform(3, 5))
 
         WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
             EC.presence_of_element_located((By.ID, "email"))
         ).send_keys(email)
 
+        time.sleep(random.uniform(1, 2))
+
         WebDriverWait(ctx, 10, ignored_exceptions=(ElementNotVisibleException,)).until(
             EC.presence_of_element_located((By.ID, "password"))
         ).send_keys(password)
+
+        time.sleep(random.uniform(1, 2))
 
         WebDriverWait(ctx, 60, ignored_exceptions=(ElementClickInterceptedException,)).until(
             EC.element_to_be_clickable((By.ID, "sign-in"))
