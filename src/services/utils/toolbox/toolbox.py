@@ -183,7 +183,10 @@ class DriverWrapper:
     options = ChromeOptions()
 
     def __post_init__(self):
-        self.options.headless = self.silence
+        if "linux" in sys.platform and self.silence:
+            logger.error("Please use `xvfb` to run the finite state machine.")
+            logger.info("sudo apt-get install xvfb -y")
+        self.options.headless = False
 
         self.options.add_argument("--log-level=3")
         self.options.add_argument("--disable-software-rasterizer")
@@ -199,7 +202,6 @@ class DriverWrapper:
             self.options.add_argument("--no-sandbox")
             self.options.add_argument("--no-xshm")
             self.options.add_argument("--disable-dev-shm-usage")
-            self.options.add_argument("--single-process")
             self.options.add_argument("--no-first-run")
 
         if self.silence:
@@ -213,8 +215,6 @@ class DriverWrapper:
 
 def get_ctx(silence: Optional[bool] = None):
     """普通的 Selenium 驱动上下文，用于常规并发任务"""
-    silence = True if silence is None or "linux" in sys.platform else silence
-
     driver_wrapper = DriverWrapper(silence=silence)
     options = driver_wrapper.options
 

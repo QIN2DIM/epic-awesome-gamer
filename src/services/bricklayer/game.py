@@ -5,6 +5,7 @@
 # Description:
 import time
 import typing
+
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 
 from services.settings import logger, SynergyTunnel
