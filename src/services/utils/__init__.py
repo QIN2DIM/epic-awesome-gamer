@@ -5,10 +5,10 @@
 # Description:
 import typing
 
-from ._undetected_chromedriver import Chrome as Challenger
-from .toolbox.pusher import MessagePusher
-from .toolbox.toolbox import ToolBox
-from .toolbox.toolbox import get_ctx, DriverWrapper
+from undetected_chromedriver import Chrome as Challenger
+
+from .pusher import MessagePusher
+from .toolbox import DriverWrapper, ToolBox, get_ctx
 
 __all__ = ["MessagePusher", "ToolBox", "get_challenge_ctx", "get_ctx", "Challenger"]
 
