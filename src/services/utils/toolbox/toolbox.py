@@ -178,17 +178,33 @@ class ToolBox:
 
 @dataclass
 class DriverWrapper:
-    options = ChromeOptions()
+    silence: bool = True
     path: str = ""
+    options = ChromeOptions()
 
     def __post_init__(self):
+        self.options.headless = self.silence
+
         self.options.add_argument("--log-level=3")
         self.options.add_argument("--disable-software-rasterizer")
-        self.options.add_argument("--disable-gpu")
 
         # Unified Challenge Language
         os.environ["LANGUAGE"] = "zh"
         self.options.add_argument(f"--lang={os.getenv('LANGUAGE', '')}")
+
+        # Hook to headful xvfb server
+        if "linux" in sys.platform or self.silence:
+            self.options.add_argument("--disable-setuid-sandbox")
+            self.options.add_argument("--disable-gpu")
+            self.options.add_argument("--no-sandbox")
+            self.options.add_argument("--no-xshm")
+            self.options.add_argument("--disable-dev-shm-usage")
+            self.options.add_argument("--single-process")
+            self.options.add_argument("--no-first-run")
+
+        if self.silence:
+            self.options.add_argument("--window-size=1920,1080")
+            self.options.add_argument("--start-maximized")
 
         # - Use chromedriver cache to improve application startup speed
         # - Requirement: undetected-chromedriver >= 3.1.5.post4
@@ -197,15 +213,10 @@ class DriverWrapper:
 
 def get_ctx(silence: Optional[bool] = None):
     """普通的 Selenium 驱动上下文，用于常规并发任务"""
-    driver_wrapper = DriverWrapper()
-    options = driver_wrapper.options
-
     silence = True if silence is None or "linux" in sys.platform else silence
-    if silence is True:
-        options.add_argument("--headless")
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("--start-maximized")
-        options.add_argument("--no-sandbox")
+
+    driver_wrapper = DriverWrapper(silence=silence)
+    options = driver_wrapper.options
 
     # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
     return Chrome(service=Service(driver_wrapper.path), options=options)

@@ -18,10 +18,10 @@ def get_challenge_ctx(
     silence: typing.Optional[bool] = None, user_data_dir: typing.Optional[str] = None
 ) -> Challenger:
     """挑战者驱动 用于处理人机挑战"""
-    driver_wrapper = DriverWrapper()
-    options = driver_wrapper.options
-
     silence = True if silence is None or "linux" in sys.platform else silence
+
+    driver_wrapper = DriverWrapper(silence=silence)
+    options = driver_wrapper.options
 
     # Create challenger
     # logging.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
