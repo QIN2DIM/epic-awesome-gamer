@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import sys
+import typing
 import warnings
 from collections import deque
 from dataclasses import dataclass
@@ -21,6 +22,7 @@ from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.chrome.service import Service
+from undetected_chromedriver import Chrome as Challenger
 from webdriver_manager.chrome import ChromeDriverManager
 
 logging.getLogger("WDM").setLevel(logging.NOTSET)
@@ -178,15 +180,12 @@ class ToolBox:
 
 @dataclass
 class DriverWrapper:
-    silence: bool = True
+    silence: bool = False
     path: str = ""
     options = ChromeOptions()
 
     def __post_init__(self):
-        if "linux" in sys.platform and self.silence:
-            logger.error("Please use `xvfb` to run the finite state machine.")
-            logger.info("sudo apt-get install xvfb -y")
-        self.options.headless = False
+        self.options.headless = self.silence
 
         self.options.add_argument("--log-level=3")
         self.options.add_argument("--disable-software-rasterizer")
@@ -220,3 +219,16 @@ def get_ctx(silence: Optional[bool] = None):
 
     # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
     return Chrome(service=Service(driver_wrapper.path), options=options)
+
+
+def get_challenge_ctx(silence: typing.Optional[bool] = None) -> Challenger:
+    """挑战者驱动 用于处理人机挑战"""
+    driver_wrapper = DriverWrapper(silence=silence)
+    options = driver_wrapper.options
+
+    if "linux" in sys.platform and silence:
+        logger.critical("CMD: Xvfb -ac >/dev/null 2>&1 & python3 main.py claim")
+        raise RuntimeError("Please use `xvfb` to empower the headful Chrome.")
+    # Create challenger
+    logging.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
+    return Challenger(options=options, driver_executable_path=driver_wrapper.path)
