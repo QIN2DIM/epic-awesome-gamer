@@ -83,8 +83,8 @@ config_ = ToolBox.check_sample_yaml(
 # [√] 账号信息
 # --------------------------------
 # 不建议在公有库上创建工作流运行项目，有仓库禁用风险
-EPIC_EMAIL: Optional[str] = config_.get("EPΙC_EMAΙL", "") or config_.get("EPIC_EMAIL", "")
-EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD", "") or config_.get("EPIC_PASSWORD", "")
+EPIC_EMAIL: Optional[str] = config_.get("EPΙC_EMAΙL") or config_.get("EPIC_EMAIL", "")
+EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD") or config_.get("EPIC_PASSWORD", "")
 # --------------------------------
 # [※] 消息推送配置
 # --------------------------------
@@ -97,10 +97,20 @@ PLAYER: Optional[str] = MESSAGE_PUSHER_SETTINGS.get("player", "")
 # [※] 补全语法模板
 # --------------------------------
 if not EPIC_EMAIL:
-    EPIC_EMAIL = os.getenv("EPΙC_EMAΙL", "") or os.getenv("EPIC_EMAIL", "")
+    EPIC_EMAIL = os.getenv("EPΙC_EMAΙL") or os.getenv("EPIC_EMAIL", "")
 if not EPIC_PASSWORD:
-    EPIC_PASSWORD = os.getenv("EPΙC_PASSWΟRD", "") or os.getenv("EPIC_PASSWORD", "")
+    EPIC_PASSWORD = os.getenv("EPΙC_PASSWΟRD") or os.getenv("EPIC_PASSWORD", "")
 
+# feat: actions env
+# 将平铺在配置文件中的非空 PUSHER_ 变量补充到 pusher 字典中
+# 在 Actions 初始化阶段通过 echo 将 Secrets 写入到尚未创建的 config.yaml 中
+for k_ in config_:
+    if not config_[k_]:
+        continue
+    if k_.startswith("PUSHER_"):
+        PUSHER[k_] = config_[k_]
+    if k_.startswith("PLAYER"):
+        PLAYER = config_[k_]
 try:
     for server in PUSHER:
         if not PUSHER[server]:
