@@ -97,9 +97,9 @@ PLAYER: Optional[str] = MESSAGE_PUSHER_SETTINGS.get("player", "")
 # [※] 补全语法模板
 # --------------------------------
 if not EPIC_EMAIL:
-    EPIC_EMAIL = os.getenv("EPΙC_EMAΙL", "")
+    EPIC_EMAIL = os.getenv("EPΙC_EMAΙL", "") or os.getenv("EPIC_EMAIL", "")
 if not EPIC_PASSWORD:
-    EPIC_PASSWORD = os.getenv("EPΙC_PASSWΟRD", "")
+    EPIC_PASSWORD = os.getenv("EPΙC_PASSWΟRD", "") or os.getenv("EPIC_PASSWORD", "")
 
 try:
     for server in PUSHER:
@@ -132,10 +132,10 @@ if not any(PUSHER.values()):
 ACTIVE_PUSHERS = [_p[0] for _p in PUSHER.items() if _p[-1]]
 ACTIVE_SERVERS = [_p[-1] for _p in PUSHER.items() if _p[-1]]
 
-_0x1 = ["EPΙC_EMAΙL", "EPΙC_PASSWΟRD", "PLAYER"]
-_0x1.extend(PUSHER)
-for _k in _0x1:
-    os.environ[_k] = "_0x1"
+# _0x1 = ["EPΙC_EMAΙL", "EPΙC_PASSWΟRD", "PLAYER"]
+# _0x1.extend(PUSHER)
+# for _k in _0x1:
+#     os.environ[_k] = "_0x1"
 
 
 class SynergyTunnel:
