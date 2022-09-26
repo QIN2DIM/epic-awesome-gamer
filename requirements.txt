@@ -23,4 +23,4 @@ webdriver_manager>=3.8.3
 hcaptcha-challenger==0.4.2.11
 
 # {{< Message Push >}}
-apprise>=0.9.6
+apprise==0.9.6

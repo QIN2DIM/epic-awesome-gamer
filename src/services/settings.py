@@ -83,8 +83,8 @@ config_ = ToolBox.check_sample_yaml(
 # [√] 账号信息
 # --------------------------------
 # 不建议在公有库上创建工作流运行项目，有仓库禁用风险
-EPIC_EMAIL: Optional[str] = config_.get("EPΙC_EMAΙL", "")
-EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD", "")
+EPIC_EMAIL: Optional[str] = config_.get("EPΙC_EMAΙL", "") or config_.get("EPIC_EMAIL", "")
+EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD", "") or config_.get("EPIC_PASSWORD", "")
 # --------------------------------
 # [※] 消息推送配置
 # --------------------------------
@@ -132,10 +132,10 @@ if not any(PUSHER.values()):
 ACTIVE_PUSHERS = [_p[0] for _p in PUSHER.items() if _p[-1]]
 ACTIVE_SERVERS = [_p[-1] for _p in PUSHER.items() if _p[-1]]
 
-# _0x1 = ["EPΙC_EMAΙL", "EPΙC_PASSWΟRD", "PLAYER"]
-# _0x1.extend(PUSHER)
-# for _k in _0x1:
-#     os.environ[_k] = "_0x1"
+_0x1 = ["EPΙC_EMAΙL", "EPΙC_PASSWΟRD", "PLAYER"]
+_0x1.extend(PUSHER)
+for _k in _0x1:
+    os.environ[_k] = "_0x1"
 
 
 class SynergyTunnel:
