@@ -10,7 +10,7 @@ apscheduler>=3.8.1
 pytz>=2021.3
 
 # {{< Interface /Data cleaning >}}
-requests>=2.27.1
+requests~=2.28.1
 cloudscraper>=1.2.58
 bs4>=0.0.1
 beautifulsoup4>=4.10.0
@@ -23,4 +23,4 @@ webdriver_manager>=3.8.3
 hcaptcha-challenger==0.4.2.11
 
 # {{< Message Push >}}
-apprise==0.9.6
+apprise==1.0.0
