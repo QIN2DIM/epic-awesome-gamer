@@ -89,6 +89,7 @@ EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD") or config_.get("EP
 # [※] 消息推送配置
 # --------------------------------
 MESSAGE_PUSHER_SETTINGS: Optional[Dict[str, Any]] = config_.get("message_pusher_settings", {})
+ENABLE_PUSHER = MESSAGE_PUSHER_SETTINGS.get("enable", False)
 # Apprise Server 泛映射
 PUSHER: Optional[Dict[str, Optional[str]]] = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
 # 匿名设置
@@ -111,6 +112,13 @@ for k_ in config_:
         PUSHER[k_] = config_[k_]
     if k_.startswith("PLAYER"):
         PLAYER = config_[k_]
+    if k_ == "ENABLE_PUSHER":
+        ENABLE_PUSHER = True
+MESSAGE_PUSHER_SETTINGS = {
+    "player": PLAYER,
+    "enable": ENABLE_PUSHER,
+    "pusher": PUSHER
+}
 try:
     for server in PUSHER:
         if not PUSHER[server]:
