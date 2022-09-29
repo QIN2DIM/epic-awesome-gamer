@@ -6,12 +6,12 @@
 import os.path
 import subprocess
 import sys
-from typing import Optional
+import typing
 
 from services.settings import DIR_LOG
 
 
-def get_logger(start: Optional[bool] = False):
+def get_logger(start: typing.Optional[bool] = False):
     path_runtime_log = os.path.join(DIR_LOG, "runtime.log")
     log_mapping = {
         "path_log_runtime": path_runtime_log,

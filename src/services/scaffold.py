@@ -7,7 +7,7 @@ from typing import Optional
 
 from loguru import logger
 
-from apis.scaffold import get, challenge, install, claimer, console
+from apis.scaffold import challenge, install, claimer, console
 
 install.do(upgrade=False)
 
@@ -49,14 +49,7 @@ class Scaffold:
         challenge.run(silence=silence)
 
     @staticmethod
-    def get(
-        debug: Optional[bool] = None,
-        cache: Optional[bool] = True,
-        dlc: Optional[bool] = False,
-        unreal: Optional[bool] = False,
-        silence: Optional[bool] = True,
-        dev: Optional[str] = None,
-    ):
+    def get():
         """
 
         Introduction
@@ -88,28 +81,11 @@ class Scaffold:
         此指令会将免费商城数据存储在 ``src/database/explorer``，
 
         存储内容与当前上下文身份令牌有关（不同地区权限不同）。
-
-        :param dev:
-        :param unreal: 默认False，与 ``dlc`` 只能同时生效一个。清扫虚幻商店所有可领取的免费内容。
-        :param silence: 默认True。是否静默启动浏览器。除非你想观赏系统的作业流程，否则别徒增功耗。
-          该项在 Linux 上始终为True，无法手动指定。
-        :param dlc: 默认False，与 ``unreal`` 只能同时生效一个。
-            清扫 DLC（游戏附加内容）此模式清扫所有免费 DLC，不包括付费游戏的免费DLC。
-        :param cache: 默认True。优先读取本地的商城缓存数据。本地不存在或缓存过时则自动更新。
-        :param debug: 默认False。显示栈追踪日志信息。
         :return:
         """
-        if dlc is True:
-            category = "dlc"
-        elif unreal is True:
-            category = "unreal"
-        else:
-            category = "game"
-        logger.critical(
+        logger.warning(
             "The scaffolding command `get` is not open for use at this time, and related tasks will be skipped."
         )
-        if dev == "chichao":
-            get.join(debug=debug, cache=cache, category=category, silence=silence)
 
     @staticmethod
     def claim(

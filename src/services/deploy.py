@@ -14,19 +14,13 @@ from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from gevent.queue import Queue
+from loguru import logger
 
 from services.bricklayer import GameClaimer
 from services.bricklayer import UnrealClaimer
 from services.bricklayer.exceptions import CookieRefreshException
 from services.explorer import Explorer
-from services.settings import (
-    logger,
-    MESSAGE_PUSHER_SETTINGS,
-    PLAYER,
-    ACTIVE_SERVERS,
-    ACTIVE_PUSHERS,
-    SynergyTunnel,
-)
+from services.settings import config, SynergyTunnel
 from services.utils import ToolBox, get_challenge_ctx, MessagePusher
 
 
@@ -129,14 +123,16 @@ class BaseInstance:
         self.depth = 0
         # 服务注册
         self.logger = logger
-        self.bricklayer = GameClaimer(silence=silence)
+        self.bricklayer = GameClaimer(
+            email=config.epic_email, password=config.epic_password, silence=silence
+        )
         # 尚未初始化的挑战者上下文容器
         self._ctx_session = None
         # 任务队列 按顺缓存周免游戏及其免费附加内容的认领任务
         self.task_queue_pending = Queue()
         self.task_queue_worker = Queue()
         # 消息队列 按序缓存认领任务的执行状态
-        self.pusher_settings = MESSAGE_PUSHER_SETTINGS
+        self.pusher_settings = config.message_pusher
         self.message_queue = Queue()
         # 内联数据容器 编排推送模版
         self.inline_docker = []
@@ -195,16 +191,23 @@ class BaseInstance:
             self.inline_docker.append(context)
 
         # 在 `ignore` 模式下当所有资源实体都已在库时不推送消息
-        if self.inline_docker and self.pusher_settings.get("enable") and any(ACTIVE_SERVERS):
+        if (
+            self.inline_docker
+            and self.pusher_settings.enable
+            and any(self.pusher_settings.ACTIVE_SERVERS)
+        ):
             with MessagePusher(
-                ACTIVE_SERVERS, PLAYER, self.inline_docker, key_images=Explorer.cdn_image_urls
+                self.pusher_settings.ACTIVE_SERVERS,
+                self.pusher_settings.player,
+                self.inline_docker,
+                key_images=Explorer.cdn_image_urls,
             ):
                 self.logger.success(
                     ToolBox.runtime_report(
                         motive="Notify",
                         action_name=self.action_name,
                         message="推送运行报告",
-                        active_pusher=ACTIVE_PUSHERS,
+                        active_pusher=self.pusher_settings.ACTIVE_PUSHERS,
                     )
                 )
         # 在 `ignore` 模式下追加 DEBUG 标签日志
@@ -226,13 +229,16 @@ class BaseInstance:
                 "url": "https://images4.alphacoders.com/668/thumb-1920-668521.jpg",
             }
         ]
-        with MessagePusher(ACTIVE_SERVERS, PLAYER, self.inline_docker):
+
+        with MessagePusher(
+            self.pusher_settings.ACTIVE_SERVERS, self.pusher_settings.player, self.inline_docker
+        ):
             self.logger.error(
                 ToolBox.runtime_report(
                     motive="Notify",
                     action_name=self.action_name,
                     message="推送运行日志",
-                    active_pusher=ACTIVE_PUSHERS,
+                    active_pusher=self.pusher_settings.ACTIVE_PUSHERS,
                     err=err_message,
                 )
             )
@@ -324,7 +330,7 @@ class GameClaimerInstance(BaseInstance):
 
     def __init__(self, silence: bool, log_ignore: Optional[bool] = False):
         super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer")
-        self.explorer = Explorer(silence=silence)
+        self.explorer = Explorer(email=config.epic_email, silence=silence)
 
     def get_promotions(self) -> Optional[Dict[str, Union[List[str], str]]]:
         """获取游戏促销信息"""
@@ -398,7 +404,9 @@ class UnrealClaimerInstance(BaseInstance):
 
     def __init__(self, silence: bool, log_ignore: Optional[bool] = False):
         super().__init__(silence, log_ignore, "UnrealClaimer")
-        self.bricklayer = UnrealClaimer(silence=silence)
+        self.bricklayer = UnrealClaimer(
+            email=config.epic_email, password=config.epic_password, silence=silence
+        )
 
     def promotions_filter(self):
         content_objs = self.bricklayer.get_claimer_response(self._ctx_cookies)

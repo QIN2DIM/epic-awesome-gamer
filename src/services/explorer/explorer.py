@@ -3,12 +3,12 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import typing
 from json.decoder import JSONDecodeError
-from typing import List, Optional, Union, Dict
 
 import cloudscraper
+from loguru import logger
 
-from services.settings import logger
 from services.utils import ToolBox, get_challenge_ctx
 from .core import EpicAwesomeExplorer, GameLibManager
 from .exceptions import DiscoveryTimeoutException
@@ -19,14 +19,17 @@ class Explorer(EpicAwesomeExplorer):
 
     cdn_image_urls = []
 
-    def __init__(self, silence: Optional[bool] = None):
+    def __init__(self, email: str, silence: typing.Optional[bool] = None):
         super().__init__(silence=silence)
         self.action_name = "Explorer"
-        self.game_manager = GameLibManager()
+        self.game_manager = GameLibManager(email=email)
 
     def discovery_free_games(
-        self, ctx_cookies: Optional[List[dict]] = None, category: str = "game", silence: bool = None
-    ) -> Optional[List[dict]]:
+        self,
+        ctx_cookies: typing.Optional[typing.List[dict]] = None,
+        category: str = "game",
+        silence: bool = None,
+    ) -> typing.Optional[typing.List[dict]]:
         """
         发现免费游戏。
 
@@ -60,7 +63,9 @@ class Explorer(EpicAwesomeExplorer):
         # 返回实例列表
         return game_objs
 
-    def get_promotions(self, ctx_cookies: List[dict]) -> Dict[str, Union[List[str], str]]:
+    def get_promotions(
+        self, ctx_cookies: typing.List[dict]
+    ) -> typing.Dict[str, typing.Union[typing.List[str], str]]:
         """
         获取周免游戏数据
 
@@ -108,19 +113,19 @@ class Explorer(EpicAwesomeExplorer):
 
     def get_promotions_by_stress_expressions(
         self, ctx_session=None
-    ) -> Dict[str, Union[List[str], str]]:
+    ) -> typing.Dict[str, typing.Union[typing.List[str], str]]:
         """使用应力表达式萃取商品链接"""
         free_game_objs = {}
         if ctx_session:
             critical_memory = ctx_session.current_window_handle
             try:
                 ctx_session.switch_to.new_window("tab")
-                pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx_session)
+                pending_games: typing.Dict[str, str] = self.stress_expressions(ctx=ctx_session)
             finally:
                 ctx_session.switch_to.window(critical_memory)
         else:
             with get_challenge_ctx(silence=self.silence) as ctx:
-                pending_games: Dict[str, str] = self.stress_expressions(ctx=ctx)
+                pending_games: typing.Dict[str, str] = self.stress_expressions(ctx=ctx)
 
         if pending_games:
             for url, title in pending_games.items():

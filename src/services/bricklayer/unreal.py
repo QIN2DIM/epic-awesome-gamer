@@ -4,7 +4,7 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import time
-from typing import List, Optional, Dict, Union
+import typing
 
 from bs4 import BeautifulSoup
 from cloudscraper import create_scraper
@@ -29,13 +29,17 @@ class UnrealClaimer(EpicAwesomeGamer):
         + "?count=20&priceRange=%5B0%2C0%5D&sortBy=effectiveDate&sortDir=DESC&start=0"
     )
 
-    def __init__(self, silence: Optional[bool] = None):
-        super().__init__()
+    def __init__(self, email: str, password: str, silence: typing.Optional[bool] = None):
+        super().__init__(email=email, password=password)
         self.silence = True if silence is None else silence
         self.action_name = "UnrealClaimer"
-        self.cookie_manager = CookieManager(auth_str=self.AUTH_STR_UNREAL)
+        self.cookie_manager = CookieManager(
+            auth_str=self.AUTH_STR_UNREAL, email=email, password=password
+        )
 
-    def get_claimer_response(self, ctx_cookies: List[dict]) -> List[Dict[str, Union[str, bool]]]:
+    def get_claimer_response(
+        self, ctx_cookies: typing.List[dict]
+    ) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """领取任务后审查资源的在库状态"""
         headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
         scraper = create_scraper()
@@ -106,7 +110,7 @@ class UnrealClaimer(EpicAwesomeGamer):
             init = False
             self.assert_.timeout(_loop_start, self.loop_timeout)
 
-    def claim_stabilizer(self, ctx_cookies: List[dict], ctx_session):
+    def claim_stabilizer(self, ctx_cookies: typing.List[dict], ctx_session):
         try:
             self.get_free_content(ctx=ctx_session, ctx_cookies=ctx_cookies)
         except AssertTimeout:

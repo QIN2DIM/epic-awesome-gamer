@@ -6,9 +6,10 @@
 import time
 import typing
 
+from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 
-from services.settings import logger, SynergyTunnel
+from services.settings import SynergyTunnel
 from services.utils import ToolBox
 from .core import EpicAwesomeGamer, CookieManager
 from .exceptions import (
@@ -27,8 +28,8 @@ class GameClaimer(EpicAwesomeGamer):
 
     URL_GAME_CART = "https://store.epicgames.com/zh-CN/cart"
 
-    def __init__(self, silence: bool = None, claim_mode: str = None):
-        super().__init__()
+    def __init__(self, email: str, password: str, silence: bool = None, claim_mode: str = None):
+        super().__init__(email=email, password=password)
         self.silence = True if silence is None else silence
 
         if claim_mode not in [self.CLAIM_MODE_ADD, self.CLAIM_MODE_GET]:
@@ -37,7 +38,9 @@ class GameClaimer(EpicAwesomeGamer):
             self.claim_mode = claim_mode
 
         self.action_name = "GameClaimer"
-        self.cookie_manager = CookieManager(auth_str=self.AUTH_STR_GAMES)
+        self.cookie_manager = CookieManager(
+            auth_str=self.AUTH_STR_GAMES, email=email, password=password
+        )
 
     def has_attach(self, content: bytes = None, tree=None) -> typing.Optional[str]:
         """检测当前游戏商品是否有DLC urlIn游戏页"""

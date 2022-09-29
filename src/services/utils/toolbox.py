@@ -5,18 +5,16 @@
 # Description:
 import logging
 import os
-import shutil
 import sys
 import typing
 import warnings
 from collections import deque
 from dataclasses import dataclass
-from typing import List, Union, Dict, Optional, Any
+from typing import List, Union, Dict, Optional
 from urllib.request import getproxies
 
 import cloudscraper
 import requests
-import yaml
 from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
@@ -35,44 +33,6 @@ class ToolBox:
 
     logger_tracer = deque()
     motion = None
-
-    @staticmethod
-    def check_sample_yaml(path_output: str, path_sample: str) -> Optional[Dict[str, Any]]:
-        """
-        检查模板文件是否存在，检查配置文件是否存在，读取系统配置返回
-
-        :param path_output: 配置生成路径（user）
-        :param path_sample: 模板文件路径（built-in）
-        :return:
-        """
-        try:
-            # 丢失模板文件
-            if not os.path.exists(path_sample):
-                print("[EXIT] 系统配置模板文件(config-sample.yaml)缺失。")
-                raise FileNotFoundError
-
-            # 项目未初始化，自动拷贝模板文件
-            if not os.path.exists(path_output):
-                print("系统配置文件(config.yaml)缺失")
-                shutil.copy(path_sample, path_output)
-                print("[EXIT] 生成配置文件，请合理配置并重启项目-->config.yaml")
-                sys.exit()
-
-            # 配置正常，读取配置参数
-            with open(path_output, "r", encoding="utf8") as stream:
-                config_ = yaml.safe_load(stream.read())
-                if __name__ == "__main__":
-                    print("读取配置文件-->config.yaml")
-                    print(config_)
-
-            return config_
-
-        # 需要到项目仓库重新拉取文件
-        except FileNotFoundError:
-            print(
-                "Please do not delete the system built-in `config-sample.yaml` "
-                "Make sure it is located in the project root directory"
-            )
 
     @staticmethod
     def runtime_report(action_name: str, motive: str = "RUN", message: str = "", **params) -> str:

@@ -3,11 +3,15 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from typing import Optional, Sequence
+import typing
 
 
 class Explorer(Exception):
-    def __init__(self, msg: Optional[str] = None, stacktrace: Optional[Sequence[str]] = None):
+    def __init__(
+        self,
+        msg: typing.Optional[str] = None,
+        stacktrace: typing.Optional[typing.Sequence[str]] = None,
+    ):
         self.msg = msg
         self.stacktrace = stacktrace
         super().__init__()

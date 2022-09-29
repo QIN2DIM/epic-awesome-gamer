@@ -12,8 +12,8 @@ from urllib.request import getproxies
 
 import cloudscraper
 import hcaptcha_challenger as solver
-from hcaptcha_challenger.exceptions import ChallengePassed
 import yaml
+from hcaptcha_challenger.exceptions import ChallengePassed
 from hcaptcha_challenger.exceptions import ChallengeTimeout
 from loguru import logger
 from selenium.common.exceptions import (
@@ -30,7 +30,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from services.settings import DIR_COOKIES, EPIC_EMAIL, EPIC_PASSWORD, DIR_SCREENSHOT, SynergyTunnel
+from services.settings import DIR_COOKIES, DIR_SCREENSHOT, SynergyTunnel
 from services.utils import ToolBox, get_challenge_ctx, Challenger
 from .exceptions import (
     AssertTimeout,
@@ -673,11 +673,11 @@ class EpicAwesomeGamer:
     CLAIM_MODE_GET = "get"
     ACTIVE_BINGO = "下单"
 
-    def __init__(self):
+    def __init__(self, email: str, password: str):
         """定义了一系列领取免费游戏所涉及到的浏览器操作。"""
         # 实体对象参数
         self.action_name = "BaseAction"
-        self.email, self.password = EPIC_EMAIL, EPIC_PASSWORD
+        self.email, self.password = email, password
 
         # 驱动参数
         self.loop_timeout = 300
@@ -1173,8 +1173,8 @@ class EpicAwesomeGamer:
 class CookieManager(EpicAwesomeGamer):
     """管理上下文身份令牌"""
 
-    def __init__(self, auth_str):
-        super().__init__()
+    def __init__(self, auth_str, email, password):
+        super().__init__(email=email, password=password)
 
         self.action_name = "CookieManager"
         self.auth_str = auth_str

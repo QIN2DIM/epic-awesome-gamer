@@ -12,6 +12,7 @@ from typing import List, Optional, Dict
 import cloudscraper
 import requests.exceptions
 import yaml
+from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 from selenium.common.exceptions import WebDriverException, InvalidCookieDomainException
 from selenium.webdriver.common.action_chains import ActionChains
@@ -20,8 +21,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from services.settings import DIR_EXPLORER, EPIC_EMAIL
-from services.settings import logger
+from services.settings import DIR_EXPLORER
 from services.utils import ToolBox
 from .exceptions import DiscoveryTimeoutException, ProtocolOutdatedWarning
 
@@ -200,11 +200,11 @@ class EpicAwesomeExplorer:
 class GameLibManager(EpicAwesomeExplorer):
     """游戏对象管理 缓存商城数据以及判断游戏在库状态"""
 
-    def __init__(self):
+    def __init__(self, email: str):
         super().__init__()
 
         self.action_name = "GameLibManager"
-        self.email = EPIC_EMAIL
+        self.email = email
         self.auth_str = "explorer"
 
     def _z(self) -> str:

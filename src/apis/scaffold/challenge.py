@@ -3,16 +3,18 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from typing import Optional
+import typing
+
+from loguru import logger
 
 from services.bricklayer import GameClaimer
-from services.settings import PATH_USR_COOKIES, logger
+from services.settings import PATH_USR_COOKIES, config
 from services.utils import ToolBox
 
-bricklayer = GameClaimer()
+bricklayer = GameClaimer(email=config.epic_email, password=config.epic_password)
 
 
-def run(silence: Optional[bool] = None):
+def run(silence: typing.Optional[bool] = None):
     """刷新上下文身份令牌"""
     logger.info(
         ToolBox.runtime_report(

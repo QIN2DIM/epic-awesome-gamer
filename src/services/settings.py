@@ -5,12 +5,15 @@
 # Description:
 import os
 import random
+import shutil
 import sys
 import typing
 from dataclasses import dataclass, field
 from datetime import datetime
 from os.path import join, dirname
-from typing import Dict, Any, Optional
+from typing import Any
+
+import yaml
 
 from services.utils import ToolBox
 
@@ -28,13 +31,8 @@ __all__ = [
     # ------------------------------
     # CONFIG
     # ------------------------------
-    "EPIC_PASSWORD",
-    "EPIC_EMAIL",
-    "MESSAGE_PUSHER_SETTINGS",
-    "PLAYER",
-    "ACTIVE_PUSHERS",
-    "ACTIVE_SERVERS",
     "SynergyTunnel",
+    "config",
 ]
 
 """
@@ -80,9 +78,12 @@ for _pending in [PROJECT_DATABASE, DIR_EXPLORER, DIR_COOKIES, DIR_USERS, DIR_LOG
 
 @dataclass
 class MessagePusher:
-    pushers: typing.Dict[str, str] = field(default_factory=dict)
+    pusher: typing.Dict[str, str] = field(default_factory=dict)
     player: str = ""
-    enable: bool = True
+    enable: bool = False
+
+    ACTIVE_PUSHERS: typing.List[str] = field(default_factory=list)
+    ACTIVE_SERVERS: typing.List[str] = field(default_factory=list)
 
     # fmt:off
     CONVERTER = [
@@ -94,11 +95,14 @@ class MessagePusher:
     # fmt:on
 
     def __post_init__(self):
-        self.player = (
-                self.player
-                or os.getenv("PLAYER", "")
-                or f"{random.choice(self.CONVERTER)}({datetime.now().day})"
-        )
+        self.pusher["PUSHER_QIN2DIM"] = ""
+
+    def diagnose(self):
+        if not any(self.pusher.values()):
+            self.enable = False
+        self.ACTIVE_PUSHERS = [_p[0] for _p in self.pusher.items() if _p[-1]]
+        self.ACTIVE_SERVERS = [_p[-1] for _p in self.pusher.items() if _p[-1]]
+        self.player = self.player or f"{random.choice(self.CONVERTER)}({datetime.now().day})"
 
 
 @dataclass
@@ -109,92 +113,67 @@ class Config:
     config_yaml: typing.Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-        self.message_pusher = self.message_pusher or MessagePusher()
-        self.epic_email = (
-                self.epic_email
-                or os.getenv("EPIC_EMAIL")
+        self.config_yaml = self.config_yaml or {}
+        self.message_pusher = self.message_pusher or MessagePusher(
+            **self.config_yaml.get("message_pusher_settings", {})
         )
-        self.epic_password = (
-                self.epic_password
-                or os.getenv("EPIC_PASSWORD")
-        )
+        # [GitHub Workflow && Container] Motion Global Values
+        for data_template in [self.config_yaml, os.environ]:
+            for kcy in data_template:
+                if not data_template[kcy]:
+                    continue
+                if kcy in ["EPIC_EMAIL", "EPΙC_EMAΙL"] and not self.epic_email:
+                    self.epic_email = data_template[kcy]
+                elif kcy in ["EPIC_PASSWORD", "EPΙC_PASSWΟRD"] and not self.epic_password:
+                    self.epic_password = data_template[kcy]
+                elif kcy.startswith("PUSHER_"):
+                    self.message_pusher.pusher[kcy] = data_template[kcy]
+                elif kcy == "PLAYER":
+                    self.message_pusher.player = data_template[kcy]
+                elif kcy == "ENABLE_PUSHER":
+                    self.message_pusher.enable = True
+
+    def diagnose(self):
+        assert self.epic_email, "[PROCESS EXIT] EPIC_EMAIL NOT CONFIGURED OR ILLEGAL"
+        assert self.epic_password, "[PROCESS EXIT] EPIC_PASSWORD NOT CONFIGURED OR ILLEGAL"
+        self.message_pusher.diagnose()
+        return self
+
+    def to_dict(self):
+        mirror = self.__dict__
+        mirror["message_pusher_settings"] = self.message_pusher.__dict__
+        return mirror
 
 
-config_ = ToolBox.check_sample_yaml(
-    path_output=join(dirname(dirname(__file__)), "config.yaml"),
-    path_sample=join(dirname(dirname(__file__)), "config-sample.yaml"),
+def check_sample_yaml(path_output: str, path_sample: str) -> typing.Optional[typing.Dict[str, Any]]:
+    """
+    检查模板文件是否存在，检查配置文件是否存在，读取系统配置返回
+
+    :param path_output: 配置生成路径（user）
+    :param path_sample: 模板文件路径（built-in）
+    :return:
+    """
+    config_yaml = {}
+
+    if not os.path.exists(path_sample):
+        return config_yaml
+    if not os.path.exists(path_output):
+        logger.warning("系统配置文件(config.yaml)缺失")
+        logger.info("[EXIT] 生成配置文件，请合理配置并重启项目-->config.yaml")
+        shutil.copy(path_sample, path_output)
+        sys.exit()
+    with open(path_output, "r", encoding="utf8") as stream:
+        config_yaml = yaml.safe_load(stream.read())
+    return config_yaml
+
+
+config = Config(
+    config_yaml=check_sample_yaml(
+        path_output=join(PROJECT_ROOT, "config.yaml"),
+        path_sample=join(PROJECT_ROOT, "config-sample.yaml"),
+    )
 )
-# --------------------------------
-# [√] 账号信息
-# --------------------------------
-# 不建议在公有库上创建工作流运行项目，有仓库禁用风险
-EPIC_EMAIL: Optional[str] = config_.get("EPΙC_EMAΙL") or config_.get("EPIC_EMAIL", "")
-EPIC_PASSWORD: Optional[str] = config_.get("EPΙC_PASSWΟRD") or config_.get("EPIC_PASSWORD", "")
-# --------------------------------
-# [※] 消息推送配置
-# --------------------------------
-MESSAGE_PUSHER_SETTINGS: Optional[Dict[str, Any]] = config_.get("message_pusher_settings", {})
-ENABLE_PUSHER = MESSAGE_PUSHER_SETTINGS.get("enable", False)
-# Apprise Server 泛映射
-PUSHER: Optional[Dict[str, Optional[str]]] = MESSAGE_PUSHER_SETTINGS.get("pusher", {})
-# 匿名设置
-PLAYER: Optional[str] = MESSAGE_PUSHER_SETTINGS.get("player", "")
-# --------------------------------
-# [※] 补全语法模板
-# --------------------------------
-if not EPIC_EMAIL:
-    EPIC_EMAIL = os.getenv("EPΙC_EMAΙL") or os.getenv("EPIC_EMAIL", "")
-if not EPIC_PASSWORD:
-    EPIC_PASSWORD = os.getenv("EPΙC_PASSWΟRD") or os.getenv("EPIC_PASSWORD", "")
-
-# feat: actions env
-# 将平铺在配置文件中的非空 PUSHER_ 变量补充到 pusher 字典中
-# 在 Actions 初始化阶段通过 echo 将 Secrets 写入到尚未创建的 config.yaml 中
-for k_ in config_:
-    if not config_[k_]:
-        continue
-    if k_.startswith("PUSHER_"):
-        PUSHER[k_] = config_[k_]
-    if k_.startswith("PLAYER"):
-        PLAYER = config_[k_]
-    if k_ == "ENABLE_PUSHER":
-        ENABLE_PUSHER = True
-MESSAGE_PUSHER_SETTINGS = {"player": PLAYER, "enable": ENABLE_PUSHER, "pusher": PUSHER}
-try:
-    for server in PUSHER:
-        if not PUSHER[server]:
-            PUSHER[server] = os.getenv(server, "")
-except KeyError as e:
-    print(f"[进程退出] 核心配置文件被篡改 error={e}")
-    sys.exit()
-
-# fmt:off
-_CONVERTER = [
-    "沫雯喂", "辰丽", "荪彦孜", "有坷唯", "郑姊祺", "弹蓶蓶", "王飛",
-    "Makise Kurisu", "Rem", "Lacus Clyne", "Megumin", "Misaka Mikoto",
-    "Yukino", "ゆずりは いのり", "Gokou Ruri", "がえん とおえ", "Yuuki Asuna",
-]
-# fmt:on
-PLAYER = os.getenv("PLAYER", "") if not PLAYER else PLAYER
-if PLAYER in ["", None]:
-    PLAYER = f"{random.choice(_CONVERTER)}({datetime.now().day})"
-# --------------------------------
-# [√] 阻止缺省配置
-# --------------------------------
-if not all((EPIC_EMAIL, EPIC_PASSWORD)):
-    print("[进程退出] 账号信息未配置或相关变量不合法")
-    sys.exit()
-
-# 检查激活的消息服务器
-if not any(PUSHER.values()):
-    MESSAGE_PUSHER_SETTINGS["enable"] = False
-ACTIVE_PUSHERS = [_p[0] for _p in PUSHER.items() if _p[-1]]
-ACTIVE_SERVERS = [_p[-1] for _p in PUSHER.items() if _p[-1]]
-
-_0x1 = ["EPΙC_EMAΙL", "EPΙC_PASSWΟRD", "PLAYER"]
-_0x1.extend(PUSHER)
-for _k in _0x1:
-    os.environ[_k] = "_0x1"
+config.diagnose()
 
 
 class SynergyTunnel:
