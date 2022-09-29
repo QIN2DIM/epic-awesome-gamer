@@ -6,6 +6,8 @@
 import os
 import random
 import sys
+import typing
+from dataclasses import dataclass, field
 from datetime import datetime
 from os.path import join, dirname
 from typing import Dict, Any, Optional
@@ -34,7 +36,6 @@ __all__ = [
     "ACTIVE_SERVERS",
     "SynergyTunnel",
 ]
-__version__ = "0.3.5.dev"
 
 """
 ================================================ ʕ•ﻌ•ʔ ================================================
@@ -75,6 +76,50 @@ for _pending in [PROJECT_DATABASE, DIR_EXPLORER, DIR_COOKIES, DIR_USERS, DIR_LOG
 
                                             Enjoy it -> ♂ main.py
 """
+
+
+@dataclass
+class MessagePusher:
+    pushers: typing.Dict[str, str] = field(default_factory=dict)
+    player: str = ""
+    enable: bool = True
+
+    # fmt:off
+    CONVERTER = [
+        "沫雯喂", "辰丽", "荪彦孜", "有坷唯", "郑姊祺", "弹蓶蓶", "王飛",
+        "Makise Kurisu", "Rem", "Lacus Clyne", "Megumin", "Misaka Mikoto",
+        "Yukino", "ゆずりは いのり", "Gokou Ruri", "がえん とおえ", "Yuuki Asuna",
+    ]
+
+    # fmt:on
+
+    def __post_init__(self):
+        self.player = (
+                self.player
+                or os.getenv("PLAYER", "")
+                or f"{random.choice(self.CONVERTER)}({datetime.now().day})"
+        )
+
+
+@dataclass
+class Config:
+    epic_email: str = ""
+    epic_password: str = ""
+    message_pusher: MessagePusher = None
+    config_yaml: typing.Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.message_pusher = self.message_pusher or MessagePusher()
+        self.epic_email = (
+                self.epic_email
+                or os.getenv("EPIC_EMAIL")
+        )
+        self.epic_password = (
+                self.epic_password
+                or os.getenv("EPIC_PASSWORD")
+        )
+
+
 config_ = ToolBox.check_sample_yaml(
     path_output=join(dirname(dirname(__file__)), "config.yaml"),
     path_sample=join(dirname(dirname(__file__)), "config-sample.yaml"),
@@ -114,11 +159,7 @@ for k_ in config_:
         PLAYER = config_[k_]
     if k_ == "ENABLE_PUSHER":
         ENABLE_PUSHER = True
-MESSAGE_PUSHER_SETTINGS = {
-    "player": PLAYER,
-    "enable": ENABLE_PUSHER,
-    "pusher": PUSHER
-}
+MESSAGE_PUSHER_SETTINGS = {"player": PLAYER, "enable": ENABLE_PUSHER, "pusher": PUSHER}
 try:
     for server in PUSHER:
         if not PUSHER[server]:

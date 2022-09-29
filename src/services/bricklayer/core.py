@@ -12,6 +12,7 @@ from urllib.request import getproxies
 
 import cloudscraper
 import hcaptcha_challenger as solver
+from hcaptcha_challenger.exceptions import ChallengePassed
 import yaml
 from hcaptcha_challenger.exceptions import ChallengeTimeout
 from loguru import logger
@@ -701,7 +702,7 @@ class EpicAwesomeGamer:
             try:
                 ctx.add_cookie(cookie_dict)
             except InvalidCookieDomainException as err:
-                logger.error(
+                logger.warning(
                     ToolBox.runtime_report(
                         motive="SKIP",
                         action_name=self.action_name,
@@ -771,7 +772,7 @@ class EpicAwesomeGamer:
                 resp = self.armor.anti_hcaptcha(ctx, window=window)
                 self.captcha_runtime_memory(ctx, suffix=f"_{window}")
                 return resp
-            except WebDriverException:
+            except (WebDriverException, ChallengePassed):
                 pass
 
     # ======================================================
@@ -1285,10 +1286,11 @@ class CookieManager(EpicAwesomeGamer):
             while balance_operator < 8:
                 balance_operator += 1
                 # Enter the account information and jump to the man-machine challenge page.
-                self.login(self.email, self.password, ctx=ctx, auth_url=auth_url)
+                result = self.login(self.email, self.password, ctx=ctx, auth_url=auth_url)
                 # Assert if you are caught in a man-machine challenge.
                 try:
-                    result = self.armor.utils.fall_in_captcha_login(ctx=ctx)
+                    if result not in [ArmorUtils.AUTH_SUCCESS]:
+                        result = self.armor.utils.fall_in_captcha_login(ctx=ctx)
                 except AssertTimeout:
                     balance_operator += 1
                     continue

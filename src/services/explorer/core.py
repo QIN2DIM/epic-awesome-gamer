@@ -459,36 +459,3 @@ class GameLibManager(EpicAwesomeExplorer):
                 logger.exception(err)
         finally:
             return container
-
-
-class _Game:
-    """基础游戏对象"""
-
-    # 游戏名称
-    name: str = "《堡垒之夜》"
-    # 商城访问链接
-    url: str = "https://store.epicgames.com/zh-CN/p/fortnite"
-    # 在库情况 True在库 False不在 None不到啊(初始化状态)
-    in_library: bool = None
-
-
-class _Dlc:
-    """游戏附加内容对象"""
-
-    # 附加内容名称
-    name: str = "《消逝的光芒》-《求生之路 2》Weapon Pack"
-    # 商城访问链接
-    url: str = "https://store.epicgames.com/zh-CN/p/dying-light--left-4-dead-2-weapon-pack"
-    # 在库情况 True在库 False不在 None不到啊(初始化状态)
-    in_library: bool = None
-
-
-class _Report:
-    """消息推送|资源封装对象"""
-
-    # 资源名称
-    name: str = ""
-    # 资源链接
-    url: str = ""
-    # 执行结果
-    status: str = ""

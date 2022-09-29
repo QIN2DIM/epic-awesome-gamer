@@ -22,7 +22,8 @@ class Scaffold:
 
     @staticmethod
     def test():
-        """检查挑战者驱动版本是否适配"""
+        """[弃用]检查挑战者驱动版本是否适配"""
+        logger.warning("Deprecated: skip test()")
 
     @staticmethod
     def challenge(silence: Optional[bool] = True):
@@ -151,7 +152,7 @@ class Scaffold:
         claimer.run(silence=silence, log_ignore=ignore, unreal=unreal)
 
     @staticmethod
-    def unreal(silence: Optional[bool] = True, ignore: Optional[bool] = False):
+    def unreal(silence: Optional[bool] = False, ignore: Optional[bool] = False):
         """虚幻商城月供砖家 贤者专用"""
         Scaffold.claim(silence=silence, ignore=ignore, unreal=True)
 
