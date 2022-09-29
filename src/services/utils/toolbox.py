@@ -18,8 +18,7 @@ import requests
 from bs4 import BeautifulSoup
 from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
-from selenium.webdriver import Chrome, ChromeOptions
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver import ChromeOptions
 from undetected_chromedriver import Chrome as Challenger
 from webdriver_manager.chrome import ChromeDriverManager
 
@@ -170,15 +169,6 @@ class DriverWrapper:
         # - Use chromedriver cache to improve application startup speed
         # - Requirement: undetected-chromedriver >= 3.1.5.post4
         self.path = self.path or ChromeDriverManager().install()
-
-
-def get_ctx(silence: Optional[bool] = None):
-    """普通的 Selenium 驱动上下文，用于常规并发任务"""
-    driver_wrapper = DriverWrapper(silence=silence)
-    options = driver_wrapper.options
-
-    # 使用 ChromeDriverManager 托管服务，自动适配浏览器驱动
-    return Chrome(service=Service(driver_wrapper.path), options=options)
 
 
 def get_challenge_ctx(silence: typing.Optional[bool] = None) -> Challenger:

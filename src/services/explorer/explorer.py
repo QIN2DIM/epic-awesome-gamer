@@ -65,7 +65,7 @@ class Explorer(EpicAwesomeExplorer):
 
     def get_promotions(
         self, ctx_cookies: typing.List[dict]
-    ) -> typing.Dict[str, typing.Union[typing.List[str], str]]:
+    ) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """
         获取周免游戏数据
 
@@ -74,7 +74,7 @@ class Explorer(EpicAwesomeExplorer):
         :param ctx_cookies:
         :return: {"pageLink1": "pageTitle1", "pageLink2": "pageTitle2", ...}
         """
-        free_game_objs = {}
+        detailed = []
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
@@ -93,6 +93,7 @@ class Explorer(EpicAwesomeExplorer):
             # 获取商城促销数据&&获取<本周免费>的游戏对象
             for promotion in promotions:
                 if promotion["promotions"]["promotionalOffers"]:
+                    image_url = ""
                     try:
                         url = (
                             self.URL_PRODUCT_PAGE
@@ -100,16 +101,22 @@ class Explorer(EpicAwesomeExplorer):
                         )
                     except IndexError:
                         url = self.URL_PRODUCT_PAGE + promotion["productSlug"]
-                    free_game_objs[url] = (
-                        promotion["title"].replace("《", "").replace("》", "").strip()
-                    )
                     try:
                         image_url = promotion["keyImages"][-1]["url"]
                         Explorer.cdn_image_urls.append(image_url)
                     except (KeyError, IndexError, AttributeError):
                         pass
+                    # Implement Promotion Interface
+                    detailed.append(
+                        {
+                            "url": url,
+                            "title": promotion["title"],
+                            "image_url": image_url,
+                            "in_library": None,
+                        }
+                    )
 
-        return free_game_objs
+        return detailed
 
     def get_promotions_by_stress_expressions(
         self, ctx_session=None

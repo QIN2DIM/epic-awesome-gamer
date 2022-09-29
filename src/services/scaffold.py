@@ -23,16 +23,17 @@ class Scaffold:
     @staticmethod
     def test():
         """[弃用]检查挑战者驱动版本是否适配"""
-        logger.warning("Deprecated: skip test()")
+        logger.warning(
+            "The scaffolding command `test` is not open for use at this time, and related tasks will be skipped."
+        )
 
     @staticmethod
     def challenge(silence: Optional[bool] = True):
         """
+        为当前账号获取有效的身份令牌
 
         Introduction
         --------
-
-        正面硬刚人机挑战，为当前账号获取有效的身份令牌。
 
         - 请确保你已在 ``config.yaml`` 中配置了正确的账号信息。
         - 更新后的身份令牌存储在 ``/src/database/cookies/user_cookies.txt``
@@ -51,6 +52,7 @@ class Scaffold:
     @staticmethod
     def get():
         """
+        [弃用]搬空免费商店
 
         Introduction
         -------
@@ -94,6 +96,9 @@ class Scaffold:
         unreal: Optional[bool] = False,
     ):
         """
+        认领周免游戏，优雅地
+
+
         Introduction
         --------
 
@@ -135,7 +140,7 @@ class Scaffold:
     @staticmethod
     def deploy(unreal: Optional[bool] = False):
         """
-        部署系统定时任务。
+        部署系统定时任务
 
         :param unreal: 默认False。虚幻商城月供砖家。将任务句柄由<游戏商店>切换至<虚幻商店>，
           业务内容保持一致。
@@ -146,7 +151,7 @@ class Scaffold:
     @staticmethod
     def log(start: Optional[bool] = False):
         """
-        显示最近一次的运行日志。
+        显示最近一次的运行日志
         :param start: Default False. 自动打开日志目录（linux无效，仅会显示文件目录）。
         :return:
         """

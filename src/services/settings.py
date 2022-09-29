@@ -137,12 +137,6 @@ class Config:
         assert self.epic_email, "[PROCESS EXIT] EPIC_EMAIL NOT CONFIGURED OR ILLEGAL"
         assert self.epic_password, "[PROCESS EXIT] EPIC_PASSWORD NOT CONFIGURED OR ILLEGAL"
         self.message_pusher.diagnose()
-        return self
-
-    def to_dict(self):
-        mirror = self.__dict__
-        mirror["message_pusher_settings"] = self.message_pusher.__dict__
-        return mirror
 
 
 def check_sample_yaml(path_output: str, path_sample: str) -> typing.Optional[typing.Dict[str, Any]]:
@@ -176,8 +170,8 @@ config = Config(
 config.diagnose()
 
 
+# TODO: 移除强耦合的全局通路
 class SynergyTunnel:
-    ARMOR = None
     _CHANNEL = {}
 
     LEAVES = []

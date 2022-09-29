@@ -37,7 +37,7 @@ class UnrealClaimer(EpicAwesomeGamer):
             auth_str=self.AUTH_STR_UNREAL, email=email, password=password
         )
 
-    def get_claimer_response(
+    def get_promotions(
         self, ctx_cookies: typing.List[dict]
     ) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """领取任务后审查资源的在库状态"""
@@ -66,10 +66,12 @@ class UnrealClaimer(EpicAwesomeGamer):
                     )
                 )
                 return []
+            # Implement Promotion Interface
             details = [
                 {
-                    "name": article.find("h3").text,
                     "url": f"{self.URL_UNREAL_HOME}{article.h3.a['href']}",
+                    "title": article.find("h3").text,
+                    "image_url": "",
                     "in_library": "撰写评论" in article.text,
                 }
                 for article in articles

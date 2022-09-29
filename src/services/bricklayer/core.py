@@ -673,6 +673,9 @@ class EpicAwesomeGamer:
     CLAIM_MODE_GET = "get"
     ACTIVE_BINGO = "下单"
 
+    # Talon Service Challenger
+    armor = None
+
     def __init__(self, email: str, password: str):
         """定义了一系列领取免费游戏所涉及到的浏览器操作。"""
         # 实体对象参数
@@ -686,7 +689,7 @@ class EpicAwesomeGamer:
         self.result = ""
 
         # 注册挑战者
-        self.armor = SynergyTunnel.ARMOR or ArmorKnight(debug=True, screenshot=False)
+        self.armor = self.armor or ArmorKnight(debug=True, screenshot=False)
         self.assert_ = AssertUtils()
 
     # ======================================================
