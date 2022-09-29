@@ -364,11 +364,8 @@ class GameClaimerInstance(BaseInstance):
         """获取游戏在库信息"""
         # 获取历史订单数据
         order_history = self.explorer.game_manager.get_order_history(self._ctx_cookies)
-        order_history = order_history or {}
-        # logger.debug(f"{order_history=}")
         # 获取周免促销数据
         promotions = self.get_promotions()
-        logger.debug(f"{promotions=}")
         # 标记促销实体的在库状态
         for promotion in promotions:
             promotion.in_library = order_history.get(promotion.title, False)
@@ -384,10 +381,9 @@ class GameClaimerInstance(BaseInstance):
         while not self.task_queue_worker.empty():
             promotion = self.task_queue_worker.get()
             self.bricklayer.promotion2result[promotion.url] = promotion.title
-            result = self.bricklayer.claim_stabilizer(
-                promotion.url, self._ctx_cookies, self._ctx_session
-            )
-            self._push_pending_message(result=result, promotion=promotion)
+            self.bricklayer.claim_stabilizer(promotion.url, self._ctx_cookies, self._ctx_session)
+            self._push_pending_message(result=self.in_library, promotion=promotion)
+        self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
 
 
 class UnrealClaimerInstance(BaseInstance):
