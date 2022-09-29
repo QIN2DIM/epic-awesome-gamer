@@ -9,7 +9,6 @@ import typing
 from loguru import logger
 from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 
-from services.settings import SynergyTunnel
 from services.utils import ToolBox
 from .core import EpicAwesomeGamer, CookieManager
 from .exceptions import (
@@ -28,9 +27,13 @@ class GameClaimer(EpicAwesomeGamer):
 
     URL_GAME_CART = "https://store.epicgames.com/zh-CN/cart"
 
+    # 促销实体 任务结果
+    promotion2result = None
+
     def __init__(self, email: str, password: str, silence: bool = None, claim_mode: str = None):
         super().__init__(email=email, password=password)
         self.silence = True if silence is None else silence
+        self.promotion2result = self.promotion2result or {}
 
         if claim_mode not in [self.CLAIM_MODE_ADD, self.CLAIM_MODE_GET]:
             self.claim_mode = self.CLAIM_MODE_ADD
@@ -247,7 +250,12 @@ class GameClaimer(EpicAwesomeGamer):
             get = bool(self.claim_mode == self.CLAIM_MODE_GET)
             for _ in range(2):
                 self.result = self.assert_.purchase_status(
-                    ctx, page_link, get, self.action_name, init
+                    ctx=ctx,
+                    page_link=page_link,
+                    get=bool(self.claim_mode == self.CLAIM_MODE_GET),
+                    promotion2url=self.promotion2result,
+                    action_name=self.action_name,
+                    init=init,
                 )
                 if self.result != self.assert_.ONE_MORE_STEP:
                     break
@@ -265,10 +273,10 @@ class GameClaimer(EpicAwesomeGamer):
                 if self.result == self.assert_.ASSERT_OBJECT_EXCEPTION:
                     continue
                 # 否则游戏状态处于<领取成功>或<已在库>或<付费游戏>
-                SynergyTunnel.set_combat(page_link, self.result)
-                break
+                self.promotion2result.update({page_link: self.result})
+                return self.result
 
-            # [🚀] 激活游戏订单
+            # [🚀] 激活游戏订单或将促销实体加入购物车
             self._activate_payment(ctx, mode=self.claim_mode)
 
             # ------ {{< 上下文切换 | [GET/ADD] >}} ------

@@ -22,7 +22,7 @@ from services.bricklayer import GameClaimer
 from services.bricklayer import UnrealClaimer
 from services.bricklayer.exceptions import CookieRefreshException
 from services.explorer import Explorer
-from services.settings import config, SynergyTunnel
+from services.settings import config
 from services.utils import ToolBox, get_challenge_ctx
 from services.utils.pusher import MessagePusher, MessageBody, MessageQueue
 
@@ -37,6 +37,7 @@ class Promotion:
     in_library: bool = None
 
     def __post_init__(self):
+        """在实例化后执行，对传入的初始化值进行处理"""
         self.title = self.title.replace("《", "").replace("》", "").strip()
 
 
@@ -146,8 +147,6 @@ class BaseInstance:
         self.log_ignore = log_ignore
         self.action_name = "AwesomeInstance" if action_name is None else action_name
 
-        # 广度优先|深度优先
-        self.depth = 0
         # 服务注册
         self.logger = logger
         self.bricklayer = GameClaimer(
@@ -164,9 +163,8 @@ class BaseInstance:
         self.message_queue = MessageQueue()
         self.inline_docker: typing.List[MessageBody] = []
         # 资源在库状态简写
-        self.ok = self.bricklayer.assert_.GAME_OK
-        self.coco = self.bricklayer.assert_.GAME_CLAIM
-        self.oreo = self.bricklayer.assert_.GAME_PENDING
+        self.in_library = self.bricklayer.assert_.GAME_OK
+        self.claimed = self.bricklayer.assert_.GAME_CLAIM
         # 增加日志可读性
         if "game" in self.action_name.lower():
             self.tag = "周免游戏"
@@ -213,7 +211,7 @@ class BaseInstance:
         while not self.message_queue.empty():
             element: MessageBody = self.message_queue.get()
             # 过滤已在库的游戏资源的推送数据
-            if self.log_ignore is True and element.result == self.ok:
+            if self.log_ignore is True and element.result == self.in_library:
                 continue
             self.inline_docker.append(element)
 
@@ -271,56 +269,45 @@ class BaseInstance:
 
     def is_pending(self) -> Optional[bool]:
         """是否可发起驱动任务 True:执行 False/None:结束"""
-        if self.task_queue_worker.empty() or self.depth >= 2:
+        if self.task_queue_worker.empty():
             return
         if self._ctx_session is None:
             self._ctx_session = get_challenge_ctx(self.silence)
-
         return True
-
-    def promotions_filter(self):
-        """
-        促销实体过滤器
-
-        1. 判断游戏本体是否在库
-        2. 判断是否存在免费附加内容
-        3. 识别并弹出已在库资源
-        4. 返回待认领的实体资源
-        :return:
-        """
-        raise NotImplementedError
 
     def promotions_splitter(self):
         """实体分治 <已在库><领取成功><待领取>"""
+        _offload = set()
         while not self.task_queue_pending.empty():
             promotion: Promotion = self.task_queue_pending.get()
 
-            # 实例已在库
+            if promotion.url in _offload:
+                continue
+            _offload.add(promotion.url)
+
             if promotion.in_library:
-                result = SynergyTunnel.get_combat(promotion.url)
-                self._push_pending_message(result=result, promotion=promotion)
                 self.logger.info(
                     ToolBox.runtime_report(
                         motive="GET",
                         action_name=self.action_name,
-                        message=result,
+                        message=self.in_library,
                         game=f"『{promotion.title}』",
                         url=promotion.url,
                     )
                 )
+                self._push_pending_message(result=self.in_library, promotion=promotion)
             # 待领取资源 将实例移动至 worker 分治队列
             else:
                 self.task_queue_worker.put(promotion)
-                if self.depth == 0:
-                    self.logger.debug(
-                        ToolBox.runtime_report(
-                            motive="STARTUP",
-                            action_name=self.action_name,
-                            message=f"🍜 发现{self.tag}",
-                            game=f"『{promotion.title}』",
-                            url=promotion.url,
-                        )
+                self.logger.debug(
+                    ToolBox.runtime_report(
+                        motive="STARTUP",
+                        action_name=self.action_name,
+                        message=f"🍜 发现{self.tag}",
+                        game=f"『{promotion.title}』",
+                        url=promotion.url,
                     )
+                )
 
     def just_do_it(self):
         """启动接口"""
@@ -339,12 +326,21 @@ class BaseInstance:
         # 1. 启动消息队列 编排消息模版
         # 2. 启动任务队列 领取周免游戏
         # ======================================
-        if not self.is_pending():
-            return
         # [🛵] 接下来，跳跃很有用
-        self.inline_bricklayer()
-        self.depth += 1
-        return self.just_do_it()
+        if self.is_pending():
+            self.inline_bricklayer()
+
+    def promotions_filter(self):
+        """
+        促销实体过滤器
+
+        1. 判断游戏本体是否在库
+        2. 判断是否存在免费附加内容
+        3. 识别并弹出已在库资源
+        4. 返回待认领的实体资源
+        :return:
+        """
+        raise NotImplementedError
 
     def inline_bricklayer(self):
         """扬帆起航"""
@@ -366,60 +362,32 @@ class GameClaimerInstance(BaseInstance):
 
     def promotions_filter(self):
         """获取游戏在库信息"""
+        # 获取历史订单数据
         order_history = self.explorer.game_manager.get_order_history(self._ctx_cookies)
-
-        # 判断促销实体的在库状态
-        for promotion in self.get_promotions():
-            # 接口不可用时建立缓存通道
-            if not order_history:
-                result = SynergyTunnel.get_combat(promotion.url)
-                promotion.in_library = bool(result)
-            else:
-                promotion.in_library = order_history.get(promotion.title)
-                result = self.ok if self.depth == 0 else self.coco
-            # 标记已在库的促销实体
-            if promotion.in_library is True:
-                SynergyTunnel.set_combat(promotion.url, result)
-            # 将已登记的促销实体灌入任务队列
-            # 跳过已在库促销实体的领取任务，启动待认领任务
-            SynergyTunnel.url2name.update({promotion.url: promotion.title})
+        order_history = order_history or {}
+        # logger.debug(f"{order_history=}")
+        # 获取周免促销数据
+        promotions = self.get_promotions()
+        logger.debug(f"{promotions=}")
+        # 标记促销实体的在库状态
+        for promotion in promotions:
+            promotion.in_library = order_history.get(promotion.title, False)
             self.task_queue_pending.put(promotion)
 
     def inline_bricklayer(self):
         """优先使用广度任务"""
-
-        def breadth_challenge():
-            self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
-
-            # 将购物车内容移至愿望清单
-            self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session)
-
-            # 将促销商品移至购物车
-            pending_combat = []
-            while not self.task_queue_worker.empty():
-                job: Promotion = self.task_queue_worker.get()
-                self.bricklayer.claim_stabilizer(job.url, self._ctx_cookies, self._ctx_session)
-                # 标记待认领游戏实体
-                if not SynergyTunnel.get_combat(job.url):
-                    pending_combat.append(job.url)
-
-            # 检查游戏在库状态
-            # 有任意一款游戏处于待认领状态 --> 清空购物车
-            if pending_combat:
-                self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
-
-            # 将待认领游戏实体全部标记为<领取成功>状态
-            for combat in pending_combat:
-                if not SynergyTunnel.get_combat(combat):
-                    SynergyTunnel.set_combat(combat, self.coco)
-
-        def unused_depth_challenge():
-            self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_GET
-            while not self.task_queue_worker.empty():
-                job: Promotion = self.task_queue_worker.get()
-                self.bricklayer.claim_stabilizer(job.url, self._ctx_cookies, self._ctx_session)
-
-        return breadth_challenge()
+        # CLAIM_MODE_ADD 将多个促销实体移至购物车后一并处理
+        self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
+        # 在任务发起前将购物车内商品移至愿望清单
+        self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session)
+        # 当存在待处理任务时启动 Bricklayer
+        while not self.task_queue_worker.empty():
+            promotion = self.task_queue_worker.get()
+            self.bricklayer.promotion2result[promotion.url] = promotion.title
+            result = self.bricklayer.claim_stabilizer(
+                promotion.url, self._ctx_cookies, self._ctx_session
+            )
+            self._push_pending_message(result=result, promotion=promotion)
 
 
 class UnrealClaimerInstance(BaseInstance):
@@ -439,9 +407,6 @@ class UnrealClaimerInstance(BaseInstance):
 
     def promotions_filter(self):
         for promotion in self.get_promotions():
-            if promotion.in_library:
-                result = self.ok if not self.depth else self.coco
-                SynergyTunnel.set_combat(promotion.url, result)
             self.task_queue_pending.put(promotion)
 
     def inline_bricklayer(self):

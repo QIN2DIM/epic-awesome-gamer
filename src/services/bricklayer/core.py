@@ -6,6 +6,7 @@
 import os
 import random
 import time
+import typing
 from hashlib import sha256
 from typing import List, Optional, NoReturn, Union, Tuple
 from urllib.request import getproxies
@@ -30,7 +31,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from services.settings import DIR_COOKIES, DIR_SCREENSHOT, SynergyTunnel
+from services.settings import DIR_COOKIES, DIR_SCREENSHOT
 from services.utils import ToolBox, get_challenge_ctx, Challenger
 from .exceptions import (
     AssertTimeout,
@@ -513,12 +514,14 @@ class AssertUtils:
         ctx,
         page_link: str,
         get: bool,
+        promotion2url: typing.Dict[str, str],
         action_name: Optional[str] = "AssertUtils",
         init: Optional[bool] = True,
     ) -> Optional[str]:
         """
         断言当前上下文页面的游戏的在库状态。
 
+        :param promotion2url:
         :param get:
         :param init:
         :param action_name:
@@ -544,7 +547,7 @@ class AssertUtils:
             return AssertUtils.ASSERT_OBJECT_EXCEPTION
 
         # 游戏名 超时的空对象主动抛出异常
-        game_name = SynergyTunnel.url2name.get(page_link)
+        game_name = promotion2url.get(page_link)
 
         # 游戏状态 在库|获取|购买
         purchase_msg = purchase_button.text
@@ -704,16 +707,8 @@ class EpicAwesomeGamer:
         for cookie_dict in ctx_cookies:
             try:
                 ctx.add_cookie(cookie_dict)
-            except InvalidCookieDomainException as err:
-                logger.warning(
-                    ToolBox.runtime_report(
-                        motive="SKIP",
-                        action_name=self.action_name,
-                        error=err.msg,
-                        domain=cookie_dict.get("domain", "null"),
-                        name=cookie_dict.get("name", "null"),
-                    )
-                )
+            except InvalidCookieDomainException:
+                pass
 
         ctx.get(page_link)
 

@@ -457,5 +457,5 @@ class GameLibManager(EpicAwesomeExplorer):
                         container[item["description"]] = bool(order["orderStatus"] == "COMPLETED")
             except (json.decoder.JSONDecodeError, KeyError) as err:
                 logger.exception(err)
-        finally:
-            return container
+
+        return container

@@ -31,7 +31,6 @@ __all__ = [
     # ------------------------------
     # CONFIG
     # ------------------------------
-    "SynergyTunnel",
     "config",
 ]
 
@@ -139,7 +138,7 @@ class Config:
         self.message_pusher.diagnose()
 
 
-def check_sample_yaml(path_output: str, path_sample: str) -> typing.Optional[typing.Dict[str, Any]]:
+def check_sample_yaml(path_output: str, path_sample: str):
     """
     检查模板文件是否存在，检查配置文件是否存在，读取系统配置返回
 
@@ -168,25 +167,3 @@ config = Config(
     )
 )
 config.diagnose()
-
-
-# TODO: 移除强耦合的全局通路
-class SynergyTunnel:
-    _CHANNEL = {}
-
-    LEAVES = []
-
-    # 暂存任务促销
-    url2name = {}
-
-    @staticmethod
-    def set_combat(k, v):
-        SynergyTunnel._CHANNEL.update({k: v})
-
-    @staticmethod
-    def get_combat(k):
-        return SynergyTunnel._CHANNEL.get(k)
-
-    @staticmethod
-    def is_convert() -> bool:
-        return bool(SynergyTunnel.LEAVES)
