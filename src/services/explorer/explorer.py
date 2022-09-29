@@ -113,6 +113,7 @@ class Explorer(EpicAwesomeExplorer):
                             "title": promotion["title"],
                             "image_url": image_url,
                             "in_library": None,
+                            "namespace": promotion["namespace"],
                         }
                     )
 

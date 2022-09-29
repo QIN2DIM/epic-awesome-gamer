@@ -35,6 +35,7 @@ class Promotion:
     title: str
     image_url: str = ""
     in_library: bool = None
+    namespace: str = ""  # Only for games-claimer
 
     def __post_init__(self):
         """在实例化后执行，对传入的初始化值进行处理"""
@@ -368,12 +369,11 @@ class GameClaimerInstance(BaseInstance):
         promotions = self.get_promotions()
         # 标记促销实体的在库状态
         for promotion in promotions:
-            promotion.in_library = order_history.get(promotion.title, False)
+            promotion.in_library = order_history.get(promotion.namespace, False)
             self.task_queue_pending.put(promotion)
 
     def inline_bricklayer(self):
-        """优先使用广度任务"""
-        # CLAIM_MODE_ADD 将多个促销实体移至购物车后一并处理
+        # CLAIM_MODE_ADD 将未领取的促销实体逐项移至购物车后一并处理
         self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
         # 在任务发起前将购物车内商品移至愿望清单
         self.bricklayer.cart_balancing(self._ctx_cookies, self._ctx_session)
@@ -409,3 +409,7 @@ class UnrealClaimerInstance(BaseInstance):
         self.bricklayer.claim_stabilizer(
             ctx_session=self._ctx_session, ctx_cookies=self._ctx_cookies
         )
+        # 将无效的任务缓存出队
+        while not self.task_queue_worker.empty():
+            promotion = self.task_queue_worker.get()
+            self._push_pending_message(result=self.in_library, promotion=promotion)

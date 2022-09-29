@@ -426,11 +426,7 @@ class GameLibManager(EpicAwesomeExplorer):
             )
 
     def get_order_history(self, ctx_cookies) -> Optional[Dict[str, bool]]:
-        """
-        获取订单历史信息
-        :param ctx_cookies:
-        :return: container:Dict[str, bool] = {"game_name_1": boolean, ...}
-        """
+        """获取最近 10 项订单纪录"""
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
             " Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44",
@@ -454,7 +450,7 @@ class GameLibManager(EpicAwesomeExplorer):
                 for order in orders:
                     items: List[dict] = order["items"]
                     for item in items:
-                        container[item["description"]] = bool(order["orderStatus"] == "COMPLETED")
+                        container[item["namespace"]] = bool(order["orderStatus"] == "COMPLETED")
             except (json.decoder.JSONDecodeError, KeyError) as err:
                 logger.exception(err)
         finally:
