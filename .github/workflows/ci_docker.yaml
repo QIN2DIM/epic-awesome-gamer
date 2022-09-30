@@ -10,6 +10,7 @@ on:
       - "README.md"
       - "LICENSE"
       - ".gitignore"
+      - ".deepsource.toml"
 env:
   IMAGE_TAG: ${{ secrets.DOCKERHUB_USERNAME }}/awesome-epic:daddy
 
