@@ -178,6 +178,7 @@ def get_challenge_ctx(silence: typing.Optional[bool] = None) -> Challenger:
     if "linux" in sys.platform:
         logger.info("Please use `xvfb` to empower the headful Chrome.")
         logger.info("CMD: xvfb-run python3 main.py claim")
-        assert not silence, "Please use `xvfb` to empower the headful Chrome."
+        if silence:
+            raise RuntimeError("Please use `xvfb` to empower the headful Chrome.")
     logging.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
     return Challenger(options=options, driver_executable_path=driver_wrapper.path)

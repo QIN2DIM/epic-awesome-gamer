@@ -109,7 +109,7 @@ class ClaimerScheduler:
     def _on_job_claim(self):
         self.job_loop_claim(log_ignore=False)
         self.logger.success(
-            ToolBox.runtime_report(self.action_name, "OFFLOAD", f"Job has been safely released")
+            ToolBox.runtime_report(self.action_name, "OFFLOAD", "Job has been safely released")
         )
         try:
             next_run_time = self._job.next_run_time
@@ -124,7 +124,7 @@ class ClaimerScheduler:
     def job_loop_claim(self, log_ignore: typing.Optional[bool] = False):
         """wrap function for claimer instance"""
         self.logger.info(
-            ToolBox.runtime_report(self.action_name, "STARTUP", f"SynergyTunnel Pattern: True")
+            ToolBox.runtime_report(self.action_name, "STARTUP", "SynergyTunnel Pattern: True")
         )
         if self.unreal:
             with UnrealClaimerInstance(self.silence, log_ignore=log_ignore) as claimer:

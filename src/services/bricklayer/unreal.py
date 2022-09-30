@@ -31,6 +31,7 @@ class UnrealClaimer(EpicAwesomeGamer):
 
     def __init__(self, email: str, password: str, silence: typing.Optional[bool] = None):
         super().__init__(email=email, password=password)
+        self.result = ""
         self.silence = True if silence is None else silence
         self.action_name = "UnrealClaimer"
         self.cookie_manager = CookieManager(
