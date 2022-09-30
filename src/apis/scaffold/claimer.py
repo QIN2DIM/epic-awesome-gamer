@@ -5,14 +5,18 @@
 # Description:
 import typing
 
+from loguru import logger
+
 from services.deploy import ClaimerScheduler
 
 
+@logger.catch()
 def deploy(unreal: typing.Optional[bool] = False):
     """在微小容器中部署 `claim` 定时调度任务"""
     ClaimerScheduler(silence=True, unreal=unreal).deploy_on_vps()
 
 
+@logger.catch()
 def run(
     silence: typing.Optional[bool] = None,
     log_ignore: typing.Optional[bool] = None,
