@@ -114,7 +114,6 @@ class ArmorUtils:
                     return ArmorUtils.AUTH_CHALLENGE
                 except TimeoutException:
                     pass
-        assert AssertTimeout
 
     @staticmethod
     def fall_in_captcha_runtime(ctx, window: str) -> typing.Optional[bool]:
@@ -308,7 +307,7 @@ class ArmorKnight(solver.HolyChallenger):
         """
         # [👻] 人机挑战！
         try:
-            for index in range(3):
+            for _ in range(3):
                 # [👻] 进入人机挑战关卡
                 self.switch_to_challenge_iframe(ctx, window)
                 # [👻] 获取挑战标签
@@ -635,9 +634,6 @@ class EpicAwesomeGamer:
         # 驱动参数
         self.loop_timeout = 300
 
-        # 游戏获取结果的状态
-        self.result = ""
-
         # 注册挑战者
         self.armor = self.armor or ArmorKnight(debug=True, screenshot=False)
         self.assert_ = AssertUtils()
@@ -923,7 +919,7 @@ class EpicAwesomeGamer:
         """
 
         def annealing():
-            logger.debug(f"[🎃] 退火成功")
+            logger.debug("[🎃] 退火成功")
 
             return True
 

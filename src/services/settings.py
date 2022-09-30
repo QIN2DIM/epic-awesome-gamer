@@ -15,7 +15,7 @@ from typing import Any
 
 import yaml
 
-from services.utils import ToolBox
+from services.utils.toolbox import ToolBox
 
 __all__ = [
     "logger",
@@ -135,8 +135,10 @@ class Config:
                     self.message_pusher.enable = True
 
     def diagnose(self):
-        assert self.epic_email, "[PROCESS EXIT] EPIC_EMAIL NOT CONFIGURED OR ILLEGAL"
-        assert self.epic_password, "[PROCESS EXIT] EPIC_PASSWORD NOT CONFIGURED OR ILLEGAL"
+        if not self.epic_email:
+            raise ValueError("[PROCESS EXIT] EPIC_EMAIL NOT CONFIGURED OR ILLEGAL")
+        if not self.epic_password:
+            raise ValueError("[PROCESS EXIT] EPIC_EMAIL NOT CONFIGURED OR ILLEGAL")
         self.message_pusher.diagnose()
 
 
