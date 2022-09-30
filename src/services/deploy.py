@@ -364,7 +364,7 @@ class GameClaimerInstance(BaseInstance):
     def promotions_filter(self):
         """获取游戏在库信息"""
         # 获取历史订单数据
-        order_history = self.explorer.game_manager.get_order_history(self._ctx_cookies)
+        order_history = self.explorer.get_order_history(self._ctx_cookies)
         # 获取周免促销数据
         promotions = self.get_promotions()
         # 标记促销实体的在库状态

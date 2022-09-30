@@ -354,47 +354,6 @@ class AssertUtils:
     ONE_MORE_STEP = "🥊 进位挑战"
 
     @staticmethod
-    def login_error(ctx) -> bool:
-        """登录失败 可能原因为账号或密码错误"""
-
-        threshold_timeout = 3
-        start = time.time()
-
-        while True:
-            # "任务超时：网络响应过慢"
-            if time.time() - start > threshold_timeout:
-                return False
-
-            # 提交按钮正在响应或界面弹出人机挑战
-            try:
-                submit_button = ctx.find_element(By.ID, "sign-in")
-                status_obj = submit_button.get_attribute("tabindex")
-                if status_obj == "-1":
-                    continue
-            except (AttributeError, WebDriverException):
-                pass
-
-            # 登录页面遭遇 Alert，可能原因为：
-            # - 账号或密码无效；
-            # - Auth Response 异常；
-            # - 账号被锁定；
-            try:
-                h6_tags = ctx.find_elements(By.TAG_NAME, "h6")
-                if len(h6_tags) > 1:
-                    return True
-                return False
-            except NoSuchElementException:
-                pass
-
-    @staticmethod
-    def get_login_error_msg(ctx) -> Optional[str]:
-        """获取登录页面的错误信息"""
-        try:
-            return ctx.find_element(By.XPATH, "//form//h6").text.strip()
-        except (WebDriverException, AttributeError):
-            return "null"
-
-    @staticmethod
     def wrong_driver(ctx, msg: str):
         """判断当前上下文任务是否使用了错误的浏览器驱动"""
         if "chrome.webdriver" in str(ctx.__class__):
@@ -430,17 +389,6 @@ class AssertUtils:
             # 窗口渲染出来后因不可抗力因素自然消解
             except (TimeoutException, StaleElementReferenceException):
                 return
-
-    @staticmethod
-    def fall_in_captcha_runtime(ctx) -> Optional[bool]:
-        """捕获隐藏在周免游戏订单中的人机挑战"""
-        try:
-            WebDriverWait(ctx, 5, ignored_exceptions=(WebDriverException,)).until(
-                EC.presence_of_element_located((By.XPATH, ArmorKnight.HOOK_CHALLENGE))
-            )
-            return True
-        except TimeoutException:
-            return False
 
     @staticmethod
     def surprise_warning_purchase(ctx) -> Optional[bool]:

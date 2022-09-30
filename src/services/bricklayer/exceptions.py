@@ -79,7 +79,3 @@ class AssertTimeout(AwesomeException):
 
 class UnableToGet(AwesomeException):
     """不可抗力因素，游戏无法获取"""
-
-
-class SurpriseExit(KeyboardInterrupt):
-    """脑洞大开的作者想挑战一下 Python 自带的垃圾回收机制，决定以一种极其垂直的方式结束系统任务。"""

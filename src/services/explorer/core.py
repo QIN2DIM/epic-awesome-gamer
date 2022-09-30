@@ -3,17 +3,13 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import json
 import os.path
 import time
 from hashlib import sha256
 from typing import List, Optional, Dict
 
-import cloudscraper
-import requests.exceptions
 import yaml
 from loguru import logger
-from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 from selenium.common.exceptions import WebDriverException, InvalidCookieDomainException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
@@ -41,9 +37,7 @@ class EpicAwesomeExplorer:
         "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=zh-CN"
     )
     URL_PRODUCT_PAGE = "https://store.epicgames.com/zh-CN/p/"
-    URL_ORDER_HISTORY = (
-        "https://www.epicgames.com/account/v2/payment/ajaxGetOrderHistory?locale=zh-CN"
-    )
+    URL_ORDER_HISTORY = "https://www.epicgames.com/account/v2/payment/ajaxGetOrderHistory"
 
     def __init__(self, silence: bool = None):
         self.silence = True if silence is None else silence
@@ -151,50 +145,6 @@ class EpicAwesomeExplorer:
                 qsize=len(self.game_objs),
             )
         )
-
-    def stress_expressions(self, ctx) -> Dict[str, str]:
-        """应力表达式的主要实现"""
-        logger.debug(
-            ToolBox.runtime_report(
-                motive="DISCOVERY", action_name=self.action_name, message="📡 使用应力表达式搜索周免游戏..."
-            )
-        )
-
-        # 访问链接 游戏名称
-        pending_games = {}
-
-        for i in range(2):
-            try:
-                ctx.get(self.URL_STORE_HOME)
-                time.sleep(3)
-
-                # 定位周免游戏的绝对位置
-                WebDriverWait(ctx, 45, ignored_exceptions=(WebDriverException,)).until(
-                    EC.presence_of_element_located((By.XPATH, "//a[contains(string(),'当前免费')]"))
-                )
-
-                # 周免游戏基本信息
-                stress_operator = ctx.find_elements(By.XPATH, "//a[contains(string(),'当前免费')]")
-                title_seq = ctx.find_elements(
-                    By.XPATH,
-                    "//a[contains(string(),'当前免费')]//span[@data-testid='offer-title-info-title']",
-                )
-
-                # 重组周免游戏信息
-                for index, _ in enumerate(stress_operator):
-                    href = stress_operator[index].get_attribute("href")
-                    try:
-                        pending_games[href] = f"{title_seq[index].text}".strip()
-                    except AttributeError as err:
-                        if i == 0:
-                            raise AttributeError from err
-                        pending_games[href] = "null"
-
-                break
-            except (WebDriverException, AttributeError):
-                continue
-
-        return pending_games
 
 
 class GameLibManager(EpicAwesomeExplorer):
@@ -344,114 +294,3 @@ class GameLibManager(EpicAwesomeExplorer):
             if only_url is True:
                 return [obj["url"] for obj in ctx_content]
             return ctx_content
-
-    @staticmethod
-    def is_my_game(ctx_cookies, page_link: str, pre_assert_content: bytes = None) -> Optional[dict]:
-        """
-        判断游戏在库状态
-
-        :param pre_assert_content: 前置协同响应流，将耗时的网络请求操作前置，
-          封装成协程任务，而仅将此函数用于解析上游模块的静态返回值。
-        :param ctx_cookies:
-        :param page_link:
-        :type ctx_cookies: List[dict]|str
-        :return:
-            None 异常状态
-            True 跳过任务
-            False 继续任务
-            仅当返回值为 False 时可以继续任务，并可以进一步筛选掉 AjaxLoadingReject 目标。
-        """
-
-        def response_wrapper(new_params: dict):
-            resp_ = {"assert": "", "status": None, "warning": ""}
-            resp_.update(new_params)
-            return resp_
-
-        # 模式匹配 --> 上下文呈递|重新握手
-        if pre_assert_content is None:
-            headers = {
-                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
-                "cookie": ctx_cookies
-                if isinstance(ctx_cookies, str)
-                else ToolBox.transfer_cookies(ctx_cookies),
-            }
-            scraper = cloudscraper.create_scraper()
-            response = scraper.get(page_link, headers=headers)
-            content = response.content
-        else:
-            content = pre_assert_content
-
-        # 清洗页面的促销信息
-        tree = etree.HTML(content)
-        assert_obj = tree.xpath(
-            "//span[@data-component='PurchaseCTA']//span[@data-component='Message']"
-        )
-
-        # 模式匹配 --> 向下游呈递资源对象的状态
-        # 1. 剔除已在库的、付费的、未推出的资源；
-        # 2. 剔除被限制的免费资源；
-        # 3. 呈递待领取的免费资源；
-
-        # 🚧 异常状态 忽略尚未发布的游戏对象
-        if not assert_obj:
-            return response_wrapper({"assert": "AssertObjectNotFound", "status": None})
-        assert_message = assert_obj[0].text
-
-        # 🚧 跳过 `无法认领` 的日志信息
-        if assert_message in ["已在游戏库中", "已在库中", "立即购买", "购买", "即将推出"]:
-            return response_wrapper({"assert": assert_message, "status": True})
-
-        # 🚧 惰性加载，前置节点不处理动态加载元素
-        if assert_message in ["正在载入"]:
-            return response_wrapper({"assert": "AjaxLoadingReject", "status": False})
-
-        # 🍟 未领取的免费游戏
-        if assert_message in ["获取"]:
-            # 無遮挡警告 繼續任務
-            warning_obj = tree.xpath("//h1[@class='css-1gty6cv']//span")
-            if not warning_obj:
-                return response_wrapper({"assert": assert_message, "status": False})
-
-            # 成人内容可获取
-            warning_message = warning_obj[0].text
-            if warning_message in ["成人内容"]:
-                return response_wrapper(
-                    {"assert": assert_message, "warning": warning_message, "status": False}
-                )
-
-            # 地区限制無法獲取
-            return response_wrapper(
-                {"assert": assert_message, "warning": warning_message, "status": None}
-            )
-
-    def get_order_history(self, ctx_cookies) -> Optional[Dict[str, bool]]:
-        """获取最近 10 项订单纪录"""
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-            " Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44",
-            "cookie": ctx_cookies
-            if isinstance(ctx_cookies, str)
-            else ToolBox.transfer_cookies(ctx_cookies),
-        }
-        # 订单项目
-        container = {}
-
-        # 解析订单数据
-        try:
-            scraper = cloudscraper.create_scraper()
-            resp = scraper.get(self.URL_ORDER_HISTORY, headers=headers)
-        except requests.exceptions.RequestException as err:
-            logger.exception(err)
-        else:
-            try:
-                data = json.loads(resp.text)
-                orders: List[dict] = data["orders"]
-                for order in orders:
-                    items: List[dict] = order["items"]
-                    for item in items:
-                        container[item["namespace"]] = bool(order["orderStatus"] == "COMPLETED")
-            except (json.decoder.JSONDecodeError, KeyError) as err:
-                logger.exception(err)
-        finally:
-            return container

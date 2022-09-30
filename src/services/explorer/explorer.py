@@ -3,11 +3,14 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+import json
 import typing
 from json.decoder import JSONDecodeError
+from urllib.request import getproxies
 
 import cloudscraper
 from loguru import logger
+from requests import RequestException
 
 from services.utils import ToolBox, get_challenge_ctx
 from .core import EpicAwesomeExplorer, GameLibManager
@@ -53,13 +56,10 @@ class Explorer(EpicAwesomeExplorer):
                 self._discovery_free_games(ctx=ctx, ctx_cookies=ctx_cookies, category=category)
         except DiscoveryTimeoutException as err:
             logger.error(err)
-
         # 提取游戏平台对象
         game_objs = list(self.game_objs.values())
-
         # 运行缓存持久化
         self.game_manager.save_game_objs(game_objs, category=category)
-
         # 返回实例列表
         return game_objs
 
@@ -95,10 +95,8 @@ class Explorer(EpicAwesomeExplorer):
                 if promotion["promotions"]["promotionalOffers"]:
                     image_url = ""
                     try:
-                        url = (
-                            self.URL_PRODUCT_PAGE
-                            + promotion["catalogNs"]["mappings"][0]["pageSlug"]
-                        )
+                        query = promotion["catalogNs"]["mappings"][0]["pageSlug"]
+                        url = self.URL_PRODUCT_PAGE + query
                     except IndexError:
                         url = self.URL_PRODUCT_PAGE + promotion["productSlug"]
                     try:
@@ -119,23 +117,40 @@ class Explorer(EpicAwesomeExplorer):
 
         return detailed
 
-    def get_promotions_by_stress_expressions(
-        self, ctx_session=None
-    ) -> typing.Dict[str, typing.Union[typing.List[str], str]]:
-        """使用应力表达式萃取商品链接"""
-        free_game_objs = {}
-        if ctx_session:
-            critical_memory = ctx_session.current_window_handle
-            try:
-                ctx_session.switch_to.new_window("tab")
-                pending_games: typing.Dict[str, str] = self.stress_expressions(ctx=ctx_session)
-            finally:
-                ctx_session.switch_to.window(critical_memory)
-        else:
-            with get_challenge_ctx(silence=self.silence) as ctx:
-                pending_games: typing.Dict[str, str] = self.stress_expressions(ctx=ctx)
+    def get_order_history(
+        self,
+        ctx_cookies,
+        page: typing.Optional[str] = None,
+        last_create_at: typing.Optional[str] = None,
+    ) -> typing.Optional[typing.Dict[str, bool]]:
+        """获取最近的订单纪录"""
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+            " Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44",
+            "cookie": ctx_cookies
+            if isinstance(ctx_cookies, str)
+            else ToolBox.transfer_cookies(ctx_cookies),
+        }
+        params = {"locale": "zh-CN", "page": page or "0", "latCreateAt": last_create_at or ""}
 
-        if pending_games:
-            for url, title in pending_games.items():
-                free_game_objs[url] = title
-        return free_game_objs
+        # 解析订单数据
+        container = {}
+        try:
+            scraper = cloudscraper.create_scraper()
+            resp = scraper.get(
+                self.URL_ORDER_HISTORY, headers=headers, params=params, proxies=getproxies()
+            )
+        except RequestException as err:
+            logger.exception(err)
+        else:
+            try:
+                data = json.loads(resp.text)
+                orders: typing.List[dict] = data["orders"]
+                for order in orders:
+                    items: typing.List[dict] = order["items"]
+                    for item in items:
+                        container[item["namespace"]] = bool(order["orderStatus"] == "COMPLETED")
+            except (JSONDecodeError, KeyError) as err:
+                logger.exception(err)
+        finally:
+            return container
