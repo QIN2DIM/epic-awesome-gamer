@@ -9,7 +9,6 @@ import time
 import typing
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional
 
 import pytz
 from apscheduler.job import Job
@@ -18,13 +17,13 @@ from apscheduler.triggers.cron import CronTrigger
 from gevent.queue import Queue
 from loguru import logger
 
-from services.bricklayer import GameClaimer
-from services.bricklayer import UnrealClaimer
 from services.bricklayer.exceptions import CookieRefreshException
-from services.explorer import Explorer
+from services.bricklayer.game import GameClaimer, claim_stabilizer
+from services.bricklayer.unreal import UnrealClaimer
+from services.explorer.explorer import Explorer
 from services.settings import config
-from services.utils import ToolBox, get_challenge_ctx
 from services.utils.pusher import MessagePusher, MessageBody, MessageQueue
+from services.utils.toolbox import ToolBox, get_challenge_ctx
 
 
 @dataclass
@@ -56,7 +55,9 @@ class Promotions:
 class ClaimerScheduler:
     """系统任务调度器"""
 
-    def __init__(self, silence: Optional[bool] = None, unreal: Optional[bool] = False):
+    def __init__(
+        self, silence: typing.Optional[bool] = None, unreal: typing.Optional[bool] = False
+    ):
         self.action_name = "AwesomeScheduler"
         self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(days=360)
         self.silence = silence
@@ -120,7 +121,7 @@ class ClaimerScheduler:
             )
         )
 
-    def job_loop_claim(self, log_ignore: Optional[bool] = False):
+    def job_loop_claim(self, log_ignore: typing.Optional[bool] = False):
         """wrap function for claimer instance"""
         self.logger.info(
             ToolBox.runtime_report(self.action_name, "STARTUP", f"SynergyTunnel Pattern: True")
@@ -137,7 +138,10 @@ class BaseInstance:
     """Atomic Scheduler"""
 
     def __init__(
-        self, silence: bool, log_ignore: Optional[bool] = False, action_name: Optional[str] = None
+        self,
+        silence: bool,
+        log_ignore: typing.Optional[bool] = False,
+        action_name: typing.Optional[str] = None,
     ):
         """
 
@@ -268,7 +272,7 @@ class BaseInstance:
             )
         sys.exit()
 
-    def is_pending(self) -> Optional[bool]:
+    def is_pending(self) -> typing.Optional[bool]:
         """是否可发起驱动任务 True:执行 False/None:结束"""
         if self.task_queue_worker.empty():
             return
@@ -350,7 +354,7 @@ class BaseInstance:
 class GameClaimerInstance(BaseInstance):
     """单步子任务 认领周免游戏"""
 
-    def __init__(self, silence: bool, log_ignore: Optional[bool] = False):
+    def __init__(self, silence: bool, log_ignore: typing.Optional[bool] = False):
         super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer")
         self.explorer = Explorer(email=config.epic_email, silence=silence)
 
@@ -381,15 +385,15 @@ class GameClaimerInstance(BaseInstance):
         while not self.task_queue_worker.empty():
             promotion = self.task_queue_worker.get()
             self.bricklayer.promotion2result[promotion.url] = promotion.title
-            self.bricklayer.claim_stabilizer(promotion.url, self._ctx_cookies, self._ctx_session)
+            claim_stabilizer(self.bricklayer, promotion.url, self._ctx_cookies, self._ctx_session)
             self._push_pending_message(result=self.in_library, promotion=promotion)
-        self.bricklayer.claim_booster(self._ctx_cookies, self._ctx_session)
+        self.bricklayer.empty_shopping_payment(self._ctx_cookies, self._ctx_session)
 
 
 class UnrealClaimerInstance(BaseInstance):
     """虚幻商城月供砖家"""
 
-    def __init__(self, silence: bool, log_ignore: Optional[bool] = False):
+    def __init__(self, silence: bool, log_ignore: typing.Optional[bool] = False):
         super().__init__(silence, log_ignore, "UnrealClaimer")
         self.bricklayer = UnrealClaimer(
             email=config.epic_email, password=config.epic_password, silence=silence

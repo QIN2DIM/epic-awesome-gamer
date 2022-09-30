@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from cloudscraper import create_scraper
 from loguru import logger
 
-from services.utils import ToolBox
+from services.utils.toolbox import ToolBox
 from .core import CookieManager, EpicAwesomeGamer
 from .exceptions import AuthException, AssertTimeout, CookieExpired
 

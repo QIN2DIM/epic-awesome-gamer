@@ -18,9 +18,6 @@ import yaml
 from services.utils import ToolBox
 
 __all__ = [
-    # ------------------------------
-    # SETTINGS
-    # ------------------------------
     "logger",
     "DIR_COOKIES",
     "DIR_USERS",
@@ -28,9 +25,6 @@ __all__ = [
     "PATH_USR_COOKIES",
     "DIR_SCREENSHOT",
     "DIR_LOG",
-    # ------------------------------
-    # CONFIG
-    # ------------------------------
     "config",
 ]
 
@@ -38,15 +32,25 @@ __all__ = [
 ================================================ ʕ•ﻌ•ʔ ================================================
                                             (·▽·)欢迎嫖友入座
 ================================================ ʕ•ﻌ•ʔ ================================================
-[√]核心配置 [※]边缘参数
 """
 # ---------------------------------------------------
-# [√]工程根目录定位
+# [√]Lock the project directory
+# ---------------------------------------------------
+# epic-free-games
+#  ├── requirements.txt
+#  └── src
+#      ├── apis
+#      ├── config-sample.yaml
+#      ├── config.yaml
+#      ├── database
+#      ├── datas
+#      ├── main.py
+#      └── services
 # ---------------------------------------------------
 # 系统根目录
-PROJECT_ROOT = dirname(dirname(__file__))
+PROJECT_SRC = dirname(dirname(__file__))
 # 文件数据库目录
-PROJECT_DATABASE = join(PROJECT_ROOT, "database")
+PROJECT_DATABASE = join(PROJECT_SRC, "database")
 # Cookie 工作目录
 DIR_COOKIES = join(PROJECT_DATABASE, "cookies")
 PATH_USR_COOKIES = join(DIR_COOKIES, "user_cookies.txt")
@@ -61,10 +65,8 @@ DIR_SCREENSHOT = join(DIR_LOG, "screenshot")
 # ---------------------------------------------------
 logger = ToolBox.init_log(error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG, "runtime.log"))
 
-# ---------------------------------------------------
-# 路径补全
-# ---------------------------------------------------
-for _pending in [PROJECT_DATABASE, DIR_EXPLORER, DIR_COOKIES, DIR_USERS, DIR_LOG, DIR_SCREENSHOT]:
+# 防止新建目录越界
+for _pending in [DIR_EXPLORER, DIR_COOKIES, DIR_USERS, DIR_SCREENSHOT]:
     os.makedirs(_pending, exist_ok=True)
 """
 ================================================== ʕ•ﻌ•ʔ ==================================================
@@ -162,8 +164,8 @@ def check_sample_yaml(path_output: str, path_sample: str):
 
 config = Config(
     config_yaml=check_sample_yaml(
-        path_output=join(PROJECT_ROOT, "config.yaml"),
-        path_sample=join(PROJECT_ROOT, "config-sample.yaml"),
+        path_output=join(PROJECT_SRC, "config.yaml"),
+        path_sample=join(PROJECT_SRC, "config-sample.yaml"),
     )
 )
 config.diagnose()

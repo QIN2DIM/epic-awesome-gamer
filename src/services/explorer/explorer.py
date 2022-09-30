@@ -12,7 +12,7 @@ import cloudscraper
 from loguru import logger
 from requests import RequestException
 
-from services.utils import ToolBox, get_challenge_ctx
+from services.utils.toolbox import ToolBox, get_challenge_ctx
 from .core import EpicAwesomeExplorer, GameLibManager
 from .exceptions import DiscoveryTimeoutException
 

@@ -7,9 +7,9 @@ import typing
 
 from loguru import logger
 
-from services.bricklayer import GameClaimer
+from services.bricklayer.game import GameClaimer
 from services.settings import PATH_USR_COOKIES, config
-from services.utils import ToolBox
+from services.utils.toolbox import ToolBox
 
 bricklayer = GameClaimer(email=config.epic_email, password=config.epic_password)
 

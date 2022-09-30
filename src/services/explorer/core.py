@@ -5,8 +5,8 @@
 # Description:
 import os.path
 import time
+import typing
 from hashlib import sha256
-from typing import List, Optional, Dict
 
 import yaml
 from loguru import logger
@@ -18,7 +18,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from services.settings import DIR_EXPLORER
-from services.utils import ToolBox
+from services.utils.toolbox import ToolBox
 from .exceptions import DiscoveryTimeoutException, ProtocolOutdatedWarning
 
 
@@ -62,7 +62,9 @@ class EpicAwesomeExplorer:
         self.runtime_workspace = "." if not os.path.exists(DIR_EXPLORER) else DIR_EXPLORER
         self.path_free_games = os.path.join(self.runtime_workspace, self.path_free_games)
 
-    def _discovery_free_games(self, ctx, ctx_cookies: List[dict], category: str = "game") -> None:
+    def _discovery_free_games(
+        self, ctx, ctx_cookies: typing.List[dict], category: str = "game"
+    ) -> None:
         """发现玩家所属地区可视的常驻免费游戏数据"""
         url = self.category_details[category]["url"]
         flag = self.category_details[category]["flag"]
@@ -228,7 +230,7 @@ class GameLibManager(EpicAwesomeExplorer):
 
         return new_content_objs
 
-    def save_game_objs(self, game_objs, category: str, runtime: Optional[bool] = None):
+    def save_game_objs(self, game_objs, category: str, runtime: typing.Optional[bool] = None):
         """
         缓存免费商城数据
         :param runtime:

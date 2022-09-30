@@ -8,14 +8,12 @@ import random
 import time
 import typing
 from hashlib import sha256
-from typing import List, Optional, NoReturn, Union, Tuple
 from urllib.request import getproxies
 
 import cloudscraper
 import hcaptcha_challenger as solver
 import yaml
-from hcaptcha_challenger.exceptions import ChallengePassed
-from hcaptcha_challenger.exceptions import ChallengeTimeout
+from hcaptcha_challenger.exceptions import ChallengePassed, ChallengeTimeout
 from loguru import logger
 from selenium.common.exceptions import (
     TimeoutException,
@@ -32,7 +30,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from services.settings import DIR_COOKIES, DIR_SCREENSHOT
-from services.utils import ToolBox, get_challenge_ctx, Challenger
+from services.utils.toolbox import ToolBox, get_challenge_ctx, Challenger
 from .exceptions import (
     AssertTimeout,
     UnableToGet,
@@ -52,7 +50,7 @@ class ArmorUtils:
     AUTH_CHALLENGE = "challenge"
 
     @staticmethod
-    def fall_in_captcha_login(ctx, flag_url: str = None) -> Optional[str]:
+    def fall_in_captcha_login(ctx, flag_url: str = None) -> typing.Optional[str]:
         """
         判断在登录时是否遇到人机挑战
 
@@ -119,7 +117,7 @@ class ArmorUtils:
         assert AssertTimeout
 
     @staticmethod
-    def fall_in_captcha_runtime(ctx, window: str) -> Optional[bool]:
+    def fall_in_captcha_runtime(ctx, window: str) -> typing.Optional[bool]:
         """
         判断在下单时是否遇到人机挑战
 
@@ -145,7 +143,7 @@ class ArmorUtils:
                 ctx.switch_to.default_content()
 
     @staticmethod
-    def face_the_checkbox(ctx: Chrome) -> Optional[bool]:
+    def face_the_checkbox(ctx: Chrome) -> typing.Optional[bool]:
         """遇见 hCaptcha checkbox"""
         try:
             WebDriverWait(ctx, 8, ignored_exceptions=(WebDriverException,)).until(
@@ -162,7 +160,9 @@ class ArmorKnight(solver.HolyChallenger):
     # //iframe[@id='talon_frame_checkout_free_prod']
     HOOK_PURCHASE = "//div[@id='webPurchaseContainer']//iframe"
 
-    def __init__(self, debug: Optional[bool] = False, screenshot: Optional[bool] = False):
+    def __init__(
+        self, debug: typing.Optional[bool] = False, screenshot: typing.Optional[bool] = False
+    ):
         super().__init__(debug=debug, screenshot=screenshot, lang="zh")
         self.critical_threshold = 3
 
@@ -193,7 +193,7 @@ class ArmorKnight(solver.HolyChallenger):
             EC.frame_to_be_available_and_switch_to_it((By.XPATH, self.HOOK_CHALLENGE))
         )
 
-    def challenge_success(self, ctx: Challenger, window=None, **kwargs) -> Tuple[str, str]:
+    def challenge_success(self, ctx: Challenger, window=None, **kwargs) -> typing.Tuple[str, str]:
         """
         判断挑战是否成功的复杂逻辑
         :param window:
@@ -299,7 +299,7 @@ class ArmorKnight(solver.HolyChallenger):
                     pass
                 return self.CHALLENGE_SUCCESS, "退火成功"
 
-    def anti_hcaptcha(self, ctx, window: str = "login") -> Union[bool, str]:
+    def anti_hcaptcha(self, ctx, window: str = "login") -> typing.Union[bool, str]:
         """
         Handle hcaptcha challenge
         :param window: [login free]
@@ -308,7 +308,7 @@ class ArmorKnight(solver.HolyChallenger):
         """
         # [👻] 人机挑战！
         try:
-            for index in range(5):
+            for index in range(3):
                 # [👻] 进入人机挑战关卡
                 self.switch_to_challenge_iframe(ctx, window)
                 # [👻] 获取挑战标签
@@ -319,7 +319,6 @@ class ArmorKnight(solver.HolyChallenger):
                 self.download_images()
                 # [👻] 滤除无法处理的挑战类别
                 if drop := self.tactical_retreat(ctx) in [self.CHALLENGE_BACKCALL]:
-                    ctx.switch_to.default_content()
                     return drop
                 # [👻] 注册解决方案
                 # 根据挑战类型自动匹配不同的模型
@@ -360,7 +359,7 @@ class AssertUtils:
             raise SwitchContext(msg)
 
     @staticmethod
-    def surprise_license(ctx) -> Optional[bool]:
+    def surprise_license(ctx) -> typing.Optional[bool]:
         """新用户首次购买游戏需要处理许可协议书"""
         try:
             surprise_obj = WebDriverWait(
@@ -391,7 +390,7 @@ class AssertUtils:
                 return
 
     @staticmethod
-    def surprise_warning_purchase(ctx) -> Optional[bool]:
+    def surprise_warning_purchase(ctx) -> typing.Optional[bool]:
         """
         处理弹窗遮挡消息。
 
@@ -407,7 +406,7 @@ class AssertUtils:
             return True
         else:
             surprise_warning_objs = ctx.find_elements(By.XPATH, "//h1//span")
-            surprise_warnings: List[str] = [i.text for i in surprise_warning_objs]
+            surprise_warnings: typing.List[str] = [i.text for i in surprise_warning_objs]
 
             if "内容品当前在您所在平台或地区不可用。" in surprise_warnings:
                 raise UnableToGet
@@ -422,7 +421,7 @@ class AssertUtils:
             return False
 
     @staticmethod
-    def payment_auto_submit(ctx) -> Optional[bool]:
+    def payment_auto_submit(ctx) -> typing.Optional[bool]:
         """认领游戏后订单自动提交 仅在常驻游戏中出现"""
         try:
             WebDriverWait(ctx, 5).until(
@@ -433,7 +432,7 @@ class AssertUtils:
             return False
 
     @staticmethod
-    def payment_blocked(ctx) -> NoReturn:
+    def payment_blocked(ctx) -> typing.NoReturn:
         """判断游戏锁区"""
         # 需要在 webPurchaseContainer 里执行
         try:
@@ -452,7 +451,7 @@ class AssertUtils:
             pass
 
     @staticmethod
-    def timeout(loop_start: float, loop_timeout: float = 180) -> NoReturn:
+    def timeout(loop_start: float, loop_timeout: float = 180) -> typing.NoReturn:
         """任务超时锁"""
         if time.time() - loop_start > loop_timeout:
             raise AssertTimeout
@@ -463,9 +462,9 @@ class AssertUtils:
         page_link: str,
         get: bool,
         promotion2url: typing.Dict[str, str],
-        action_name: Optional[str] = "AssertUtils",
-        init: Optional[bool] = True,
-    ) -> Optional[str]:
+        action_name: typing.Optional[str] = "AssertUtils",
+        init: typing.Optional[bool] = True,
+    ) -> typing.Optional[str]:
         """
         断言当前上下文页面的游戏的在库状态。
 
@@ -510,7 +509,7 @@ class AssertUtils:
             return AssertUtils.GAME_OK if init else AssertUtils.GAME_CLAIM
 
         if "获取" in purchase_msg:
-            deadline: Optional[str] = None
+            deadline: typing.Optional[str] = None
             try:
                 deadline = ctx.find_element(By.XPATH, "//span[contains(text(),'优惠截止于')]").text
             except (NoSuchElementException, AttributeError):
@@ -646,7 +645,7 @@ class EpicAwesomeGamer:
     # ======================================================
     # Reused Action Chains
     # ======================================================
-    def _reset_page(self, ctx, page_link: str, ctx_cookies: List[dict], auth_str: str):
+    def _reset_page(self, ctx, page_link: str, ctx_cookies: typing.List[dict], auth_str: str):
         if auth_str == self.AUTH_STR_GAMES:
             ctx.get(self.URL_ACCOUNT_PERSONAL)
         elif auth_str == self.AUTH_STR_UNREAL:
@@ -692,7 +691,7 @@ class EpicAwesomeGamer:
             pass
 
     @staticmethod
-    def _click_order_button(ctx, timeout: int = 20) -> Optional[bool]:
+    def _click_order_button(ctx, timeout: int = 20) -> typing.Optional[bool]:
         try:
             time.sleep(0.5)
             WebDriverWait(
@@ -706,7 +705,7 @@ class EpicAwesomeGamer:
             ctx.switch_to.default_content()
             return False
 
-    def _duel_with_challenge(self, ctx, window="free") -> Optional[bool]:
+    def _duel_with_challenge(self, ctx, window="free") -> typing.Optional[bool]:
         """
         动态处理人机挑战
         :param ctx:
@@ -725,7 +724,7 @@ class EpicAwesomeGamer:
     # Business Action Chains
     # ======================================================
 
-    def _activate_payment(self, api, mode="get", init_cart=None) -> Optional[bool]:
+    def _activate_payment(self, api, mode="get", init_cart=None) -> typing.Optional[bool]:
         """激活游戏订单"""
         element_xpath = {
             self.CLAIM_MODE_GET: "//button[@data-testid='purchase-cta-button']",
@@ -1134,7 +1133,7 @@ class CookieManager(EpicAwesomeGamer):
             else ""
         )
 
-    def load_ctx_cookies(self) -> Optional[List[dict]]:
+    def load_ctx_cookies(self) -> typing.Optional[typing.List[dict]]:
         """载入本地缓存的身份令牌"""
         if not os.path.exists(self.path_ctx_cookies):
             return []
@@ -1154,7 +1153,7 @@ class CookieManager(EpicAwesomeGamer):
 
         return ctx_cookies
 
-    def save_ctx_cookies(self, ctx_cookies: List[dict]) -> None:
+    def save_ctx_cookies(self, ctx_cookies: typing.List[dict]) -> None:
         """在本地缓存身份令牌"""
         _data = {}
 
@@ -1168,7 +1167,7 @@ class CookieManager(EpicAwesomeGamer):
         with open(self.path_ctx_cookies, "w", encoding="utf8") as file:
             yaml.dump(_data, file)
 
-    def is_available_cookie(self, ctx_cookies: Optional[List[dict]] = None) -> bool:
+    def is_available_cookie(self, ctx_cookies: typing.Optional[typing.List[dict]] = None) -> bool:
         """检测 Cookie 是否有效"""
         ctx_cookies = self.load_ctx_cookies() if ctx_cookies is None else ctx_cookies
         if not ctx_cookies:
@@ -1192,7 +1191,7 @@ class CookieManager(EpicAwesomeGamer):
 
     def refresh_ctx_cookies(
         self, silence: bool = True, ctx_session=None, keep_live=None
-    ) -> Optional[bool]:
+    ) -> typing.Optional[bool]:
         """
         更新上下文身份信息，若认证数据过期则弹出 login 任务更新令牌。
         :param keep_live: keep actively to the challenger context

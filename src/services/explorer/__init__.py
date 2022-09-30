@@ -3,6 +3,3 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from .explorer import Explorer
-
-__all__ = ["Explorer"]

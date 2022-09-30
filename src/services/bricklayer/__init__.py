@@ -3,7 +3,3 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from .game import GameClaimer
-from .unreal import UnrealClaimer
-
-__all__ = ["GameClaimer", "UnrealClaimer"]
