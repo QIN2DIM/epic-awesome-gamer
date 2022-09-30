@@ -113,6 +113,8 @@ class Config:
     message_pusher: MessagePusher = None
     config_yaml: typing.Dict[str, Any] = field(default_factory=dict)
 
+    HTTPS_CDN = ""
+
     def __post_init__(self):
         self.config_yaml = self.config_yaml or {}
         self.message_pusher = self.message_pusher or MessagePusher(
@@ -133,6 +135,8 @@ class Config:
                     self.message_pusher.player = data_template[kcy]
                 elif kcy == "ENABLE_PUSHER":
                     self.message_pusher.enable = True
+                elif kcy == "GITHUB_REVERSE_PROXY":
+                    self.HTTPS_CDN = data_template[kcy] or "https://dl.capoo.xyz"
 
     def diagnose(self):
         assert self.epic_email, "[PROCESS EXIT] EPIC_EMAIL NOT CONFIGURED OR ILLEGAL"
