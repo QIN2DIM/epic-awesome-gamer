@@ -18,13 +18,12 @@
 # database/explorer/test.yaml
 
 order:
-    namespace1:
-    namespace2:
-    namespace3:
-frees:
-    namespace1:
-    namespace2:
-    namespace3:
+    namespace1: bool(orderStatus == "COMPETED")
+    namespace2: bool(orderStatus == "COMPETED")
+games:
+    - {"namespace":"", "title":"", "url":"", image_url":"", "in_library": None}
+dlcs:
+    - {"namespace":"", "title":"", "url":"", image_url":"", "in_library": None}
 """
 
 # 2. 更新数据库

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from os.path import join, dirname
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 
@@ -113,6 +114,8 @@ class Config:
     message_pusher: MessagePusher = None
     config_yaml: typing.Dict[str, Any] = field(default_factory=dict)
 
+    HTTPS_CDN = ""
+
     def __post_init__(self):
         self.config_yaml = self.config_yaml or {}
         self.message_pusher = self.message_pusher or MessagePusher(
@@ -133,12 +136,21 @@ class Config:
                     self.message_pusher.player = data_template[kcy]
                 elif kcy == "ENABLE_PUSHER":
                     self.message_pusher.enable = True
+                elif kcy == "GITHUB_REVERSE_PROXY":
+                    self.set_reverse_proxy(data_template[kcy])
+
+    def set_reverse_proxy(self, https_cdn: str):
+        if https_cdn == "default":
+            self.HTTPS_CDN = "https://dl.capoo.xyz"
+        elif u := urlparse(https_cdn):
+            if u.scheme.startswith("https") and u.netloc:
+                self.HTTPS_CDN = https_cdn
 
     def diagnose(self):
         if not self.epic_email:
-            raise ValueError("[PROCESS EXIT] EPIC_EMAIL NOT CONFIGURED OR ILLEGAL")
-        if not self.epic_password:
-            raise ValueError("[PROCESS EXIT] EPIC_EMAIL NOT CONFIGURED OR ILLEGAL")
+            raise RuntimeError("[PROCESS EXIT] EPIC_EMAIL NOT CONFIGURED OR ILLEGAL")
+        if not self.epic_email:
+            raise RuntimeError("[PROCESS EXIT] EPIC_PASSWORD NOT CONFIGURED OR ILLEGAL")
         self.message_pusher.diagnose()
 
 
