@@ -32,6 +32,7 @@ class GameClaimer(EpicAwesomeGamer):
 
     def __init__(self, email: str, password: str, silence: bool = None, claim_mode: str = None):
         super().__init__(email=email, password=password)
+        self.result = ""
         self.silence = True if silence is None else silence
         self.promotion2result = self.promotion2result or {}
 
