@@ -910,6 +910,15 @@ class EpicAwesomeGamer:
             ToolBox.runtime_report(motive="MATCH", action_name=self.action_name, message="实体信息注入完毕")
         )
 
+    @staticmethod
+    def cart_is_empty(ctx: Chrome):
+        time.sleep(1)
+        for _ in range(2):
+            time.sleep(1)
+            for span in ctx.find_elements(By.TAG_NAME, "span"):
+                if "空的" in span.text:
+                    return True
+
     def cart_success(self, ctx):
         """
         提高跳过人机挑战的期望，使用轮询的方式检测运行状态

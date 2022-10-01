@@ -88,7 +88,7 @@ class GameClaimer(EpicAwesomeGamer):
         )
         self._move_product_to_wishlist(ctx=ctx_session)
 
-    def empty_shopping_payment(self, ctx_cookies: typing.List[dict], ctx_session):
+    def empty_shopping_payment(self, ctx_cookies: typing.List[dict], ctx_session, from_get=False):
         """清空购物车"""
         _loop_start = time.time()
         init = True
@@ -105,7 +105,7 @@ class GameClaimer(EpicAwesomeGamer):
 
                 # [🚀] 激活游戏订单
                 logger.debug("[🛵] 审查购物车状态")
-                if "购物车是空的" in ctx_session.page_source:
+                if from_get and self.cart_is_empty(ctx_session):
                     logger.success(
                         ToolBox.runtime_report(
                             motive="ADVANCE", action_name=self.action_name, message="✔ 购物车已清空"
