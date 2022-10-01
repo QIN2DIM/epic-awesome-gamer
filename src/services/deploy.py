@@ -356,7 +356,7 @@ class GameClaimerInstance(BaseInstance):
 
     def __init__(self, silence: bool, log_ignore: typing.Optional[bool] = False):
         super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer")
-        self.explorer = Explorer(email=config.epic_email, silence=silence)
+        self.explorer = Explorer()
 
     def get_promotions(self) -> typing.List[Promotion]:
         """获取游戏促销信息"""
@@ -373,7 +373,7 @@ class GameClaimerInstance(BaseInstance):
         promotions = self.get_promotions()
         # 标记促销实体的在库状态
         for promotion in promotions:
-            promotion.in_library = order_history.get(promotion.namespace, False)
+            promotion.in_library = promotion.namespace in order_history
             self.task_queue_pending.put(promotion)
 
     def inline_bricklayer(self):

@@ -12,56 +12,41 @@ import cloudscraper
 from loguru import logger
 from requests import RequestException
 
-from services.utils.toolbox import ToolBox, get_challenge_ctx
-from .core import EpicAwesomeExplorer, GameLibManager
-from .exceptions import DiscoveryTimeoutException
+from services.utils.toolbox import ToolBox
 
 
-class Explorer(EpicAwesomeExplorer):
+class Explorer:
     """商城探索者 发现常驻免费游戏以及周免游戏"""
+
+    # format:off
+    URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions"
+    URL_PRODUCT_PAGE = "https://store.epicgames.com/zh-CN/p/"
+    URL_ORDER_HISTORY = "https://www.epicgames.com/account/v2/payment/ajaxGetOrderHistory"
+    # format:on
 
     cdn_image_urls = []
 
-    def __init__(self, email: str, silence: typing.Optional[bool] = None):
-        super().__init__(silence=silence)
+    def __init__(self):
         self.action_name = "Explorer"
-        self.game_manager = GameLibManager(email=email)
 
-    def discovery_free_games(
-        self,
-        ctx_cookies: typing.Optional[typing.List[dict]] = None,
-        category: str = "game",
-        silence: bool = None,
-    ) -> typing.Optional[typing.List[dict]]:
-        """
-        发现免费游戏。
+        # 玩家在库资源总数（DLC/GAMES/UNREAL）
+        self._orders_count = 0
+        # 资源对象在库情况，普通促销商品以`UUID`命名，虚幻商店以`ue`作为key
+        self._namespaces = set()
+        # 周免游戲數據
+        self._promotion_detailed = []
 
-        本周免费 + 常驻免费
-        ________________________________________________________
-        1. 此接口可以不传 cookie，免费游戏是公开可见的。
-        2. 但如果要查看免费游戏的在库状态，需要传 COOKIE 区分用户。
-            - 有些游戏不同地区的玩家不一定都能玩。这个限制和账户地区信息有关，和当前访问的（代理）IP 无关。
-            - 请确保传入的 COOKIE 是有效的。
-        :param silence:
-        :param category: 搜索模式 self.category.keys()
-        :param ctx_cookies: ToolBox.transfer_cookies(api.get_cookies())
-        :return:
-        """
-        category = "game" if category not in self.category_details else category
-        silence = self.silence if silence is None else silence
+    @property
+    def orders_count(self):
+        return self._orders_count
 
-        # 创建驱动上下文
-        try:
-            with get_challenge_ctx(silence=silence) as ctx:
-                self._discovery_free_games(ctx=ctx, ctx_cookies=ctx_cookies, category=category)
-        except DiscoveryTimeoutException as err:
-            logger.error(err)
-        # 提取游戏平台对象
-        game_objs = list(self.game_objs.values())
-        # 运行缓存持久化
-        self.game_manager.save_game_objs(game_objs, category=category)
-        # 返回实例列表
-        return game_objs
+    @property
+    def namespaces(self):
+        return self._namespaces
+
+    @property
+    def promotion_detailed(self):
+        return self._promotion_detailed
 
     def get_promotions(
         self, ctx_cookies: typing.List[dict]
@@ -74,14 +59,14 @@ class Explorer(EpicAwesomeExplorer):
         :param ctx_cookies:
         :return: {"pageLink1": "pageTitle1", "pageLink2": "pageTitle2", ...}
         """
-        detailed = []
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36",
             "cookie": ToolBox.transfer_cookies(ctx_cookies),
         }
+        params = {"locale": "zh-CN"}
         scraper = cloudscraper.create_scraper()
-        response = scraper.get(self.URL_PROMOTIONS, headers=headers)
+        response = scraper.get(self.URL_PROMOTIONS, params=params, headers=headers)
 
         try:
             data = response.json()
@@ -101,11 +86,11 @@ class Explorer(EpicAwesomeExplorer):
                         url = self.URL_PRODUCT_PAGE + promotion["productSlug"]
                     try:
                         image_url = promotion["keyImages"][-1]["url"]
-                        Explorer.cdn_image_urls.append(image_url)
+                        self.cdn_image_urls.append(image_url)
                     except (KeyError, IndexError, AttributeError):
                         pass
                     # Implement Promotion Interface
-                    detailed.append(
+                    self._promotion_detailed.append(
                         {
                             "url": url,
                             "title": promotion["title"],
@@ -115,42 +100,40 @@ class Explorer(EpicAwesomeExplorer):
                         }
                     )
 
-        return detailed
+        return self._promotion_detailed
 
     def get_order_history(
         self,
-        ctx_cookies,
+        ctx_cookies: typing.List[dict],
         page: typing.Optional[str] = None,
         last_create_at: typing.Optional[str] = None,
-    ) -> typing.Optional[typing.Dict[str, bool]]:
+    ) -> typing.Set[str]:
         """获取最近的订单纪录"""
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-            " Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44",
-            "cookie": ctx_cookies
-            if isinstance(ctx_cookies, str)
-            else ToolBox.transfer_cookies(ctx_cookies),
+        _kwargs = {
+            "headers": {
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44",
+                "cookie": ToolBox.transfer_cookies(ctx_cookies),
+            },
+            "params": {"locale": "zh-CN", "page": page or "0", "latCreateAt": last_create_at or ""},
+            "allow_redirects": False,
+            "proxies": getproxies(),
         }
-        params = {"locale": "zh-CN", "page": page or "0", "latCreateAt": last_create_at or ""}
-
-        # 解析订单数据
-        container = {}
         try:
             scraper = cloudscraper.create_scraper()
-            resp = scraper.get(
-                self.URL_ORDER_HISTORY, headers=headers, params=params, proxies=getproxies()
-            )
+            resp = scraper.get(self.URL_ORDER_HISTORY, **_kwargs)
+            if resp.status_code != 200:
+                raise RequestException("Failed to get order history, cookie may have expired")
         except RequestException as err:
             logger.exception(err)
         else:
             try:
                 data = json.loads(resp.text)
                 orders: typing.List[dict] = data["orders"]
+                self._orders_count = data["total"]
                 for order in orders:
-                    items: typing.List[dict] = order["items"]
-                    for item in items:
-                        container[item["namespace"]] = bool(order["orderStatus"] == "COMPLETED")
+                    for item in order["items"]:
+                        if order["orderStatus"] == "COMPLETED":
+                            self._namespaces.add(item["namespace"])
             except (JSONDecodeError, KeyError) as err:
-                logger.exception(err)
-        finally:
-            return container
+                logger.warning(err)
+        return self._namespaces

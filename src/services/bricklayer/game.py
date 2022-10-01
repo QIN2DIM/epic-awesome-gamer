@@ -7,7 +7,6 @@ import time
 import typing
 
 from loguru import logger
-from lxml import etree  # skipcq: BAN-B410 - Ignore credible sources
 
 from services.utils.toolbox import ToolBox
 from .core import EpicAwesomeGamer, CookieManager
@@ -106,6 +105,13 @@ class GameClaimer(EpicAwesomeGamer):
 
                 # [🚀] 激活游戏订单
                 logger.debug("[🛵] 审查购物车状态")
+                if "购物车是空的" in ctx_session.page_source:
+                    logger.success(
+                        ToolBox.runtime_report(
+                            motive="ADVANCE", action_name=self.action_name, message="✔ 购物车已清空"
+                        )
+                    )
+                    break
                 resp = self._activate_payment(ctx_session, mode=self.ACTIVE_BINGO, init_cart=init)
                 if not init and not resp:
                     logger.success(
@@ -236,6 +242,7 @@ def claim_stabilizer(
                 motive="QUIT", action_name=action_name, message=str(error).strip(), url=page_link
             )
         )
+        return game_claimer.assert_.GAME_LIMIT
     except SwitchContext as error:
         logger.warning(
             ToolBox.runtime_report(
@@ -264,89 +271,3 @@ def claim_stabilizer(
         logger.critical(
             ToolBox.runtime_report(motive="SKIP", action_name=action_name, message=error.msg)
         )
-
-
-class DlcClaimer(GameClaimer):
-    def __init__(self, email: str, password: str, silence: bool = None, claim_mode: str = None):
-        super().__init__(email=email, password=password, silence=silence, claim_mode=claim_mode)
-        self.action_name = "DLCClaimer"
-
-    def has_attach(self, content: bytes = None, tree=None) -> typing.Optional[str]:
-        """检测当前游戏商品是否有DLC urlIn游戏页"""
-        tree = etree.HTML(content) if tree is None else tree
-        dlc_tag = tree.xpath(
-            "//li[@data-component='PDPTertiaryNavigation']//a[contains(@href,'dlc')]"
-        )
-        if not dlc_tag:
-            return
-        dlc_page = (
-            f"{self.URL_MASTER_HOST}{dlc_tag[0].attrib.get('href')}?"
-            f"sortBy=relevancy&sortDir=DESC&priceTier=tierFree&count=40&start=0"
-        )
-        return dlc_page
-
-    @staticmethod
-    def has_free_dlc(content: bytes = None, tree=None) -> bool:
-        """检测游戏是否有免费DLC urlIn附加内容筛选免费内容页"""
-        tree = etree.HTML(content) if tree is None else tree
-        if tree.xpath("//span[text()='未找到结果']"):
-            return False
-        return True
-
-    def parse_free_dlc_details(self, url, status_code, content=None, tree=None):
-        dlc_tree = etree.HTML(content) if tree is None else tree
-
-        # [🚀] 获取当前商品所有免费DLC链接
-        dlc_tags: list = dlc_tree.xpath("//div[@data-component='DiscoverCard']//a")
-        dlc_details = {}
-
-        # [📝] 获取DLC基础信息
-        for tag in dlc_tags:
-            aria_label = tag.attrib.get("aria-label")
-            try:
-                name = aria_label.split(",")[0]
-            except (IndexError, AttributeError):
-                name = url.split("/")[-1]
-
-            # 部分地区账号会被重定向至附加内容的默认页面
-            # 此页面未触发筛选器，混杂着付费/免费的附加内容
-            # 重新判断当前游戏的状态，清洗付费游戏
-            is_free = True
-            try:
-                if "tierFree" not in url or status_code == 302:
-                    is_free = aria_label.split(",")[-1].strip() == "0"
-            except (IndexError, AttributeError):
-                pass
-
-            if is_free:
-                url = f"{self.URL_MASTER_HOST}{tag.attrib.get('href')}"
-                dlc_detail = {"url": url, "name": name, "dlc": True}
-                dlc_details.update({url: dlc_detail})
-
-        # [🚀] 清洗返回值使之符合接口规则
-        return list(dlc_details.values())
-
-    def get_free_dlc_details(
-        self, ctx_url: str, cookie: str
-    ) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
-        """
-        1. 检测一个游戏实体是否存在免费附加内容
-        2. 将可领取的免费附加内容编织成任务对象并返回
-        3. 一个游戏实体可能存在多个可领取的免费DLC
-        :param ctx_url: 游戏本体商城链接
-        :param cookie:
-        :return: [{"url": url of dlc, "name": name of dlc, "dlc": True}, ... ]
-        """
-        # [🚀] 检测当前商品是否有DLC
-        tree, response = ToolBox.handle_html(ctx_url, cookie)
-        dlc_page = self.has_attach(tree=tree)
-        if not dlc_page:
-            return []
-
-        # [🚀] 检测当前商品是否有免费的DLC
-        dlc_tree, response = ToolBox.handle_html(dlc_page, cookie)
-        if not self.has_free_dlc(tree=dlc_tree):
-            return []
-
-        # [🚀] 获取当前商品所有免费DLC链接
-        return self.parse_free_dlc_details(dlc_page, response.status_code, tree=dlc_tree)
