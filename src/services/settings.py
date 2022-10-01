@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 
 import yaml
 
-from services.utils.toolbox import ToolBox
+from services.utils.toolbox import init_log
 
 __all__ = [
     "logger",
@@ -64,7 +64,7 @@ DIR_SCREENSHOT = join(DIR_LOG, "screenshot")
 # ---------------------------------------------------
 # [√]服务器日志配置
 # ---------------------------------------------------
-logger = ToolBox.init_log(error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG, "runtime.log"))
+logger = init_log(error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG, "runtime.log"))
 
 # 防止新建目录越界
 for _pending in [DIR_EXPLORER, DIR_COOKIES, DIR_USERS, DIR_SCREENSHOT]:
@@ -140,6 +140,8 @@ class Config:
                     self.set_reverse_proxy(data_template[kcy])
 
     def set_reverse_proxy(self, https_cdn: str):
+        if os.getenv("GITHUB_REPOSITORY"):
+            return
         if https_cdn == "default":
             self.HTTPS_CDN = "https://dl.capoo.xyz"
         elif u := urlparse(https_cdn):

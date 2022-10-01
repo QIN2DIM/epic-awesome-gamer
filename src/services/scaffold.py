@@ -7,7 +7,7 @@ from typing import Optional
 
 from loguru import logger
 
-from apis.scaffold import challenge, install, claimer, console
+from apis.scaffold import challenge, install, claimer, console, get
 
 install.do(upgrade=False)
 
@@ -28,7 +28,7 @@ class Scaffold:
         )
 
     @staticmethod
-    def challenge(silence: Optional[bool] = True):
+    def challenge(silence: Optional[bool] = False):
         """
         为当前账号获取有效的身份令牌
 
@@ -52,7 +52,7 @@ class Scaffold:
     @staticmethod
     def get():
         """
-        [弃用]搬空免费商店
+        清空免费商店
 
         Introduction
         -------
@@ -85,9 +85,10 @@ class Scaffold:
         存储内容与当前上下文身份令牌有关（不同地区权限不同）。
         :return:
         """
-        logger.warning(
-            "The scaffolding command `get` is not open for use at this time, and related tasks will be skipped."
-        )
+        logger.info("STARTUP [ScaffoldGet] 正在清空免费商店...")
+        with get.YouKnowWhoIAm() as lucy:
+            lucy.attach()
+        logger.success("DONE [ScaffoldGet] 任务退出")
 
     @staticmethod
     def claim(

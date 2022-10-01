@@ -348,7 +348,7 @@ class AssertUtils:
     GAME_PENDING = "👀 待认领"
     GAME_CLAIM = "🛒 领取成功"
     GAME_NOT_FREE = "🦽 付费游戏"
-
+    GAME_LIMIT = "👻 地區限制"
     ONE_MORE_STEP = "🥊 进位挑战"
 
     @staticmethod
@@ -408,7 +408,7 @@ class AssertUtils:
             surprise_warnings: typing.List[str] = [i.text for i in surprise_warning_objs]
 
             if "内容品当前在您所在平台或地区不可用。" in surprise_warnings:
-                raise UnableToGet
+                raise UnableToGet("内容品当前在您所在平台或地区不可用。")
             if (
                 "本游戏包含成人内容，仅限17岁以上玩家选购" in surprise_warnings
                 or "本游戏包含成人内容，仅限18岁以上玩家选购" in surprise_warnings
@@ -1129,6 +1129,10 @@ class CookieManager(EpicAwesomeGamer):
             else ""
         )
 
+    @property
+    def hash(self):
+        return self._t()
+
     def load_ctx_cookies(self) -> typing.Optional[typing.List[dict]]:
         """载入本地缓存的身份令牌"""
         if not os.path.exists(self.path_ctx_cookies):
@@ -1165,24 +1169,21 @@ class CookieManager(EpicAwesomeGamer):
 
     def is_available_cookie(self, ctx_cookies: typing.Optional[typing.List[dict]] = None) -> bool:
         """检测 Cookie 是否有效"""
-        ctx_cookies = self.load_ctx_cookies() if ctx_cookies is None else ctx_cookies
-        if not ctx_cookies:
-            return False
-
-        headers = {
-            "cookie": ToolBox.transfer_cookies(ctx_cookies),
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-            " Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.42",
-            "origin": "https://www.epicgames.com",
-            "referer": "https://www.epicgames.com/",
-        }
-
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(
-            self.URL_ACCOUNT_PERSONAL, headers=headers, allow_redirects=False, proxies=getproxies()
-        )
-        if response.status_code == 200:
-            return True
+        if cookies := ctx_cookies or self.load_ctx_cookies():
+            _kwargs = {
+                "headers": {
+                    "cookie": ToolBox.transfer_cookies(cookies),
+                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                    " Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.42",
+                    "origin": "https://www.epicgames.com",
+                    "referer": "https://www.epicgames.com/",
+                },
+                "proxies": getproxies(),
+                "allow_redirects": False,
+            }
+            scraper = cloudscraper.create_scraper()
+            response = scraper.get(self.URL_ACCOUNT_PERSONAL, **_kwargs)
+            return response.status_code == 200
         return False
 
     def refresh_ctx_cookies(
