@@ -59,7 +59,7 @@ class YouKnowWhoIAm:
             os.path.isfile(path_order_history)
             and time.time() - os.path.getmtime(path_order_history) < 86400
         ):
-            logger.info(f"加载历史商城数据")
+            logger.info("加载历史商城数据")
             with open(path_order_history, "r", encoding="utf8") as file:
                 if data := yaml.safe_load(file):
                     for game in data["_games"]:
@@ -69,7 +69,7 @@ class YouKnowWhoIAm:
         # 获取商城免费游戏数据
         if self.game_pool.empty():
             self._ctx_session = self._ctx_session or get_challenge_ctx()
-            logger.info(f"更新商城数据")
+            logger.info("更新商城数据")
             store_explorer = new_store_explorer(self._ctx_cookies, self._ctx_session)
             store_explorer.discovery_free_games(game_pool=self.game_pool)
             with open(path_order_history, "w", encoding="utf8") as file:
