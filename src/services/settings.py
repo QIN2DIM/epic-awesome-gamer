@@ -105,8 +105,6 @@ class MessagePusher:
         self.ACTIVE_PUSHERS = [_p[0] for _p in self.pusher.items() if _p[-1]]
         self.ACTIVE_SERVERS = [_p[-1] for _p in self.pusher.items() if _p[-1]]
         self.player = self.player or f"{random.choice(self.CONVERTER)}({datetime.now().day})"
-        if self.enable:
-            logger.debug(f"active pusher - player={self.player} pushers={self.ACTIVE_PUSHERS}")
 
 
 @dataclass
@@ -133,12 +131,10 @@ class Config:
                 elif kcy in ["EPIC_PASSWORD", "EPΙC_PASSWΟRD"] and not self.epic_password:
                     self.epic_password = data_template[kcy]
                 elif kcy.startswith("PUSHER_") and not self.message_pusher.pusher.get(kcy):
-                    logger.debug(f"set pusher - {kcy=}")
+                    self.message_pusher.enable = True
                     self.message_pusher.pusher[kcy] = data_template[kcy]
                 elif kcy == "PLAYER" and not self.message_pusher.player:
                     self.message_pusher.player = data_template[kcy]
-                elif kcy == "ENABLE_PUSHER":
-                    self.message_pusher.enable = True
                 elif kcy == "GITHUB_REVERSE_PROXY":
                     self.set_reverse_proxy(data_template[kcy])
 
