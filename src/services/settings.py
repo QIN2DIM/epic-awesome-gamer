@@ -130,12 +130,11 @@ class Config:
                     self.epic_email = data_template[kcy]
                 elif kcy in ["EPIC_PASSWORD", "EPΙC_PASSWΟRD"] and not self.epic_password:
                     self.epic_password = data_template[kcy]
-                elif kcy.startswith("PUSHER_"):
-                    self.message_pusher.pusher[kcy] = data_template[kcy]
-                elif kcy == "PLAYER":
-                    self.message_pusher.player = data_template[kcy]
-                elif kcy == "ENABLE_PUSHER":
+                elif kcy.startswith("PUSHER_") and not self.message_pusher.pusher.get(kcy):
                     self.message_pusher.enable = True
+                    self.message_pusher.pusher[kcy] = data_template[kcy]
+                elif kcy == "PLAYER" and not self.message_pusher.player:
+                    self.message_pusher.player = data_template[kcy]
                 elif kcy == "GITHUB_REVERSE_PROXY":
                     self.set_reverse_proxy(data_template[kcy])
 
