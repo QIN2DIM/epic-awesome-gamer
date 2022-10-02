@@ -86,7 +86,7 @@ class Scaffold:
         :return:
         """
         logger.info("STARTUP [ScaffoldGet] 正在清空免费商店...")
-        with get.YouKnowWhoIAm() as lucy:
+        with get.IReallyWantToStayAtYourHouse() as lucy:
             lucy.attach()
         logger.success("DONE [ScaffoldGet] 任务退出")
 
