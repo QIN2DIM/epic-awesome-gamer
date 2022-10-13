@@ -19,7 +19,7 @@ lxml>=4.7.1
 # {{< Challenger Drive >}}
 gevent>=21.12.0
 selenium~=4.4.3
-hcaptcha-challenger==0.4.2.17
+hcaptcha-challenger==0.4.2.19
 
 # {{< Message Push >}}
 apprise==1.0.0

@@ -28,6 +28,8 @@
 
 ## Features
 
+[中文](https://www.wolai.com/vAiu9mSp6G15xhWeoEPUn2) || [English](https://www.wolai.com/21QTQvaYwahfgrVvRyw11D)
+
 | Demand               | Support |
 | :------------------- | :------ |
 | Game Claimer         | ✔       |
