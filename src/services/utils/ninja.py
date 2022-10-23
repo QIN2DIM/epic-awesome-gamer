@@ -9,8 +9,9 @@ import typing
 from dataclasses import dataclass
 from pathlib import Path
 
-from playwright.async_api import BrowserContext as ASyncContext, BrowserContext
-from playwright.sync_api import BrowserContext as SyncContext, sync_playwright
+from playwright.async_api import BrowserContext as ASyncContext
+from playwright.sync_api import BrowserContext as SyncContext
+from playwright.sync_api import sync_playwright
 
 
 def _from_file(name):
@@ -139,7 +140,7 @@ async def steal_playwright_async(
 
 
 def fire(
-    container: typing.Callable[[BrowserContext], None],
+    container: typing.Callable[[SyncContext], None],
     path_state: str,
     headless: typing.Optional[bool] = None,
 ):

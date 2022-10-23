@@ -124,13 +124,13 @@ class GameClaimer(EpicAwesomeGamer):
         return self.result
 
 
-def empower_games_claimer(game_claimer: GameClaimer, page_link: str, page: Page) -> typing.Optional[str]:
+def empower_games_claimer(claimer: GameClaimer, page_link: str, page: Page) -> typing.Optional[str]:
     """获取周免资源 游戏本体/附加内容 集成接口"""
-    action_name = game_claimer.action_name
+    action_name = claimer.action_name
     try:
-        return game_claimer.get_free_game(page_link=page_link, page=page)
+        return claimer.get_free_game(page_link=page_link, page=page)
     except UnableToGet as error:
         logger.debug(f">> QUIT [{action_name}] {str(error).strip()} - {page_link=}")
-        return game_claimer.assert_.GAME_LIMIT
+        return claimer.assert_.GAME_LIMIT
     except AuthException as error:
         logger.critical(f">> SKIP [{action_name}] {error.msg}")
