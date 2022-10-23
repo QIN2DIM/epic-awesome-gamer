@@ -19,7 +19,7 @@ from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
 from playwright.sync_api import BrowserContext
 
-from services.bricklayer.game import GameClaimer, claim_stabilizer
+from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.bricklayer.unreal import UnrealClaimer
 from services.explorer.explorer import Explorer, PermissionsHistory
 from services.settings import config, DIR_EXPLORER
@@ -344,7 +344,7 @@ class GameClaimerInstance(BaseInstance):
             while not self.task_queue_worker.empty():
                 promotion = self.task_queue_worker.get()
                 self.bricklayer.promotion2result[promotion.url] = promotion.title
-                claim_stabilizer(self.bricklayer, promotion.url, page)
+                empower_games_claimer(self.bricklayer, promotion.url, page)
                 self._push_pending_message(result=self.in_library, promotion=promotion)
             self.bricklayer.empty_shopping_payment(page)
 
@@ -376,8 +376,7 @@ class UnrealClaimerInstance(BaseInstance):
 
     def just_do_it(self):
         def run(context: BrowserContext):
-            page = context.new_page()
-            self.bricklayer.claim_stabilizer(page=page)
+            self.bricklayer.empower_unreal_claimer(page=context.new_page())
             # 将无效的任务缓存出队
             while not self.task_queue_worker.empty():
                 promotion = self.task_queue_worker.get()

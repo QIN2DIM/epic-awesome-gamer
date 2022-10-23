@@ -9,7 +9,7 @@ import typing
 from loguru import logger
 from playwright.sync_api import Page, BrowserContext
 
-from services.bricklayer.game import GameClaimer, claim_stabilizer
+from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.explorer.core import Game
 from services.explorer.explorer import PermissionsHistory
 from services.settings import config, DIR_EXPLORER
@@ -63,7 +63,7 @@ class IReallyWantToStayAtYourHouse:
         # CLAIM_MODE_ADD 将未领取的促销实体逐项移至购物车后一并处理
         for game in task_list:
             self.claimer.promotion2result[game.url] = game.title
-            result = claim_stabilizer(self.claimer, game.url, page)
+            result = empower_games_claimer(self.claimer, game.url, page)
             if result == self.claimer.assert_.GAME_PENDING:
                 result = self.claimer.assert_.GAME_CLAIM
             self.set_pending_message(game, result)

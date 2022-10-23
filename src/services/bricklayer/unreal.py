@@ -83,5 +83,5 @@ class UnrealClaimer(EpicAwesomeGamer):
             elif self.result in (self.assert_.GAME_OK, self.assert_.GAME_CLAIM):
                 break
 
-    def claim_stabilizer(self, page: Page):
+    def empower_unreal_claimer(self, page: Page):
         self.get_free_content(page)

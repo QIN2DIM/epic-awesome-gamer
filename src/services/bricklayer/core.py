@@ -3,7 +3,6 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import asyncio
 import json
 import os
 import re
@@ -16,7 +15,6 @@ from urllib.request import getproxies
 import cloudscraper
 import hcaptcha_challenger as solver
 import requests
-from hcaptcha_challenger.core import AshFramework
 from hcaptcha_challenger.exceptions import ChallengePassed
 from loguru import logger
 from playwright.sync_api import Page, TimeoutError, FrameLocator, BrowserContext

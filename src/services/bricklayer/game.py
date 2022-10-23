@@ -8,16 +8,8 @@ import typing
 from loguru import logger
 from playwright.sync_api import Page
 
-from services.utils.toolbox import ToolBox
 from .core import EpicAwesomeGamer, CookieManager
-from .exceptions import (
-    AssertTimeout,
-    SwitchContext,
-    PaymentBlockedWarning,
-    AuthException,
-    UnableToGet,
-    PaymentAutoSubmit,
-)
+from .exceptions import AuthException, UnableToGet
 
 
 class GameClaimer(EpicAwesomeGamer):
@@ -132,45 +124,13 @@ class GameClaimer(EpicAwesomeGamer):
         return self.result
 
 
-def claim_stabilizer(game_claimer: GameClaimer, page_link: str, page: Page) -> typing.Optional[str]:
+def empower_games_claimer(game_claimer: GameClaimer, page_link: str, page: Page) -> typing.Optional[str]:
     """获取周免资源 游戏本体/附加内容 集成接口"""
     action_name = game_claimer.action_name
     try:
         return game_claimer.get_free_game(page_link=page_link, page=page)
-    except AssertTimeout:
-        logger.debug(
-            ToolBox.runtime_report(motive="QUIT", action_name=action_name, message="循环断言超时，任务退出。")
-        )
     except UnableToGet as error:
-        logger.debug(
-            ToolBox.runtime_report(
-                motive="QUIT", action_name=action_name, message=str(error).strip(), url=page_link
-            )
-        )
+        logger.debug(f">> QUIT [{action_name}] {str(error).strip()} - {page_link=}")
         return game_claimer.assert_.GAME_LIMIT
-    except SwitchContext as error:
-        logger.warning(
-            ToolBox.runtime_report(
-                motive="SWITCH",
-                action_name=action_name,
-                message="正在退出标准上下文",
-                error=str(error).strip(),
-                url=page_link,
-            )
-        )
-    except PaymentAutoSubmit:
-        pass
-    except PaymentBlockedWarning as error:
-        logger.debug(
-            ToolBox.runtime_report(
-                motive="QUIT",
-                action_name=action_name,
-                message="🚧 订单异常",
-                type=f"PaymentException {error}".strip(),
-                url=page_link,
-            )
-        )
     except AuthException as error:
-        logger.critical(
-            ToolBox.runtime_report(motive="SKIP", action_name=action_name, message=error.msg)
-        )
+        logger.critical(f">> SKIP [{action_name}] {error.msg}")
