@@ -1,12 +1,12 @@
 # {{< Scaffolding dependency >}}
-fire>=0.4.0
+fire==0.4.0
 
 # {{< Log system >}}
-loguru>=0.5.3
-pyyaml>=6.0
+loguru==0.6.0
+pyyaml==6.0
 
 # {{< Timed task >}}
-apscheduler>=3.8.1
+apscheduler==3.9.1
 pytz>=2021.3
 
 # {{< Interface /Data cleaning >}}
@@ -17,9 +17,8 @@ beautifulsoup4>=4.10.0
 lxml>=4.7.1
 
 # {{< Challenger Drive >}}
-gevent>=21.12.0
-selenium~=4.4.3
-hcaptcha-challenger==0.4.2.22
+playwright==1.27.1
+hcaptcha-challenger==0.4.2.23
 
 # {{< Message Push >}}
 apprise==1.0.0

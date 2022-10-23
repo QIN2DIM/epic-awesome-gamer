@@ -3,16 +3,15 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import time
 import typing
 
 from bs4 import BeautifulSoup
 from cloudscraper import create_scraper
 from loguru import logger
+from playwright.sync_api import Page
 
 from services.utils.toolbox import ToolBox
 from .core import CookieManager, EpicAwesomeGamer
-from .exceptions import AuthException, AssertTimeout, CookieExpired
 
 
 class UnrealClaimer(EpicAwesomeGamer):
@@ -29,10 +28,9 @@ class UnrealClaimer(EpicAwesomeGamer):
         + "?count=20&priceRange=%5B0%2C0%5D&sortBy=effectiveDate&sortDir=DESC&start=0"
     )
 
-    def __init__(self, email: str, password: str, silence: typing.Optional[bool] = None):
+    def __init__(self, email: str, password: str):
         super().__init__(email=email, password=password)
         self.result = ""
-        self.silence = True if silence is None else silence
         self.action_name = "UnrealClaimer"
         self.cookie_manager = CookieManager(
             auth_str=self.AUTH_STR_UNREAL, email=email, password=password
@@ -44,28 +42,22 @@ class UnrealClaimer(EpicAwesomeGamer):
         """领取任务后审查资源的在库状态"""
         headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
         scraper = create_scraper()
-        response = scraper.get(self.URL_FREE_FOR_THE_MONTH, headers=headers)
-        soup = BeautifulSoup(response.text, "html.parser")
+        response = scraper.get(self.URL_FREE_FOR_THE_MONTH, headers=headers, allow_redirects=False)
+
+        if response.status_code != 200:
+            logger.error(f">> SKIP [{self.action_name}] 身份令牌已过期，无法获取有效的月供内容在库状态")
+            return []
 
         try:
+            soup = BeautifulSoup(response.text, "html.parser")
             articles = soup.find("div", class_="asset-list-group").find_all("article")
         except AttributeError:
-            logger.critical(
-                ToolBox.runtime_report(
-                    motive="CRASH",
-                    action_name=self.action_name,
-                    message="虚幻商店月供内容页元素改变或加载异常",
-                    find_chains={"//div[@class='assert-list-group']", "//article"},
-                )
-            )
+            # find_chains={"//div[@class='assert-list-group']", "//article"}
+            logger.critical(f">> CRASH [{self.action_name}] 虚幻商店月供内容页元素改变或加载异常")
             return []
         else:
             if not articles:
-                logger.critical(
-                    ToolBox.runtime_report(
-                        motive="MISS", action_name=self.action_name, message="虚幻商店月供内容或为空，请复查"
-                    )
-                )
+                logger.critical(f">> MISS [{self.action_name}] 虚幻商店月供内容或为空，请复查")
                 return []
             # Implement Promotion Interface
             details = [
@@ -77,55 +69,19 @@ class UnrealClaimer(EpicAwesomeGamer):
                 }
                 for article in articles
             ]
-
             return details
 
-    def get_free_content(self, ctx, ctx_cookies):
+    def get_free_content(self, page: Page):
         """获取虚幻商城的本月免费内容"""
-        if not ctx_cookies:
-            raise CookieExpired(self.assert_.COOKIE_EXPIRED)
-
-        _loop_start = time.time()
-        init = True
-        while True:
-            # [🚀] 重载身份令牌
-            self._reset_page(
-                ctx=ctx,
-                page_link=self.URL_UNREAL_MONTH,
-                ctx_cookies=ctx_cookies,
-                auth_str=self.AUTH_STR_UNREAL,
-            )
-
-            # [🚀] 等待资源加载
-            self.assert_.unreal_resource_load(ctx)
-
+        for i in range(2):
+            page.goto(self.URL_UNREAL_MONTH)
             # [🚀] 从虚幻商店购物车激活订单
-            self.result = self.unreal_activate_payment(ctx, init=init)
-            if self.result != self.assert_.GAME_PENDING:
-                if self.result == self.assert_.ASSERT_OBJECT_EXCEPTION:
-                    continue
+            self.result = self.unreal_activate_payment(page, init=not i)
+            # [🚀] 处理购物车订单
+            if self.result == self.assert_.GAME_PENDING:
+                self.unreal_handle_payment(page)
+            elif self.result in (self.assert_.GAME_OK, self.assert_.GAME_CLAIM):
                 break
 
-            # [🚀] 处理商品订单
-            self.unreal_handle_payment(ctx)
-
-            # [🚀] 更新上下文状态
-            init = False
-            self.assert_.timeout(_loop_start, self.loop_timeout)
-
-    def claim_stabilizer(self, ctx_cookies: typing.List[dict], ctx_session):
-        try:
-            self.get_free_content(ctx=ctx_session, ctx_cookies=ctx_cookies)
-        except AssertTimeout:
-            logger.debug(
-                ToolBox.runtime_report(
-                    motive="QUIT", action_name=self.action_name, message="循环断言超时，任务退出。"
-                )
-            )
-        except AuthException as error:
-            logger.critical(
-                ToolBox.runtime_report(
-                    motive="SKIP", action_name=self.action_name, message=error.msg
-                )
-            )
-            return False
+    def claim_stabilizer(self, page: Page):
+        self.get_free_content(page)

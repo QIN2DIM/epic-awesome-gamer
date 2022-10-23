@@ -47,7 +47,9 @@ class Scaffold:
           该项在 Linux 上始终为True，无法手动指定。
         :return:
         """
-        challenge.run(silence=silence)
+        if silence:
+            logger.warning(">> SKIP [Scaffold] Prohibit starting headless browser")
+        challenge.check_token()
 
     @staticmethod
     def get():
@@ -131,6 +133,8 @@ class Scaffold:
           业务内容保持一致。脚手架指令 unreal 与此入口意义相同。
         :return:
         """
+        if silence:
+            logger.warning(">> SKIP [Scaffold] Prohibit starting headless browser")
         claimer.run(silence=silence, log_ignore=ignore, unreal=unreal)
 
     @staticmethod
