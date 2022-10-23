@@ -41,7 +41,7 @@ class IReallyWantToStayAtYourHouse:
 
     def __enter__(self):
         manager = self.claimer.cookie_manager
-        if not manager.has_available_cookie:
+        if not manager.has_available_token:
             fire(manager.refresh_ctx_cookies, manager.path_ctx_cookies)
         self._ctx_cookies = manager.ctx_cookies
         self.ph.ctx_cookies = self._ctx_cookies

@@ -161,11 +161,10 @@ class BaseInstance:
     def __enter__(self):
         """激活挑战者并获取身份令牌"""
         manager = self.bricklayer.cookie_manager
-        if not manager.has_available_cookie:
+        if not manager.has_available_token:
             try:
                 fire(manager.refresh_ctx_cookies, manager.path_ctx_cookies)
             except NinjaException as err:
-                self.logger.exception(err)
                 self._bad_omen(str(err))
         self._ctx_cookies = manager.load_ctx_cookies()
         return self

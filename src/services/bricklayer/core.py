@@ -17,9 +17,9 @@ import hcaptcha_challenger as solver
 import requests
 from hcaptcha_challenger.exceptions import ChallengePassed
 from loguru import logger
+from playwright.sync_api import Error as NinjaError
 from playwright.sync_api import Page, FrameLocator, BrowserContext
 from playwright.sync_api import TimeoutError as NinjaTimeout
-from playwright.sync_api import Error as NinjaError
 
 from services.settings import DIR_COOKIES, DIR_SCREENSHOT
 from services.utils.toolbox import ToolBox
@@ -41,7 +41,7 @@ class ArmorUtils:
             # 控制台信息
             mui_typography = page.locator("//h6")
             with suppress(NinjaTimeout):
-                mui_typography.wait_for(timeout=2000, state="attached")
+                mui_typography.first.wait_for(timeout=2000, state="attached")
                 if mui_typography.count() > 1:
                     error_text = mui_typography.nth(1).text_content().strip()
                     logger.error(f">> ARMOR [ArmorUtils] 認證異常 - {error_text=}")
@@ -68,7 +68,7 @@ class ArmorKnight(solver.HolyChallenger):
     HOOK_CHALLENGE = "//iframe[contains(@title, 'content of the hCaptcha')]"
 
     def __init__(
-        self, debug: typing.Optional[bool] = False, screenshot: typing.Optional[bool] = False
+            self, debug: typing.Optional[bool] = False, screenshot: typing.Optional[bool] = False
     ):
         super().__init__(debug=debug, screenshot=screenshot, lang="zh")
         self.critical_threshold = 3
@@ -166,13 +166,13 @@ class ArmorKnight(solver.HolyChallenger):
         self.log(message=f"Submit the challenge - {model.flag}: {round(sum(ta), 2)}s")
 
     def challenge_success(
-        self,
-        page: Page,
-        frame_challenge: FrameLocator = None,
-        window=None,
-        init=True,
-        hook_url=None,
-        **kwargs,
+            self,
+            page: Page,
+            frame_challenge: FrameLocator = None,
+            window=None,
+            init=True,
+            hook_url=None,
+            **kwargs,
     ) -> typing.Tuple[str, str]:
         """
         判断挑战是否成功的复杂逻辑
@@ -191,7 +191,7 @@ class ArmorKnight(solver.HolyChallenger):
             """
             try:
                 task_image = frame_challenge.locator("//div[@class='task-image']")
-                task_image.wait_for(state="detached", timeout=1500)
+                task_image.first.wait_for(state="detached", timeout=1500)
                 # dom elements hidden
                 return False
             except NinjaTimeout:
@@ -236,7 +236,7 @@ class ArmorKnight(solver.HolyChallenger):
 
                 mui_typography = page.locator("//h6")
                 with suppress(NinjaTimeout):
-                    mui_typography.wait_for(timeout=1000, state="attached")
+                    mui_typography.first.wait_for(timeout=1000, state="attached")
                 if mui_typography.count() > 1:
                     with suppress(AttributeError):
                         error_text = mui_typography.nth(1).text_content().strip()
@@ -252,7 +252,7 @@ class ArmorKnight(solver.HolyChallenger):
                             raise _unknown
 
     def anti_hcaptcha(
-        self, page: Page, window: str = "login", recur_url=None
+            self, page: Page, window: str = "login", recur_url=None
     ) -> typing.Union[bool, str]:
         """
         Handle hcaptcha challenge
@@ -344,12 +344,12 @@ class AssertUtils:
 
     @staticmethod
     def purchase_status(
-        page: Page,
-        page_link: str,
-        get: bool,
-        promotion2url: typing.Dict[str, str],
-        action_name: typing.Optional[str] = "AssertUtils",
-        init: typing.Optional[bool] = True,
+            page: Page,
+            page_link: str,
+            get: bool,
+            promotion2url: typing.Dict[str, str],
+            action_name: typing.Optional[str] = "AssertUtils",
+            init: typing.Optional[bool] = True,
     ) -> typing.Optional[str]:
         """
         断言当前上下文页面的游戏的在库状态。
@@ -368,7 +368,7 @@ class AssertUtils:
         for _ in range(5):
             try:
                 purchase_button = page.locator("//button[@data-testid='purchase-cta-button']")
-                purchase_button.wait_for(state="visible", timeout=2000)
+                purchase_button.first.wait_for(state="visible", timeout=2000)
                 break
             except NinjaTimeout:
                 if "再进行一步操作" in page.content():
@@ -671,19 +671,18 @@ class CookieManager(EpicAwesomeGamer):
     def ctx_cookies(self):
         return self._ctx_cookies
 
-    def save_ctx_cookies(self, ctx_cookies: typing.List[dict]) -> None:
-        """在本地缓存身份令牌"""
-        with open(self.path_ctx_cookies, "w", encoding="utf8") as file:
-            json.dump({"cookies": ctx_cookies}, file)
+    @property
+    def has_available_token(self):
+        return self._is_available_token()
 
-    def _is_available_cookie(self, ctx_cookies: typing.Optional[typing.List[dict]] = None) -> bool:
+    def _is_available_token(self, ctx_cookies: typing.Optional[typing.List[dict]] = None) -> bool:
         """检测 Cookie 是否有效"""
         if cookies := ctx_cookies or self.load_ctx_cookies():
             _kwargs = {
                 "headers": {
                     "cookie": ToolBox.transfer_cookies(cookies),
                     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-                    " Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.42",
+                                  " Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.42",
                     "origin": "https://www.epicgames.com",
                     "referer": "https://www.epicgames.com/",
                 },
@@ -694,10 +693,6 @@ class CookieManager(EpicAwesomeGamer):
             response = scraper.get(self.URL_ACCOUNT_PERSONAL, **_kwargs)
             return response.status_code == 200
         return False
-
-    @property
-    def has_available_cookie(self):
-        return self._is_available_cookie()
 
     def refresh_ctx_cookies(self, context: BrowserContext) -> typing.Optional[bool]:
         """更新上下文身份信息，若认证数据过期则弹出 login 任务更新令牌。"""
