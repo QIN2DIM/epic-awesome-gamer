@@ -517,7 +517,10 @@ class EpicAwesomeGamer:
         if auth_mode == "games":
             url_claim = "https://store.epicgames.com/zh-CN/free-games"
             url_login = f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={url_claim}"
-            page.goto(url_claim)
+            try:
+                page.goto(url_claim)
+            except NinjaTimeout:
+                page.reload(wait_until="domcontentloaded")
             sign_text = page.locator("//span[contains(@class, 'sign-text')]").text_content()
             if sign_text != "登录":
                 logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
