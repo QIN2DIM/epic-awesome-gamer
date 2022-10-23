@@ -17,7 +17,8 @@ import hcaptcha_challenger as solver
 import requests
 from hcaptcha_challenger.exceptions import ChallengePassed
 from loguru import logger
-from playwright.sync_api import Page, TimeoutError, FrameLocator, BrowserContext
+from playwright.sync_api import Page, FrameLocator, BrowserContext
+from playwright.sync_api import TimeoutError as NinjaTimeout
 
 from services.settings import DIR_COOKIES, DIR_SCREENSHOT
 from services.utils.toolbox import ToolBox
@@ -38,7 +39,7 @@ class ArmorUtils:
         for _ in range(10):
             # 控制台信息
             mui_typography = page.locator("//h6")
-            with suppress(TimeoutError):
+            with suppress(NinjaTimeout):
                 mui_typography.wait_for(timeout=2000, state="attached")
                 if mui_typography.count() > 1:
                     error_text = mui_typography.nth(1).text_content().strip()
@@ -51,7 +52,7 @@ class ArmorUtils:
                 logger.info(">> ARMOR [ArmorUtils] 🥤 跳过人机挑战")
                 return ArmorUtils.AUTH_SUCCESS
             # 多因素判斷
-            with suppress(TimeoutError):
+            with suppress(NinjaTimeout):
                 page.wait_for_timeout(2000)
                 # page.locator("#sign-in").wait_for(state="hidden", timeout=2000)
                 if page.locator(ArmorKnight.HOOK_CHALLENGE).is_visible():
@@ -81,7 +82,7 @@ class ArmorKnight(solver.HolyChallenger):
             self.prompt = frame_challenge.locator("//h2[@class='prompt-text']").text_content(
                 timeout=5000
             )
-        except TimeoutError:
+        except NinjaTimeout:
             raise ChallengePassed("Man-machine challenge unexpectedly passed")
 
         # if not self.prompt:
@@ -194,7 +195,7 @@ class ArmorKnight(solver.HolyChallenger):
                 task_image.wait_for(state="detached", timeout=1500)
                 # dom elements hidden
                 return False
-            except TimeoutError:
+            except NinjaTimeout:
                 prompts_obj = frame_challenge.locator("//div[@class='error-text']")
                 if prompts_obj.is_visible():
                     logger.warning(prompts_obj.text_content())
@@ -218,12 +219,12 @@ class ArmorKnight(solver.HolyChallenger):
             try:
                 page.locator(self.HOOK_PURCHASE).wait_for(state="detached")
                 return self.CHALLENGE_SUCCESS, "退火成功"
-            except TimeoutError:
+            except NinjaTimeout:
                 return self.CHALLENGE_RETRY, "決策中斷"
         if window == "login":
             for _ in range(3):
                 if hook_url:
-                    with suppress(TimeoutError):
+                    with suppress(NinjaTimeout):
                         page.wait_for_url(hook_url, timeout=3000)
                         return self.CHALLENGE_SUCCESS, "退火成功"
                 else:
@@ -234,7 +235,7 @@ class ArmorKnight(solver.HolyChallenger):
                         raise AuthMFA("人机挑战已退出 - error=遭遇意外的 MFA 多重认证")
 
                 mui_typography = page.locator("//h6")
-                with suppress(TimeoutError):
+                with suppress(NinjaTimeout):
                     mui_typography.wait_for(timeout=1000, state="attached")
                 if mui_typography.count() > 1:
                     with suppress(AttributeError):
@@ -327,7 +328,7 @@ class AssertUtils:
         """处理弹窗遮挡消息"""
         try:
             page.locator("//h1").wait_for(timeout=3000, state="visible")
-        except TimeoutError:
+        except NinjaTimeout:
             return True
         else:
             surprise_warning_objs = page.locator("//h1//span")
@@ -374,7 +375,7 @@ class AssertUtils:
                 purchase_button = page.locator("//button[@data-testid='purchase-cta-button']")
                 purchase_button.wait_for(state="visible", timeout=2000)
                 break
-            except TimeoutError:
+            except NinjaTimeout:
                 if "再进行一步操作" in page.content():
                     return AssertUtils.ONE_MORE_STEP
         else:
@@ -391,7 +392,7 @@ class AssertUtils:
         if "获取" in purchase_msg:
             try:
                 deadline = page.text_content("//span[contains(text(),'优惠截止于')]", timeout=0)
-            except TimeoutError:
+            except NinjaTimeout:
                 deadline = ""
             if init:
                 message = f"🚀 正在为玩家领取免费游戏 {deadline}" if get else f"🛒 添加至购物车 {deadline}"
@@ -405,7 +406,7 @@ class AssertUtils:
     @staticmethod
     def refund_info(page: Page):
         """处理订单中的 退款及撤销权信息"""
-        with suppress(TimeoutError):
+        with suppress(NinjaTimeout):
             fl = page.frame_locator(ArmorKnight.HOOK_PURCHASE)
             agree_button = fl.locator("//span[text()='我同意']/ancestor::button")
             agree_button.click(timeout=2000)
@@ -413,7 +414,7 @@ class AssertUtils:
 
     @staticmethod
     def unreal_surprise_license(page: Page):
-        with suppress(TimeoutError):
+        with suppress(NinjaTimeout):
             page.click("//span[text()='我已阅读并同意《最终用户许可协议》']", timeout=5000)
             page.click("//span[text()='接受']")
 
@@ -549,7 +550,7 @@ class EpicAwesomeGamer:
         spans = page.locator("//span")
         count = spans.count()
         for i in range(count):
-            with suppress(TimeoutError):
+            with suppress(NinjaTimeout):
                 if "空的" in spans.nth(i).text_content(timeout=1000):
                     return True
 
@@ -560,13 +561,13 @@ class EpicAwesomeGamer:
         """
         if times >= 2:
             return False
-        with suppress(TimeoutError):
+        with suppress(NinjaTimeout):
             page.wait_for_url(self.URL_CART_SUCCESS, timeout=1000)
             logger.debug("[🎃] 退火成功")
             return True
         fl_purchase = page.frame_locator(ArmorKnight.HOOK_PURCHASE)
         fl_challenge = fl_purchase.frame_locator(ArmorKnight.HOOK_CHALLENGE)
-        with suppress(TimeoutError):
+        with suppress(NinjaTimeout):
             fl_challenge.locator(".prompt-text").wait_for(state="visible", timeout=1000)
             return self.cart_success(page, times + 1)
 
@@ -576,7 +577,7 @@ class EpicAwesomeGamer:
             self.assert_.refund_info(page)  # cart_handle_payment
             if not self.cart_success(page):
                 logger.debug("[⚔] 捕获隐藏在订单中的人机挑战...")
-                with suppress(TimeoutError):
+                with suppress(NinjaTimeout):
                     page.wait_for_url(self.URL_CART_SUCCESS)
                 # self._duel_with_challenge(page)
             logger.debug("[🌀] 弹出内联订单框架...")
