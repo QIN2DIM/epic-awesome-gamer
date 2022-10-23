@@ -19,7 +19,6 @@ from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
 from playwright.sync_api import BrowserContext
 from playwright.sync_api import Error as NinjaException
-from playwright.sync_api import TimeoutError as NinjaTimeout
 
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.bricklayer.unreal import UnrealClaimer
@@ -165,7 +164,7 @@ class BaseInstance:
         if not manager.has_available_cookie:
             try:
                 fire(manager.refresh_ctx_cookies, manager.path_ctx_cookies)
-            except (NinjaException, NinjaTimeout) as err:
+            except NinjaException as err:
                 self.logger.exception(err)
                 self._bad_omen(str(err))
         self._ctx_cookies = manager.ctx_cookies
