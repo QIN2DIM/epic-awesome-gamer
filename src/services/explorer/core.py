@@ -5,18 +5,12 @@
 # Description:
 import json
 import os
-import random
 import typing
 from collections import deque
 from dataclasses import dataclass, field
 from hashlib import sha256
 
-from selenium.common import InvalidCookieDomainException
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-
-from services.utils.toolbox import Challenger
+from playwright.sync_api import Page
 
 
 @dataclass
@@ -62,42 +56,30 @@ class StoreExplorer:
     )
     API_GRAPHQL = "https://store.epicgames.com/graphql"
 
-    def __init__(self, ctx_cookies: typing.List[dict], ctx_session: Challenger):
-        self.action_name = "StoreExplorer"
-        self._ctx_cookies = ctx_cookies
-        self._ctx = ctx_session
+    URL_EXPLORER_FREE_GAMES = (
+        "https://store.epicgames.com/graphql?operationName=searchStoreQuery"
+        '&variables={"allowCountries":"CN","category":"games/edition/base","comingSoon":false,"count":80,"country":"CN","effectiveDate":"[,2022-10-01T17:27:22.818Z]","freeGame":true,"keywords":"","locale":"zh-CN","sortBy":"releaseDate","sortDir":"DESC","start":0,"tag":"","withPrice":true}'
+        '&extensions={"persistedQuery":{"version":1,"sha256Hash":"13a2b6787f1a20d05c75c54c78b1b8ac7c8bf4efc394edf7a5998fdf35d1adb0"}}'
+    )
 
+    def __init__(self, page: Page):
+        self.action_name = "StoreExplorer"
         # 当前账户可领取的所有免费游戏
         self._total_free_games = 0
+        self.page = page
 
     @property
     def total_free_games(self):
         return self._total_free_games
 
-    def _reset_page(self, goto: str):
-        self._ctx.get(random.choice([self.URL_STORE_FREE_DLC, self.URL_STORE_BROWSER]))
-        for cookie_dict in self._ctx_cookies:
-            try:
-                self._ctx.add_cookie(cookie_dict)
-            except InvalidCookieDomainException:
-                pass
-        self._ctx.get(goto)
-
     def discovery_free_games(self, game_pool: GamePool):
-        if not self._ctx:
-            return
-
-        self._reset_page(goto=self.URL_STORE_FREE_GAME)
-        ActionChains(self._ctx).send_keys(Keys.END).perform()
+        self.page.goto(self.URL_STORE_FREE_GAME, wait_until="domcontentloaded")
+        self.page.evaluate("() => window.scrollTo(0, document.body.scrollHeight)")
+        self.page.goto(self.URL_EXPLORER_FREE_GAMES, wait_until="domcontentloaded")
+        data = json.loads(self.page.locator("//pre").text_content())
 
         # 一次请求获取当前商城可获取的所有免费游戏
         # 目前，游戏商城一页有40个游戏，大多数地区可领取的常驻免费游戏不超过80，即不超过两页
-        self._ctx.get(
-            "https://store.epicgames.com/graphql?operationName=searchStoreQuery"
-            '&variables={"allowCountries":"CN","category":"games/edition/base","comingSoon":false,"count":80,"country":"CN","effectiveDate":"[,2022-10-01T17:27:22.818Z]","freeGame":true,"keywords":"","locale":"zh-CN","sortBy":"releaseDate","sortDir":"DESC","start":0,"tag":"","withPrice":true}'
-            '&extensions={"persistedQuery":{"version":1,"sha256Hash":"13a2b6787f1a20d05c75c54c78b1b8ac7c8bf4efc394edf7a5998fdf35d1adb0"}}'
-        )
-        data = json.loads(self._ctx.find_element(By.TAG_NAME, "pre").text)
         search_store = data["data"]["Catalog"]["searchStore"]
         # 获取免费游戏总数
         self._total_free_games = search_store["paging"]["total"]
@@ -151,5 +133,5 @@ class GameLibManager:
             return ""
 
 
-def new_store_explorer(ctx_cookies: typing.List[dict], ctx_session: Challenger) -> StoreExplorer:
-    return StoreExplorer(ctx_cookies=ctx_cookies, ctx_session=ctx_session)
+def new_store_explorer(page: Page) -> StoreExplorer:
+    return StoreExplorer(page)

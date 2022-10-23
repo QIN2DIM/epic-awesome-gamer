@@ -3,37 +3,14 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import logging
-import os
 import sys
-import typing
-import warnings
-from dataclasses import dataclass
 from typing import List, Union, Dict
 
 from loguru import logger
-from selenium.webdriver import ChromeOptions
-from undetected_chromedriver import Chrome as Challenger
-from webdriver_manager.chrome import ChromeDriverManager
-
-logging.getLogger("WDM").setLevel(logging.NOTSET)
-
-warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class ToolBox:
     """可移植的工具箱"""
-
-    @staticmethod
-    def runtime_report(action_name: str, motive: str = "RUN", message: str = "", **params) -> str:
-        """格式化输出"""
-        flag_ = f">> {motive} [{action_name}]"
-        if message != "":
-            flag_ += f" {message}"
-        if params:
-            flag_ += " - "
-            flag_ += " ".join([f"{i[0]}={i[1]}" for i in params.items()])
-        return flag_
 
     @staticmethod
     def transfer_cookies(
@@ -83,50 +60,3 @@ def init_log(**sink_path):
             diagnose=False,
         )
     return logger
-
-
-@dataclass
-class DriverWrapper:
-    silence: bool = False
-    path: str = ""
-    options = ChromeOptions()
-
-    def __post_init__(self):
-        self.options.headless = self.silence
-
-        self.options.add_argument("--log-level=3")
-        self.options.add_argument("--disable-software-rasterizer")
-
-        # Unified Challenge Language
-        os.environ["LANGUAGE"] = "zh"
-        self.options.add_argument(f"--lang={os.getenv('LANGUAGE', '')}")
-
-        # Hook to headful xvfb server
-        if "linux" in sys.platform or self.silence:
-            self.options.add_argument("--disable-setuid-sandbox")
-            self.options.add_argument("--disable-gpu")
-            self.options.add_argument("--no-sandbox")
-            self.options.add_argument("--no-xshm")
-            self.options.add_argument("--disable-dev-shm-usage")
-            self.options.add_argument("--no-first-run")
-
-        if self.silence:
-            self.options.add_argument("--window-size=1920,1080")
-            self.options.add_argument("--start-maximized")
-
-        # - Use chromedriver cache to improve application startup speed
-        # - Requirement: undetected-chromedriver >= 3.1.5.post4
-        self.path = self.path or ChromeDriverManager().install()
-
-
-def get_challenge_ctx(silence: typing.Optional[bool] = None) -> Challenger:
-    """挑战者驱动 用于处理人机挑战"""
-    driver_wrapper = DriverWrapper(silence=silence)
-    options = driver_wrapper.options
-    if "linux" in sys.platform:
-        logger.info("Please use `xvfb` to empower the headful Chrome.")
-        logger.info("CMD: xvfb-run python3 main.py claim")
-        if silence:
-            raise RuntimeError("Please use `xvfb` to empower the headful Chrome.")
-    logging.debug(ToolBox.runtime_report("__Context__", "ACTIVATE", "🎮 激活挑战者上下文"))
-    return Challenger(options=options, driver_executable_path=driver_wrapper.path)

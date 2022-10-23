@@ -17,16 +17,8 @@ class Explorer(Exception):
         super().__init__()
 
     def __str__(self) -> str:
-        exception_msg = "Message: {}\n".format(self.msg)
+        exception_msg = f"Message: {self.msg}\n"
         if self.stacktrace:
             stacktrace = "\n".join(self.stacktrace)
-            exception_msg += "Stacktrace:\n{}".format(stacktrace)
+            exception_msg += f"Stacktrace:\n{stacktrace}"
         return exception_msg
-
-
-class DiscoveryTimeoutException(Explorer):
-    """未能在规定时间内为指定玩家搜索免费游戏"""
-
-
-class ProtocolOutdatedWarning(Explorer):
-    """Discovery缓存的商城数据丢失|为空|结构体过时"""
