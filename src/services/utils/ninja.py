@@ -145,7 +145,7 @@ def fire(
     headless: typing.Optional[bool] = False,
 ):
     with sync_playwright() as p:
-        browser = p.chromium.launch(chromium_sandbox=True, headless=headless)
+        browser = p.chromium.launch(headless=headless)
         # 可以使用持久化上下文處理 MFA 問題
         context = browser.new_context(
             locale="zh-CN", storage_state=path_state if os.path.isfile(path_state) else None
