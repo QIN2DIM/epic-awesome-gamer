@@ -17,8 +17,8 @@ class Explorer(Exception):
         super().__init__()
 
     def __str__(self) -> str:
-        exception_msg = "Message: {}\n".format(self.msg)
+        exception_msg = f"Message: {self.msg}\n"
         if self.stacktrace:
             stacktrace = "\n".join(self.stacktrace)
-            exception_msg += "Stacktrace:\n{}".format(stacktrace)
+            exception_msg += f"Stacktrace:\n{stacktrace}"
         return exception_msg
