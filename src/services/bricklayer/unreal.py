@@ -52,7 +52,6 @@ class UnrealClaimer(EpicAwesomeGamer):
             soup = BeautifulSoup(response.text, "html.parser")
             articles = soup.find("div", class_="asset-list-group").find_all("article")
         except AttributeError:
-            # find_chains={"//div[@class='assert-list-group']", "//article"}
             logger.critical(f">> CRASH [{self.action_name}] 虚幻商店月供内容页元素改变或加载异常")
             return []
         else:

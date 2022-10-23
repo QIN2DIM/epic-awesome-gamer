@@ -54,7 +54,6 @@ class ArmorUtils:
             # 多因素判斷
             with suppress(NinjaTimeout):
                 page.wait_for_timeout(2000)
-                # page.locator("#sign-in").wait_for(state="hidden", timeout=2000)
                 if page.locator(ArmorKnight.HOOK_CHALLENGE).is_visible():
                     return ArmorUtils.AUTH_CHALLENGE
 
@@ -130,7 +129,6 @@ class ArmorKnight(solver.HolyChallenger):
             self.alias2path.update({alias_: path_challenge_img_})
             with open(path_challenge_img_, "wb") as file:
                 file.write(requests.get(url_).content)
-        # loop.run_until_complete(ImageDownloader(docker_).subvert("fast"))
         self.log(message="Download challenge images", timeit=f"{round(time.time() - start, 2)}s")
 
     def mark_samples(self, frame_challenge: FrameLocator):

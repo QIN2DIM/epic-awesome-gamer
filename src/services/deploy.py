@@ -18,6 +18,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
 from playwright.sync_api import BrowserContext
+from playwright.sync_api import Error as NinjaException
+from playwright.sync_api import TimeoutError as NinjaTimeout
 
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.bricklayer.unreal import UnrealClaimer
@@ -161,21 +163,12 @@ class BaseInstance:
         """激活挑战者并获取身份令牌"""
         manager = self.bricklayer.cookie_manager
         if not manager.has_available_cookie:
-            fire(manager.refresh_ctx_cookies, manager.path_ctx_cookies)
+            try:
+                fire(manager.refresh_ctx_cookies, manager.path_ctx_cookies)
+            except (NinjaException, NinjaTimeout) as err:
+                self.logger.exception(err)
+                self._bad_omen(str(err))
         self._ctx_cookies = manager.ctx_cookies
-
-        # try:
-        #     _manager = self.bricklayer.cookie_manager
-        #     if _manager.refresh_ctx_cookies(keep_live=True, silence=self.silence):
-        #         self._ctx_session = self.bricklayer.cookie_manager.ctx_session
-        #         self._ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
-        #     if self._ctx_cookies is None:
-        #         raise CookieRefreshException
-        # except CookieRefreshException as err:
-        #     self._bad_omen(err.__doc__)
-        # except Exception as err:  # skipcq
-        #     self.logger.exception(err)
-        #     self._bad_omen(str(err))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
