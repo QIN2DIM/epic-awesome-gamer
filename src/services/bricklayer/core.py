@@ -325,7 +325,7 @@ class AssertUtils:
     def surprise_warning_purchase(page: Page) -> typing.Optional[bool]:
         """处理弹窗遮挡消息"""
         try:
-            page.locator("//h1").wait_for(timeout=3000, state="visible")
+            page.locator("//h1").first.wait_for(timeout=3000, state="visible")
         except NinjaTimeout:
             return True
         else:
@@ -575,9 +575,7 @@ class EpicAwesomeGamer:
             self.assert_.refund_info(page)  # cart_handle_payment
             if not self.cart_success(page):
                 logger.debug("[⚔] 捕获隐藏在订单中的人机挑战...")
-                with suppress(NinjaTimeout):
-                    page.wait_for_url(self.URL_CART_SUCCESS)
-                # self._duel_with_challenge(page)
+                self._duel_with_challenge(page)
             logger.debug("[🌀] 弹出内联订单框架...")
             return True
 
