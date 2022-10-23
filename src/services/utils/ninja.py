@@ -142,7 +142,7 @@ async def steal_playwright_async(
 def fire(
     container: typing.Callable[[SyncContext], None],
     path_state: str,
-    headless: typing.Optional[bool] = None,
+    headless: typing.Optional[bool] = False,
 ):
     with sync_playwright() as p:
         browser = p.chromium.launch(chromium_sandbox=True, headless=headless)
@@ -153,4 +153,5 @@ def fire(
         stealth_sync(context)
         container(context)
         context.storage_state(path=path_state)
+        context.close()
         browser.close()
