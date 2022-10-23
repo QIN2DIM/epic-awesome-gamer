@@ -223,7 +223,7 @@ class BaseInstance:
 
     def is_pending(self) -> typing.Optional[bool]:
         """是否可发起驱动任务 True:执行 False/None:结束"""
-        return not self.task_queue_worker.empty()
+        return (not self.task_queue_worker.empty()) and self._ctx_cookies
 
     def promotions_filter(self):
         """
