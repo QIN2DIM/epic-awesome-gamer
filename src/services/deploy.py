@@ -163,7 +163,11 @@ class BaseInstance:
         manager = self.bricklayer.cookie_manager
         if not manager.has_available_token:
             try:
-                fire(manager.refresh_ctx_cookies, manager.path_ctx_cookies)
+                fire(
+                    container=manager.refresh_ctx_cookies,
+                    path_state=manager.path_ctx_cookies,
+                    user_data_dir=manager.user_data_dir,
+                )
             except NinjaException as err:
                 self._bad_omen(str(err))
         self._ctx_cookies = manager.load_ctx_cookies()
@@ -344,7 +348,7 @@ class GameClaimerInstance(BaseInstance):
             fire(
                 container=run,
                 path_state=self.bricklayer.cookie_manager.path_ctx_cookies,
-                headless=self.silence,
+                user_data_dir=self.bricklayer.cookie_manager.user_data_dir,
             )
 
 
@@ -378,5 +382,5 @@ class UnrealClaimerInstance(BaseInstance):
             fire(
                 container=run,
                 path_state=self.bricklayer.cookie_manager.path_ctx_cookies,
-                headless=self.silence,
+                user_data_dir=self.bricklayer.cookie_manager.user_data_dir,
             )

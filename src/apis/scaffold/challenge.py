@@ -17,5 +17,6 @@ def check_token():
     fire(
         container=claimer.cookie_manager.refresh_ctx_cookies,
         path_state=claimer.cookie_manager.path_ctx_cookies,
+        user_data_dir=claimer.cookie_manager.user_data_dir,
     )
     logger.success(f"GET [ChallengeRunner] 任务结束 - path={claimer.cookie_manager.path_ctx_cookies}")

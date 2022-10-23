@@ -21,7 +21,7 @@ from playwright.sync_api import Error as NinjaError
 from playwright.sync_api import Page, FrameLocator, BrowserContext
 from playwright.sync_api import TimeoutError as NinjaTimeout
 
-from services.settings import DIR_COOKIES, DIR_SCREENSHOT
+from services.settings import DIR_COOKIES, DIR_SCREENSHOT, DIR_USERS
 from services.utils.toolbox import ToolBox
 from .exceptions import UnableToGet, AuthMFA, AuthUnknownException, LoginException
 
@@ -68,7 +68,7 @@ class ArmorKnight(solver.HolyChallenger):
     HOOK_CHALLENGE = "//iframe[contains(@title, 'content of the hCaptcha')]"
 
     def __init__(
-            self, debug: typing.Optional[bool] = False, screenshot: typing.Optional[bool] = False
+        self, debug: typing.Optional[bool] = False, screenshot: typing.Optional[bool] = False
     ):
         super().__init__(debug=debug, screenshot=screenshot, lang="zh")
         self.critical_threshold = 3
@@ -166,13 +166,13 @@ class ArmorKnight(solver.HolyChallenger):
         self.log(message=f"Submit the challenge - {model.flag}: {round(sum(ta), 2)}s")
 
     def challenge_success(
-            self,
-            page: Page,
-            frame_challenge: FrameLocator = None,
-            window=None,
-            init=True,
-            hook_url=None,
-            **kwargs,
+        self,
+        page: Page,
+        frame_challenge: FrameLocator = None,
+        window=None,
+        init=True,
+        hook_url=None,
+        **kwargs,
     ) -> typing.Tuple[str, str]:
         """
         判断挑战是否成功的复杂逻辑
@@ -253,7 +253,7 @@ class ArmorKnight(solver.HolyChallenger):
                             raise _unknown
 
     def anti_hcaptcha(
-            self, page: Page, window: str = "login", recur_url=None
+        self, page: Page, window: str = "login", recur_url=None
     ) -> typing.Union[bool, str]:
         """
         Handle hcaptcha challenge
@@ -345,12 +345,12 @@ class AssertUtils:
 
     @staticmethod
     def purchase_status(
-            page: Page,
-            page_link: str,
-            get: bool,
-            promotion2url: typing.Dict[str, str],
-            action_name: typing.Optional[str] = "AssertUtils",
-            init: typing.Optional[bool] = True,
+        page: Page,
+        page_link: str,
+        get: bool,
+        promotion2url: typing.Dict[str, str],
+        action_name: typing.Optional[str] = "AssertUtils",
+        init: typing.Optional[bool] = True,
     ) -> typing.Optional[str]:
         """
         断言当前上下文页面的游戏的在库状态。
@@ -643,6 +643,7 @@ class CookieManager(EpicAwesomeGamer):
         self.action_name = "CookieManager"
         self.auth_str = auth_str
         self.path_ctx_cookies = os.path.join(DIR_COOKIES, f"{self._t()}.json")
+        self.user_data_dir = os.path.join(DIR_USERS, self._t())
         self.ctx_session = None
         self._ctx_cookies = None
 
@@ -686,7 +687,7 @@ class CookieManager(EpicAwesomeGamer):
                 "headers": {
                     "cookie": ToolBox.transfer_cookies(cookies),
                     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-                                  " Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.42",
+                    " Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.42",
                     "origin": "https://www.epicgames.com",
                     "referer": "https://www.epicgames.com/",
                 },

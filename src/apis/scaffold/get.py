@@ -5,9 +5,11 @@
 # Description:
 import os
 import typing
+from contextlib import suppress
 
 from loguru import logger
 from playwright.sync_api import Page, BrowserContext
+from playwright.sync_api import Error as NinjaException
 
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.explorer.core import Game
@@ -42,8 +44,13 @@ class IReallyWantToStayAtYourHouse:
     def __enter__(self):
         manager = self.claimer.cookie_manager
         if not manager.has_available_token:
-            fire(manager.refresh_ctx_cookies, manager.path_ctx_cookies)
-        self._ctx_cookies = manager.ctx_cookies
+            with suppress(NinjaException):
+                fire(
+                    container=manager.refresh_ctx_cookies,
+                    path_state=manager.path_ctx_cookies,
+                    user_data_dir=manager.user_data_dir,
+                )
+        self._ctx_cookies = manager.load_ctx_cookies()
         self.ph.ctx_cookies = self._ctx_cookies
         return self
 
@@ -90,7 +97,7 @@ class IReallyWantToStayAtYourHouse:
             page = context.new_page()
             self.ph.load_memory()
             self.ph.get_ctx_store(page)
-            self.ph.get_oder_history()
+            self.ph.get_oder_history(ctx_cookies=self._ctx_cookies)
 
             task_list = self.ph.game_pool.filter_games(self.ph.namespaces)
             logger.info(f"当前玩家 {self.player} 可领取 {self.ph.total_free_games} 款常驻免费游戏")
@@ -98,4 +105,8 @@ class IReallyWantToStayAtYourHouse:
 
             self.offload(task_list, page)
 
-        fire(container=run, path_state=self.claimer.cookie_manager.path_ctx_cookies, headless=False)
+        fire(
+            container=run,
+            path_state=self.claimer.cookie_manager.path_ctx_cookies,
+            user_data_dir=self.claimer.cookie_manager.user_data_dir,
+        )

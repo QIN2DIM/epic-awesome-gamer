@@ -4,7 +4,6 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import json
-import os
 import typing
 from dataclasses import dataclass
 from pathlib import Path
@@ -139,19 +138,12 @@ async def steal_playwright_async(
         await context.add_init_script(feature)
 
 
-def fire(
-    container: typing.Callable[[SyncContext], None],
-    path_state: str,
-    headless: typing.Optional[bool] = False,
-):
+def fire(container: typing.Callable[[SyncContext], None], path_state: str, user_data_dir: str):
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless)
-        # 可以使用持久化上下文處理 MFA 問題
-        context = browser.new_context(
-            locale="zh-CN", storage_state=path_state if os.path.isfile(path_state) else None
+        context = p.chromium.launch_persistent_context(
+            user_data_dir=user_data_dir, headless=False, locale="zh-CN"
         )
         stealth_sync(context)
         container(context)
         context.storage_state(path=path_state)
         context.close()
-        browser.close()
