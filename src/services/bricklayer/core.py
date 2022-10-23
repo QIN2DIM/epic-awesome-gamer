@@ -19,6 +19,7 @@ from hcaptcha_challenger.exceptions import ChallengePassed
 from loguru import logger
 from playwright.sync_api import Page, FrameLocator, BrowserContext
 from playwright.sync_api import TimeoutError as NinjaTimeout
+from playwright.sync_api import Error as NinjaError
 
 from services.settings import DIR_COOKIES, DIR_SCREENSHOT
 from services.utils.toolbox import ToolBox
@@ -36,7 +37,7 @@ class ArmorUtils:
         logger.info(">> ARMOR [ArmorUtils] 正在检测隐藏在登录界面的人机挑战...")
         flag = page.url
 
-        for _ in range(10):
+        for _ in range(15):
             # 控制台信息
             mui_typography = page.locator("//h6")
             with suppress(NinjaTimeout):
@@ -52,8 +53,8 @@ class ArmorUtils:
                 logger.info(">> ARMOR [ArmorUtils] 🥤 跳过人机挑战")
                 return ArmorUtils.AUTH_SUCCESS
             # 多因素判斷
-            with suppress(NinjaTimeout):
-                page.wait_for_timeout(2000)
+            page.wait_for_timeout(2000)
+            with suppress(NinjaError):
                 if page.locator(ArmorKnight.HOOK_CHALLENGE).is_visible():
                     return ArmorUtils.AUTH_CHALLENGE
 
@@ -152,7 +153,7 @@ class ArmorKnight(solver.HolyChallenger):
             result = model.solution(img_stream=data, label=self.label_alias[self.label])
             ta.append(time.time() - t0)
             if result:
-                self.alias2locator[alias].click(delay=700)
+                self.alias2locator[alias].click(delay=100)
 
         # Check result of the challenge.
         if self.screenshot:
@@ -201,7 +202,8 @@ class ArmorKnight(solver.HolyChallenger):
                 return True
 
         def is_init_clickable():
-            return frame_challenge.locator("//div[@class='task-image']").is_visible()
+            with suppress(NinjaError):
+                return frame_challenge.locator("//div[@class='task-image']").is_visible()
 
         # 首轮测试后判断短时间内页内是否存在可点击的拼图元素
         # hcaptcha 最多两轮验证，一般情况下，账号信息有误仅会执行一轮，然后返回登录窗格提示密码错误
@@ -270,23 +272,18 @@ class ArmorKnight(solver.HolyChallenger):
             # [👻] 获取挑战标签
             self.get_label(frame_challenge)
             # [👻] 編排定位器索引
-            logger.info("編排定位器索引")
             self.mark_samples(frame_challenge)
             # [👻] 拉取挑戰圖片
-            logger.info("拉取挑戰圖片")
             self.download_images()
             # [👻] 滤除无法处理的挑战类别
-            logger.info("滤除无法处理的挑战类别")
             if not self.label_alias.get(self.label):
                 return self.CHALLENGE_BACKCALL
             # [👻] 注册解决方案
             # 根据挑战类型自动匹配不同的模型
             model = self.switch_solution()
             # [👻] 識別|點擊|提交
-            logger.info("識別|點擊|提交")
             self.challenge(frame_challenge, model=model)
             # [👻] 輪詢控制臺響應
-            logger.info("輪詢控制臺響應")
             result, message = self.challenge_success(
                 page, frame_challenge, window=window, init=not i, hook_url=recur_url
             )

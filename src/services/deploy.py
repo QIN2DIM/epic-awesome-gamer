@@ -167,7 +167,7 @@ class BaseInstance:
             except NinjaException as err:
                 self.logger.exception(err)
                 self._bad_omen(str(err))
-        self._ctx_cookies = manager.ctx_cookies
+        self._ctx_cookies = manager.load_ctx_cookies()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
