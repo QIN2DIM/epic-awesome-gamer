@@ -191,7 +191,7 @@ class ArmorKnight(solver.HolyChallenger):
             """
             try:
                 task_image = frame_challenge.locator("//div[@class='task-image']")
-                task_image.first.wait_for(state="detached", timeout=1500)
+                task_image.first.wait_for(state="detached", timeout=3000)
                 # dom elements hidden
                 return False
             except NinjaTimeout:
@@ -203,13 +203,14 @@ class ArmorKnight(solver.HolyChallenger):
 
         def is_init_clickable():
             with suppress(NinjaError):
-                return frame_challenge.locator("//div[@class='task-image']").is_visible()
+                return frame_challenge.locator("//div[@class='task-image']").first.is_visible()
 
         # 首轮测试后判断短时间内页内是否存在可点击的拼图元素
         # hcaptcha 最多两轮验证，一般情况下，账号信息有误仅会执行一轮，然后返回登录窗格提示密码错误
         # 其次是被识别为自动化控制，这种情况也是仅执行一轮，回到登录窗格提示“返回数据错误”
         if init and is_init_clickable():
             return self.CHALLENGE_CONTINUE, "继续挑战"
+        page.wait_for_timeout(2000)
         if is_continue_clickable():
             return self.CHALLENGE_CONTINUE, "继续挑战"
 
@@ -714,7 +715,8 @@ class CookieManager(EpicAwesomeGamer):
                 return True
             # Winter is coming, so hear me roar!
             elif result == ArmorUtils.AUTH_CHALLENGE:
-                resp = self.armor.anti_hcaptcha(page, window="login", recur_url=result)
+                recur_url = "https://store.epicgames.com/zh-CN/free-games"
+                resp = self.armor.anti_hcaptcha(page, window="login", recur_url=recur_url)
                 if resp == self.armor.CHALLENGE_SUCCESS:
                     return True
                 elif resp == self.armor.CHALLENGE_REFRESH:
