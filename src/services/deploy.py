@@ -45,13 +45,13 @@ class Promotion:
 
 @dataclass
 class Promotions:
-    promotions: typing.List[Promotion] = None
+    promotion_sequence: typing.List[Promotion] = None
 
     def __post_init__(self):
-        self.promotions = self.promotions or []
+        self.promotion_sequence = self.promotion_sequence or []
 
     def new_promotion(self, **kwargs):
-        self.promotions.append(Promotion(**kwargs))
+        self.promotion_sequence.append(Promotion(**kwargs))
 
 
 class ClaimerScheduler:
@@ -307,7 +307,7 @@ class GameClaimerInstance(BaseInstance):
         promotions = self.explorer.get_promotions()
         for promotion in promotions:
             self.promotions.new_promotion(**promotion)
-        return self.promotions.promotions
+        return self.promotions.promotion_sequence
 
     def get_order_history(self):
         self.ph.load_memory()
@@ -360,7 +360,7 @@ class UnrealClaimerInstance(BaseInstance):
         promotions = self.bricklayer.get_promotions(self._ctx_cookies)
         for promotion in promotions:
             self.promotions.new_promotion(**promotion)
-        return self.promotions.promotions
+        return self.promotions.promotion_sequence
 
     def promotions_filter(self):
         for promotion in self.get_promotions():
