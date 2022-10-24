@@ -1,22 +1,40 @@
-name: Fingers of the Golden Order
+# /home/epic/docker-compose.yaml
+version: "3.7"
+services:
 
-on:
-  workflow_dispatch:
+  epic-games-claimer:
+    image: ech0sec/awesome-epic:daddy
+    init: true
+    command: [ "xvfb-run", "python3", "main.py", "claim" ]
+    volumes:
+      - "/home/epic/database/:/home/epic/database/"
+      - "/home/epic/datas/:/home/epic/datas"
+    environment:
+      EPIC_EMAIL: # 填入你的账号信息
+      EPIC_PASSWORD: # 填入你的账号信息
+      PUSHER_TELEGRAM: # (optional) Apprise 消息推送，不填或填错则不发送
+      PLAYER: # (optional) 指定昵称，覆盖敏感信息，不填则使用内置算法生成
+      GITHUB_REVERSE_PROXY: # (optional) 加速国内服务器拉取模型的速度，填入 “default” 使用项目内置的反向代理
 
-jobs:
-  setup:
-    env:
-      EPΙC_EMAΙL: ${{ secrets.EPIC_EMAIL }}
-      EPΙC_PASSWΟRD: ${{ secrets.EPIC_PASSWORD }}
-      PUSHER_TELEGRAM: ${{ secrets.PUSHER_TELEGRAM }}
-      PLAYER: ${{ secrets.EPIC_PLAYER }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Scaffold Claim
-        run: |
-          docker run --rm --pull always \
-          -e EPΙC_EMAΙL \
-          -e EPΙC_PASSWΟRD \
-          -e PUSHER_TELEGRAM \
-          -e PLAYER \
-          ech0sec/awesome-epic:daddy python3 main.py claim
+# ======================================
+# [🍜] 镜像简述
+# ======================================
+# ech0sec/awesome-epic:daddy
+# 1. 内置 google-chrome 以及 yolov5n6(onnx) model
+# 2. 以你喜欢的方式配置环境变量，开箱即用
+# 3. 修改 command 末位参数，调用不同的脚手架指令
+
+# ======================================
+# [🍜] 脚手架指令速记
+# ======================================
+# test      | [升级中]检测服务心跳
+# claim     | 认领游戏商城周免游戏及其免费DLC
+# unreal    | 认领虚幻商城月免内容
+# deploy    | 部署系统定时任务
+# get       | 搬空游戏商城的免费游戏或免费DLC
+
+# ======================================
+# [🍜] 相关文档
+# ======================================
+# docker-compose https://docs.docker.com/compose/reference/
+# apprise https://github.com/caronc/apprise
