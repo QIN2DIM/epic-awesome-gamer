@@ -258,12 +258,13 @@ class ArmorKnight(solver.HolyChallenger):
             # [👻] 識別|點擊|提交
             self.challenge(frame_challenge, model=model)
             # [👻] 輪詢控制臺響應
-            result, message = self.challenge_success(
-                page, frame_challenge, window=window, init=not i, hook_url=recur_url
-            )
-            self.log("获取响应", desc=f"{message}({result})")
-            if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:
-                return result
+            with suppress(TypeError):
+                result, message = self.challenge_success(
+                    page, frame_challenge, window=window, init=not i, hook_url=recur_url
+                )
+                self.log("获取响应", desc=f"{message}({result})")
+                if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:
+                    return result
 
 
 class AssertUtils:
