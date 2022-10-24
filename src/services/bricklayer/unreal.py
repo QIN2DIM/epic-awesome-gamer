@@ -32,9 +32,7 @@ class UnrealClaimer(EpicAwesomeGamer):
         super().__init__(email=email, password=password)
         self.result = ""
         self.action_name = "UnrealClaimer"
-        self.cookie_manager = CookieManager(
-            auth_str=self.AUTH_STR_UNREAL, email=email, password=password
-        )
+        self.cookie_manager = CookieManager(auth_str="unreal", email=email, password=password)
 
     def get_promotions(
         self, ctx_cookies: typing.List[dict]
@@ -81,6 +79,3 @@ class UnrealClaimer(EpicAwesomeGamer):
                 self.unreal_handle_payment(page)
             elif self.result in (self.assert_.GAME_OK, self.assert_.GAME_CLAIM):
                 break
-
-    def empower_unreal_claimer(self, page: Page):
-        self.get_free_content(page)

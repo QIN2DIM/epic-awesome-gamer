@@ -13,7 +13,7 @@ from services.settings import config
 
 def do(yolo_onnx_prefix: typing.Optional[str] = None, upgrade: typing.Optional[bool] = False):
     """下载项目运行所需的各项依赖"""
-    os.system("playwright install")
+    os.system("playwright install chromium")
     onnx_prefix = yolo_onnx_prefix or solver.Prefix.YOLOv6n
     solver.set_reverse_proxy(config.HTTPS_CDN)
     solver.install(onnx_prefix=onnx_prefix, upgrade=upgrade)

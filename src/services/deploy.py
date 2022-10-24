@@ -24,8 +24,8 @@ from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.bricklayer.unreal import UnrealClaimer
 from services.explorer.explorer import Explorer, PermissionsHistory
 from services.settings import config, DIR_EXPLORER
-from services.utils.ninja import fire
 from services.utils.pusher import MessagePusher, MessageBody, MessageQueue
+from services.utils.toolbox import fire
 
 
 @dataclass
@@ -371,7 +371,7 @@ class UnrealClaimerInstance(BaseInstance):
 
     def just_do_it(self):
         def run(context: BrowserContext):
-            self.bricklayer.empower_unreal_claimer(page=context.new_page())
+            self.bricklayer.get_free_content(page=context.new_page())
             # 将无效的任务缓存出队
             while not self.task_queue_worker.empty():
                 promotion = self.task_queue_worker.get()

@@ -32,9 +32,7 @@ class GameClaimer(EpicAwesomeGamer):
             self.claim_mode = claim_mode
 
         self.action_name = "GameClaimer"
-        self.cookie_manager = CookieManager(
-            auth_str=self.AUTH_STR_GAMES, email=email, password=password
-        )
+        self.cookie_manager = CookieManager(auth_str="games", email=email, password=password)
 
     def cart_balancing(self, page: Page):
         """

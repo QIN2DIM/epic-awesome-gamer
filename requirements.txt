@@ -19,6 +19,7 @@ lxml>=4.7.1
 # {{< Challenger Drive >}}
 playwright==1.27.1
 hcaptcha-challenger==0.4.2.23
+undetected-playwright
 
 # {{< Message Push >}}
 apprise==1.0.0
