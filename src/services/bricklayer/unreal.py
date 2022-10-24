@@ -5,8 +5,8 @@
 # Description:
 import typing
 
+import requests
 from bs4 import BeautifulSoup
-from cloudscraper import create_scraper
 from loguru import logger
 from playwright.sync_api import Page
 
@@ -39,8 +39,7 @@ class UnrealClaimer(EpicAwesomeGamer):
     ) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """领取任务后审查资源的在库状态"""
         headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
-        scraper = create_scraper()
-        response = scraper.get(self.URL_FREE_FOR_THE_MONTH, headers=headers, allow_redirects=False)
+        response = requests.get(self.URL_FREE_FOR_THE_MONTH, headers=headers, allow_redirects=False)
 
         if response.status_code != 200:
             logger.error(f">> SKIP [{self.action_name}] 身份令牌已过期，无法获取有效的月供内容在库状态")

@@ -12,7 +12,6 @@ from contextlib import suppress
 from hashlib import sha256
 from urllib.request import getproxies
 
-import cloudscraper
 import hcaptcha_challenger as solver
 import requests
 from hcaptcha_challenger.exceptions import ChallengePassed
@@ -664,8 +663,7 @@ class CookieManager(EpicAwesomeGamer):
                 "proxies": getproxies(),
                 "allow_redirects": False,
             }
-            scraper = cloudscraper.create_scraper()
-            response = scraper.get(self.URL_ACCOUNT_PERSONAL, **_kwargs)
+            response = requests.get(self.URL_ACCOUNT_PERSONAL, **_kwargs)
             return response.status_code == 200
         return False
 
