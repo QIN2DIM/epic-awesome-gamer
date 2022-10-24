@@ -12,7 +12,6 @@ from contextlib import suppress
 from hashlib import sha256
 from urllib.request import getproxies
 
-import cloudscraper
 import hcaptcha_challenger as solver
 import requests
 from hcaptcha_challenger.exceptions import ChallengePassed
@@ -85,46 +84,15 @@ class ArmorKnight(solver.HolyChallenger):
         except NinjaTimeout:
             raise ChallengePassed("Man-machine challenge unexpectedly passed")
 
-        # if not self.prompt:
-        #     fn = f"{int(time.time())}.image_label_area_select.png"
-        #     self.log("Pass image_label_area_select")
-        #     self.captcha_screenshot(ctx, fn)
-        #     return self.CHALLENGE_BACKCALL
-
         _label = solver.HolyChallenger.split_prompt_message(self.prompt, self.lang)
         self.label = self.label_cleaning(_label)
         self.log(message="Get label", label=f"「{self.label}」")
 
     def download_images(self):
-        """
-        Download Challenge Image
-
-        ### hcaptcha has a challenge duration limit
-
-        If the page element is not manipulated for a period of time,
-        the <iframe> box will disappear and the previously acquired Element Locator will be out of date.
-        Need to use some modern methods to shorten the time of `getting the dataset` as much as possible.
-
-        ### Solution
-
-        1. Coroutine Downloader
-          Use the coroutine-based method to _pull the image to the local, the best practice (this method).
-          In the case of poor network, _pull efficiency is at least 10 times faster than traversal download.
-
-        2. Screen cut
-          There is some difficulty in coding.
-          Directly intercept nine pictures of the target area, and use the tool function to cut and identify them.
-          Need to weave the locator index yourself.
-
-        :return:
-        """
-
         # Initialize the challenge image download directory
         self.runtime_workspace = self._init_workspace()
-
-        # Initialize the coroutine-based image downloader
-        start = time.time()
         # Initialize the data container
+        start = time.time()
         for alias_, url_ in self.alias2url.items():
             path_challenge_img_ = os.path.join(self.runtime_workspace, f"{alias_}.png")
             self.alias2path.update({alias_: path_challenge_img_})
@@ -139,9 +107,13 @@ class ArmorKnight(solver.HolyChallenger):
             sample = samples.nth(i)
             alias = sample.get_attribute("aria-label")
             image_style = sample.locator(".image").get_attribute("style")
-            url = re.split(r'[(")]', image_style)[2]
-            self.alias2url.update({alias: url})
-            self.alias2locator.update({alias: sample})
+            while True:
+                with suppress(IndexError):
+                    url = re.split(r'[(")]', image_style)[2]
+                    self.alias2url.update({alias: url})
+                    self.alias2locator.update({alias: sample})
+                    break
+                sample.page.wait_for_timeout(100)
 
     def challenge(self, frame_challenge: FrameLocator, model):
         ta = []
@@ -285,12 +257,13 @@ class ArmorKnight(solver.HolyChallenger):
             # [👻] 識別|點擊|提交
             self.challenge(frame_challenge, model=model)
             # [👻] 輪詢控制臺響應
-            result, message = self.challenge_success(
-                page, frame_challenge, window=window, init=not i, hook_url=recur_url
-            )
-            self.log("获取响应", desc=f"{message}({result})")
-            if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:
-                return result
+            with suppress(TypeError):
+                result, message = self.challenge_success(
+                    page, frame_challenge, window=window, init=not i, hook_url=recur_url
+                )
+                self.log("获取响应", desc=f"{message}({result})")
+                if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:
+                    return result
 
 
 class AssertUtils:
@@ -336,12 +309,6 @@ class AssertUtils:
                     page.click("//span[text()='继续']/parent::button")
                     return True
             return False
-
-    @staticmethod
-    def payment_blocked(page: Page) -> typing.NoReturn:
-        """判断游戏锁区
-        webPurchaseContainer >> //h2[@class='payment-blocked__msg']
-        """
 
     @staticmethod
     def purchase_status(
@@ -411,29 +378,25 @@ class AssertUtils:
     @staticmethod
     def unreal_surprise_license(page: Page):
         with suppress(NinjaTimeout):
-            page.click("//span[text()='我已阅读并同意《最终用户许可协议》']", timeout=5000)
+            page.click("//span[text()='我已阅读并同意《最终用户许可协议》']", timeout=2000)
             page.click("//span[text()='接受']")
+            logger.info("处理首次下单的许可协议")
 
 
 class EpicAwesomeGamer:
     """白嫖人的基础设施"""
 
     # 操作对象参数
-    URL_MASTER_HOST = "https://store.epicgames.com"
-    URL_LOGIN_GAMES = "https://www.epicgames.com/id/login/epic?lang=zh-CN"
     URL_ACCOUNT_PERSONAL = "https://www.epicgames.com/account/personal"
+    URL_FREE_GAMES = "https://store.epicgames.com/zh-CN/free-games"
 
     # 购物车结算成功
     URL_CART_SUCCESS = "https://store.epicgames.com/zh-CN/cart/success"
 
-    URL_LOGIN_UNREAL = "https://www.unrealengine.com/id/login/epic?lang=zh-CN"
     URL_UNREAL_STORE = "https://www.unrealengine.com/marketplace/zh-CN/assets"
     URL_UNREAL_MONTH = (
         f"{URL_UNREAL_STORE}?count=20&sortBy=effectiveDate&sortDir=DESC&start=0&tag=4910"
     )
-
-    AUTH_STR_GAMES = "games"
-    AUTH_STR_UNREAL = "unreal"
 
     CLAIM_MODE_ADD = "add"
     CLAIM_MODE_GET = "get"
@@ -473,10 +436,11 @@ class EpicAwesomeGamer:
         """
 
         def fall_in_captcha_runtime():
-            if window == "free":
-                fl = page.frame_locator(ArmorKnight.HOOK_PURCHASE)
-                return fl.locator(ArmorKnight.HOOK_CHALLENGE).is_visible()
-            return page.locator(ArmorKnight.HOOK_PURCHASE).is_visible()
+            with suppress(NinjaError):
+                if window == "free":
+                    fl = page.frame_locator(ArmorKnight.HOOK_PURCHASE)
+                    return fl.locator(ArmorKnight.HOOK_CHALLENGE).is_visible()
+                return page.locator(ArmorKnight.HOOK_PURCHASE).is_visible()
 
         if fall_in_captcha_runtime():
             with suppress(ChallengePassed):
@@ -513,27 +477,33 @@ class EpicAwesomeGamer:
         with open(f"{_finger}.mhtml", "w", newline="", encoding="utf8") as file:
             file.write(page.content())
 
-    def login(self, email: str, password: str, page: Page, auth_mode: str):
+    def login(self, email: str, password: str, page: Page, auth_str: str):
         """作为被动方式，登陆账号，刷新 identity token"""
-        if auth_mode == "games":
-            url_claim = "https://store.epicgames.com/zh-CN/free-games"
+        logger.info(f">> MATCH [{self.action_name}] 刷新令牌")
+        if auth_str == "games":
+            url_claim = self.URL_FREE_GAMES
             url_login = f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={url_claim}"
             try:
                 page.goto(url_claim)
             except NinjaTimeout:
                 page.reload(wait_until="domcontentloaded")
-            sign_text = page.locator("//span[contains(@class, 'sign-text')]").text_content()
-            if sign_text != "登录":
-                logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
-                return ArmorUtils.AUTH_SUCCESS
+            with suppress(NinjaTimeout):
+                sign_text = page.locator("//span[contains(@class, 'sign-text')]").text_content()
+                if sign_text != "登录":
+                    logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
+                    return ArmorUtils.AUTH_SUCCESS
         else:
-            url_claim = "https://www.unrealengine.com/marketplace/zh-CN/assets"
+            url_claim = self.URL_UNREAL_MONTH
             url_login = f"https://www.unrealengine.com/id/login?lang=zh_CN&redirectUrl={url_claim}"
-            page.goto(url_claim)
-            sign_text = page.locator("//span[contains(@class, 'user-label')]").text_content()
-            if sign_text != "登录":
-                logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
-                return ArmorUtils.AUTH_SUCCESS
+            try:
+                page.goto(url_claim)
+            except NinjaTimeout:
+                page.reload(wait_until="domcontentloaded")
+            with suppress(NinjaTimeout):
+                sign_text = page.locator("//span[contains(@class, 'user-label')]").text_content()
+                if sign_text != "登录":
+                    logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
+                    return ArmorUtils.AUTH_SUCCESS
 
         page.goto(url_login, wait_until="domcontentloaded")
         page.click("#login-with-epic")
@@ -541,7 +511,6 @@ class EpicAwesomeGamer:
         page.type("#password", password)
         page.click("#sign-in")
         logger.info(f">> MATCH [{self.action_name}] 实体信息注入完毕")
-        return url_claim
 
     @staticmethod
     def cart_is_empty(page: Page):
@@ -576,7 +545,7 @@ class EpicAwesomeGamer:
             self.assert_.refund_info(page)  # cart_handle_payment
             if not self.cart_success(page):
                 logger.debug("[⚔] 捕获隐藏在订单中的人机挑战...")
-                self._duel_with_challenge(page)
+                self._duel_with_challenge(page)  # cart_handle_payment
             logger.debug("[🌀] 弹出内联订单框架...")
             return True
 
@@ -637,7 +606,7 @@ class EpicAwesomeGamer:
 class CookieManager(EpicAwesomeGamer):
     """管理上下文身份令牌"""
 
-    def __init__(self, auth_str, email, password):
+    def __init__(self, auth_str: typing.Literal["games", "unreal"], email: str, password: str):
         super().__init__(email=email, password=password)
 
         self.action_name = "CookieManager"
@@ -694,20 +663,21 @@ class CookieManager(EpicAwesomeGamer):
                 "proxies": getproxies(),
                 "allow_redirects": False,
             }
-            scraper = cloudscraper.create_scraper()
-            response = scraper.get(self.URL_ACCOUNT_PERSONAL, **_kwargs)
+            response = requests.get(self.URL_ACCOUNT_PERSONAL, **_kwargs)
             return response.status_code == 200
         return False
 
     def refresh_ctx_cookies(self, context: BrowserContext) -> typing.Optional[bool]:
         """更新上下文身份信息，若认证数据过期则弹出 login 任务更新令牌。"""
         logger.info(">> MATCH [__context__] 🎮启动挑战者上下文")
+        recur_url = self.URL_FREE_GAMES if self.auth_str == "games" else self.URL_UNREAL_MONTH
+
         page = context.new_page()
         balance_operator = -1
         while balance_operator < 8:
             balance_operator += 1
             # Enter the account information and jump to the man-machine challenge page.
-            result = self.login(self.email, self.password, page=page, auth_mode=self.auth_str)
+            result = self.login(self.email, self.password, page=page, auth_str=self.auth_str)
             # Assert if you are caught in a man-machine challenge.
             if result not in [ArmorUtils.AUTH_SUCCESS]:
                 result = ArmorUtils.fall_in_captcha_login(page)
@@ -716,7 +686,6 @@ class CookieManager(EpicAwesomeGamer):
                 return True
             # Winter is coming, so hear me roar!
             elif result == ArmorUtils.AUTH_CHALLENGE:
-                recur_url = "https://store.epicgames.com/zh-CN/free-games"
                 resp = self.armor.anti_hcaptcha(page, window="login", recur_url=recur_url)
                 if resp == self.armor.CHALLENGE_SUCCESS:
                     return True

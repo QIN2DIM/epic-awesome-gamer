@@ -8,15 +8,15 @@ import typing
 from contextlib import suppress
 
 from loguru import logger
-from playwright.sync_api import Page, BrowserContext
 from playwright.sync_api import Error as NinjaException
+from playwright.sync_api import Page, BrowserContext
 
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.explorer.core import Game
 from services.explorer.explorer import PermissionsHistory
 from services.settings import config, DIR_EXPLORER
-from services.utils.ninja import fire
 from services.utils.pusher import MessageBody, MessagePusher
+from services.utils.toolbox import fire
 
 
 class IReallyWantToStayAtYourHouse:

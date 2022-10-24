@@ -11,7 +11,7 @@ from json.decoder import JSONDecodeError
 from os.path import isfile, getmtime
 from urllib.request import getproxies
 
-import cloudscraper
+import requests
 import yaml
 from loguru import logger
 from playwright.sync_api import Page
@@ -67,8 +67,7 @@ class Explorer:
             "Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.36"
         }
         params = {"locale": "zh-CN"}
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(self.URL_PROMOTIONS, params=params, headers=headers)
+        response = requests.get(self.URL_PROMOTIONS, params=params, headers=headers)
 
         try:
             data = response.json()
@@ -121,8 +120,7 @@ class Explorer:
             "proxies": getproxies(),
         }
         try:
-            scraper = cloudscraper.create_scraper()
-            resp = scraper.get(self.URL_ORDER_HISTORY, **_kwargs)
+            resp = requests.get(self.URL_ORDER_HISTORY, **_kwargs)
             if resp.status_code != 200:
                 raise RequestException("Failed to get order history, cookie may have expired")
         except RequestException as err:

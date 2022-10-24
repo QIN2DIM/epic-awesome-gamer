@@ -12,7 +12,6 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 import apprise
-import pytz
 
 
 @dataclass
@@ -154,4 +153,4 @@ class MessagePusher:
 
 
 def date_format_now() -> str:
-    return str(datetime.now(pytz.timezone("Asia/Shanghai"))).split(".", maxsplit=1)[0]
+    return str(datetime.now()).split(".", maxsplit=1)[0]

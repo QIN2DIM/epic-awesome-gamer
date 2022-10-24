@@ -5,8 +5,8 @@
 # Description:
 import typing
 
+import requests
 from bs4 import BeautifulSoup
-from cloudscraper import create_scraper
 from loguru import logger
 from playwright.sync_api import Page
 
@@ -32,17 +32,14 @@ class UnrealClaimer(EpicAwesomeGamer):
         super().__init__(email=email, password=password)
         self.result = ""
         self.action_name = "UnrealClaimer"
-        self.cookie_manager = CookieManager(
-            auth_str=self.AUTH_STR_UNREAL, email=email, password=password
-        )
+        self.cookie_manager = CookieManager(auth_str="unreal", email=email, password=password)
 
     def get_promotions(
         self, ctx_cookies: typing.List[dict]
     ) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """领取任务后审查资源的在库状态"""
         headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
-        scraper = create_scraper()
-        response = scraper.get(self.URL_FREE_FOR_THE_MONTH, headers=headers, allow_redirects=False)
+        response = requests.get(self.URL_FREE_FOR_THE_MONTH, headers=headers, allow_redirects=False)
 
         if response.status_code != 200:
             logger.error(f">> SKIP [{self.action_name}] 身份令牌已过期，无法获取有效的月供内容在库状态")
@@ -81,6 +78,3 @@ class UnrealClaimer(EpicAwesomeGamer):
                 self.unreal_handle_payment(page)
             elif self.result in (self.assert_.GAME_OK, self.assert_.GAME_CLAIM):
                 break
-
-    def empower_unreal_claimer(self, page: Page):
-        self.get_free_content(page)

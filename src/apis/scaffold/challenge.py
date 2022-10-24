@@ -7,7 +7,7 @@ from loguru import logger
 
 from services.bricklayer.game import GameClaimer
 from services.settings import config
-from services.utils.ninja import fire
+from services.utils.toolbox import fire
 
 
 def check_token():

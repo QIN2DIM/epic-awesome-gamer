@@ -4,9 +4,13 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import sys
+import typing
 from typing import List, Union, Dict
 
 from loguru import logger
+from playwright.sync_api import BrowserContext as SyncContext
+from playwright.sync_api import sync_playwright
+from undetected_playwright import stealth_sync
 
 
 class ToolBox:
@@ -60,3 +64,14 @@ def init_log(**sink_path):
             diagnose=False,
         )
     return logger
+
+
+def fire(container: typing.Callable[[SyncContext], None], path_state: str, user_data_dir: str):
+    with sync_playwright() as p:
+        context = p.chromium.launch_persistent_context(
+            user_data_dir=user_data_dir, headless=False, locale="zh-CN"
+        )
+        stealth_sync(context)
+        container(context)
+        context.storage_state(path=path_state)
+        context.close()
