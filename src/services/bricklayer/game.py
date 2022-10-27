@@ -25,6 +25,7 @@ class GameClaimer(EpicAwesomeGamer):
         self.result = ""
         self.silence = True if silence is None else silence
         self.promotion2result = self.promotion2result or {}
+        self.promotion_url2state = {}
 
         if claim_mode not in [self.CLAIM_MODE_ADD, self.CLAIM_MODE_GET]:
             self.claim_mode = self.CLAIM_MODE_ADD
@@ -102,6 +103,7 @@ class GameClaimer(EpicAwesomeGamer):
                 init=not i,
             )
             # 当游戏不处于 待认领 状态时跳过后续业务
+            self.promotion_url2state[page_link] = self.result
             if self.result != self.assert_.GAME_PENDING:
                 # <游戏状态断言超时>或<检测到异常的实体对象>
                 # 在超时阈值内尝试重新拉起服务

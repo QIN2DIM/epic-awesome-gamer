@@ -418,6 +418,10 @@ class EpicAwesomeGamer:
         self.armor = self.armor or ArmorKnight(debug=True, screenshot=False)
         self.assert_ = AssertUtils()
 
+    @property
+    def utils(self):
+        return self.assert_
+
     # ======================================================
     # Reused Action Chains
     # ======================================================

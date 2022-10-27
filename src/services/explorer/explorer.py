@@ -54,6 +54,19 @@ class Explorer:
     def promotion_detailed(self):
         return self._promotion_detailed
 
+    def get_free_now(self, page: Page):
+        """获取准确的周免游戏数据"""
+        promotions = self.get_promotions()
+        page.goto("https://store.epicgames.com/zh-CN/", wait_until="domcontentloaded")
+        free_games = page.locator("//a[contains(@aria-label,'现在免费')]")
+        free_games.last.wait_for()
+        hrefs = {
+            "https://store.epicgames.com" + free_games.nth(i).get_attribute("href")
+            for i in range(free_games.count())
+        }
+        promotions = [promotion for promotion in promotions if promotion["url"] in hrefs]
+        return promotions
+
     def get_promotions(self) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """
         获取周免游戏数据
@@ -78,18 +91,20 @@ class Explorer:
             promotions = [e for e in elements if e.get("promotions")]
             # 获取商城促销数据&&获取<本周免费>的游戏对象
             for promotion in promotions:
-                if promotion["promotions"]["promotionalOffers"]:
-                    image_url = ""
+                if offer := promotion["promotions"]["promotionalOffers"]:
+                    # 去除打折了但只打一点点的商品
+                    with suppress(KeyError, IndexError):
+                        offer = offer[0]["promotionalOffers"][0]
+                        if offer["discountSetting"]["discountPercentage"]:
+                            continue
                     try:
                         query = promotion["catalogNs"]["mappings"][0]["pageSlug"]
                         url = self.URL_PRODUCT_PAGE + query
                     except IndexError:
                         url = self.URL_PRODUCT_PAGE + promotion["productSlug"]
-                    try:
+                    with suppress(KeyError, IndexError, AttributeError):
                         image_url = promotion["keyImages"][-1]["url"]
                         self.cdn_image_urls.append(image_url)
-                    except (KeyError, IndexError, AttributeError):
-                        pass
                     # Implement Promotion Interface
                     self._promotion_detailed.append(
                         {

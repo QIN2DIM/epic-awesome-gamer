@@ -329,6 +329,11 @@ class GameClaimerInstance(BaseInstance):
             self.task_queue_pending.put(promotion)
 
     def just_do_it(self):
+        def recur_order_history(state: str, promotion: Promotion):
+            if state in [self.bricklayer.utils.GAME_OK, self.bricklayer.utils.GAME_CLAIM]:
+                self.ph.namespaces.add(promotion.namespace)
+                self.ph.save_order_history()
+
         def run(context: BrowserContext):
             page = context.new_page()
             # CLAIM_MODE_ADD 将未领取的促销实体逐项移至购物车后一并处理
@@ -340,6 +345,8 @@ class GameClaimerInstance(BaseInstance):
                 promotion = self.task_queue_worker.get()
                 self.bricklayer.promotion2result[promotion.url] = promotion.title
                 empower_games_claimer(self.bricklayer, promotion.url, page)
+                state = self.bricklayer.promotion_url2state.get(promotion.url, "")
+                recur_order_history(state, promotion)
                 self._push_pending_message(result=self.in_library, promotion=promotion)
             self.bricklayer.empty_shopping_payment(page)
 
