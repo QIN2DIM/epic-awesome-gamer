@@ -4,9 +4,11 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import typing
+from contextlib import suppress
 
 from loguru import logger
 from playwright.sync_api import Page
+from playwright.sync_api import TimeoutError as NinjaTimeout
 
 from .core import EpicAwesomeGamer, CookieManager
 from .exceptions import AuthException, UnableToGet
@@ -69,9 +71,10 @@ class GameClaimer(EpicAwesomeGamer):
         logger.debug(f">> REMOVE [{self.action_name}] 将购物车商品移至愿望清单")
         page.goto(self.URL_GAME_CART)
         move_buttons = page.locator("//span[text()='移至愿望清单']")
-        count = move_buttons.count()
-        for i in range(count):
-            move_buttons.nth(i).click()
+        with suppress(NinjaTimeout):
+            move_buttons.last.wait_for(timeout=2000)
+        for i in range(move_buttons.count()):
+            move_buttons.nth(i).click(delay=200)
 
     def empty_shopping_payment(self, page: Page):
         """清空购物车"""

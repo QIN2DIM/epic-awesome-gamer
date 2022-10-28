@@ -9,10 +9,8 @@ import sys
 import time
 import typing
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 from queue import Queue
 
-import pytz
 from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -61,7 +59,6 @@ class ClaimerScheduler:
         self, silence: typing.Optional[bool] = None, unreal: typing.Optional[bool] = False
     ):
         self.action_name = "AwesomeScheduler"
-        self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(days=360)
         self.silence = silence
         self.unreal = unreal
 
@@ -82,7 +79,6 @@ class ClaimerScheduler:
                 hour="0",
                 minute=f"{jitter_minute[0]},{jitter_minute[-1]}",
                 timezone="Asia/Shanghai",
-                end_date=self.end_date,
                 jitter=15,
             ),
             id=self._job_id,
@@ -140,7 +136,7 @@ class BaseInstance:
         # 任务队列 按顺缓存周免游戏及其免费附加内容的认领任务
         self.promotions = Promotions()
         self.task_queue_pending = Queue()
-        self.task_queue_worker = Queue()
+        self.task_sequence_worker = []
         # 消息队列 按序缓存认领任务的执行状态
         self.pusher_settings = config.message_pusher
         self.message_queue = MessageQueue()
@@ -163,10 +159,11 @@ class BaseInstance:
         manager = self.bricklayer.cookie_manager
         if not manager.has_available_token:
             try:
-                fire(
+                fire(  # token
                     container=manager.refresh_ctx_cookies,
                     path_state=manager.path_ctx_cookies,
                     user_data_dir=manager.user_data_dir,
+                    iframe_content_window=True,
                 )
             except NinjaException as err:
                 self._bad_omen(str(err))
@@ -227,7 +224,7 @@ class BaseInstance:
 
     def is_pending(self) -> typing.Optional[bool]:
         """是否可发起驱动任务 True:执行 False/None:结束"""
-        return (not self.task_queue_worker.empty()) and self._ctx_cookies
+        return self.task_sequence_worker and self._ctx_cookies
 
     def promotions_filter(self):
         """
@@ -259,7 +256,7 @@ class BaseInstance:
                 self._push_pending_message(result=self.in_library, promotion=promotion)
             # 待领取资源 将实例移动至 worker 分治队列
             else:
-                self.task_queue_worker.put(promotion)
+                self.task_sequence_worker.append(promotion)
                 logger.debug(
                     f">> STARTUP [{self.action_name}] 🍜 发现{self.tag} - "
                     f"game=『{promotion.title}』 url={promotion.url}"
@@ -332,23 +329,24 @@ class GameClaimerInstance(BaseInstance):
         def recur_order_history(state: str, promotion: Promotion):
             if state in [self.bricklayer.utils.GAME_OK, self.bricklayer.utils.GAME_CLAIM]:
                 self.ph.namespaces.add(promotion.namespace)
+                self.task_sequence_worker.remove(promotion)
                 self.ph.save_order_history()
 
-        def run(context: BrowserContext):
+        def run(context: BrowserContext, trigger=0):
             page = context.new_page()
             # CLAIM_MODE_ADD 将未领取的促销实体逐项移至购物车后一并处理
             self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
             # 在任务发起前将购物车内商品移至愿望清单
-            self.bricklayer.cart_balancing(page)
+            not trigger and self.bricklayer.cart_balancing(page)  # skipcq: PYL-W0106
             # 当存在待处理任务时启动 Bricklayer
-            while not self.task_queue_worker.empty():
-                promotion = self.task_queue_worker.get()
+            for promotion in self.task_sequence_worker:
                 self.bricklayer.promotion2result[promotion.url] = promotion.title
                 empower_games_claimer(self.bricklayer, promotion.url, page)
-                state = self.bricklayer.promotion_url2state.get(promotion.url, "")
+                state = self.bricklayer.promotion_url2state.get(promotion.url)
                 recur_order_history(state, promotion)
-                self._push_pending_message(result=self.in_library, promotion=promotion)
+                trigger and self._push_pending_message(result=state, promotion=promotion)  # skipcq: PYL-W0106
             self.bricklayer.empty_shopping_payment(page)
+            not trigger and run(context, trigger + 1)  # skipcq: PYL-W0106
 
         super().just_do_it()
         if self.is_pending():
@@ -380,8 +378,7 @@ class UnrealClaimerInstance(BaseInstance):
         def run(context: BrowserContext):
             self.bricklayer.get_free_content(page=context.new_page())
             # 将无效的任务缓存出队
-            while not self.task_queue_worker.empty():
-                promotion = self.task_queue_worker.get()
+            for promotion in self.task_sequence_worker:
                 self._push_pending_message(result=self.in_library, promotion=promotion)
 
         super().just_do_it()

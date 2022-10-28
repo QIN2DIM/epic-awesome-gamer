@@ -10,7 +10,7 @@ from typing import List, Union, Dict
 from loguru import logger
 from playwright.sync_api import BrowserContext as SyncContext
 from playwright.sync_api import sync_playwright
-from undetected_playwright import stealth_sync
+from undetected_playwright import stealth_sync, StealthConfig
 
 
 class ToolBox:
@@ -66,12 +66,18 @@ def init_log(**sink_path):
     return logger
 
 
-def fire(container: typing.Callable[[SyncContext], None], path_state: str, user_data_dir: str):
+def fire(
+    container: typing.Callable[[SyncContext], None],
+    path_state: str,
+    user_data_dir: str,
+    iframe_content_window: typing.Optional[bool] = False,
+):
+    config = StealthConfig(iframe_content_window=iframe_content_window)
     with sync_playwright() as p:
         context = p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir, headless=False, locale="zh-CN"
         )
-        stealth_sync(context)
+        stealth_sync(context, config)
         container(context)
         context.storage_state(path=path_state)
         context.close()
