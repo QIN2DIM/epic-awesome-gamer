@@ -336,18 +336,17 @@ class GameClaimerInstance(BaseInstance):
             page = context.new_page()
             # CLAIM_MODE_ADD 将未领取的促销实体逐项移至购物车后一并处理
             self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
-            # skipcq: PYL-W0106
             # 在任务发起前将购物车内商品移至愿望清单
-            not trigger and self.bricklayer.cart_balancing(page)
+            not trigger and self.bricklayer.cart_balancing(page)  # skipcq: PYL-W0106
             # 当存在待处理任务时启动 Bricklayer
             for promotion in self.task_sequence_worker:
                 self.bricklayer.promotion2result[promotion.url] = promotion.title
                 empower_games_claimer(self.bricklayer, promotion.url, page)
                 state = self.bricklayer.promotion_url2state.get(promotion.url)
                 recur_order_history(state, promotion)
-                trigger and self._push_pending_message(result=state, promotion=promotion)
+                trigger and self._push_pending_message(result=state, promotion=promotion)  # skipcq: PYL-W0106
             self.bricklayer.empty_shopping_payment(page)
-            not trigger and run(context, trigger + 1)
+            not trigger and run(context, trigger + 1)  # skipcq: PYL-W0106
 
         super().just_do_it()
         if self.is_pending():
