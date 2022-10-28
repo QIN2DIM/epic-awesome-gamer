@@ -125,7 +125,10 @@ class ArmorKnight(solver.HolyChallenger):
             result = model.solution(img_stream=data, label=self.label_alias[self.label])
             ta.append(time.time() - t0)
             if result:
-                self.alias2locator[alias].click(delay=100)
+                try:
+                    self.alias2locator[alias].click(delay=100)
+                except NinjaTimeout:
+                    return
 
         # Check result of the challenge.
         if self.screenshot:
@@ -133,9 +136,11 @@ class ArmorKnight(solver.HolyChallenger):
         #     self.captcha_screenshot(ctx, name_screenshot=_filename)
 
         # {{< SUBMIT ANSWER >}}
-        frame_challenge.locator("//div[@class='button-submit button']").click(delay=1000)
-
-        self.log(message=f"Submit the challenge - {model.flag}: {round(sum(ta), 2)}s")
+        with suppress(NinjaTimeout):
+            frame_challenge.locator("//div[@class='button-submit button']").click(
+                delay=1000, timeout=5000
+            )
+            self.log(message=f"Submit the challenge - {model.flag}: {round(sum(ta), 2)}s")
 
     def challenge_success(
         self,
@@ -250,6 +255,8 @@ class ArmorKnight(solver.HolyChallenger):
             self.download_images()
             # [👻] 滤除无法处理的挑战类别
             if not self.label_alias.get(self.label):
+                path = f"datas/temp_cache/captcha_screenshot/{int(time.time())}.{self.label}.png"
+                page.screenshot(path=path)
                 return self.CHALLENGE_BACKCALL
             # [👻] 注册解决方案
             # 根据挑战类型自动匹配不同的模型
@@ -264,6 +271,7 @@ class ArmorKnight(solver.HolyChallenger):
                 self.log("获取响应", desc=f"{message}({result})")
                 if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:
                     return result
+                page.wait_for_timeout(2000)
 
 
 class AssertUtils:
@@ -279,6 +287,7 @@ class AssertUtils:
     GAME_NOT_FREE = "🦽 付费游戏"
     GAME_LIMIT = "👻 地區限制"
     ONE_MORE_STEP = "🥊 进位挑战"
+    GAME_FAILED = "🦄 领取失败"
 
     @staticmethod
     def surprise_license(page: Page) -> typing.Optional[bool]:
@@ -459,7 +468,9 @@ class EpicAwesomeGamer:
     def _activate_payment(self, page: Page, mode: str) -> typing.Optional[bool]:
         """激活游戏订单"""
         if mode == self.CLAIM_MODE_ADD:
-            page.click("//button[@data-testid='add-to-cart-cta-button']", timeout=5000)
+            with suppress(TimeoutError):
+                page.wait_for_load_state(state="networkidle")
+            page.locator("//button[@data-testid='add-to-cart-cta-button']").first.click()
             logger.info("[🔖] 已添加商品至购物车")
         elif mode == self.ACTIVE_BINGO:
             if page.locator("//span[text()='移至愿望清单']").first.is_visible():
@@ -509,11 +520,11 @@ class EpicAwesomeGamer:
                     logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
                     return ArmorUtils.AUTH_SUCCESS
 
-        page.goto(url_login, wait_until="domcontentloaded")
-        page.click("#login-with-epic")
-        page.type("#email", email)
-        page.type("#password", password)
-        page.click("#sign-in")
+        page.goto(url_login, wait_until="networkidle")
+        page.click("#login-with-epic", delay=200)
+        page.type("#email", email, delay=100)
+        page.type("#password", password, delay=110)
+        page.click("#sign-in", delay=200)
         logger.info(f">> MATCH [{self.action_name}] 实体信息注入完毕")
 
     @staticmethod
