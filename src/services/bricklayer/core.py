@@ -496,10 +496,12 @@ class EpicAwesomeGamer:
         """作为被动方式，登陆账号，刷新 identity token"""
         logger.info(f">> MATCH [{self.action_name}] 刷新令牌")
         if auth_str == "games":
+            url_store = "https://store.epicgames.com/zh-CN/"
             url_claim = self.URL_FREE_GAMES
             url_login = f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={url_claim}"
             try:
-                page.goto(url_claim)
+                page.goto(url_store, wait_until="networkidle")
+                page.goto(url_claim, wait_until="domcontentloaded")
             except NinjaTimeout:
                 page.reload(wait_until="domcontentloaded")
             with suppress(NinjaTimeout):
