@@ -9,10 +9,8 @@ import sys
 import time
 import typing
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 from queue import Queue
 
-import pytz
 from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -61,7 +59,6 @@ class ClaimerScheduler:
         self, silence: typing.Optional[bool] = None, unreal: typing.Optional[bool] = False
     ):
         self.action_name = "AwesomeScheduler"
-        self.end_date = datetime.now(pytz.timezone("Asia/Shanghai")) + timedelta(days=360)
         self.silence = silence
         self.unreal = unreal
 
@@ -82,7 +79,6 @@ class ClaimerScheduler:
                 hour="0",
                 minute=f"{jitter_minute[0]},{jitter_minute[-1]}",
                 timezone="Asia/Shanghai",
-                end_date=self.end_date,
                 jitter=15,
             ),
             id=self._job_id,
@@ -336,6 +332,7 @@ class GameClaimerInstance(BaseInstance):
                 self.task_sequence_worker.remove(promotion)
                 self.ph.save_order_history()
 
+        # skipcq: PYL-W0106
         def run(context: BrowserContext, trigger=0):
             page = context.new_page()
             # CLAIM_MODE_ADD 将未领取的促销实体逐项移至购物车后一并处理
