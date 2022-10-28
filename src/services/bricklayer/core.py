@@ -500,7 +500,7 @@ class EpicAwesomeGamer:
             url_claim = self.URL_FREE_GAMES
             url_login = f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={url_claim}"
             try:
-                page.goto(url_store, wait_until="networkidle")
+                page.goto(url_store, wait_until="domcontentloaded")
                 page.goto(url_claim, wait_until="domcontentloaded")
             except NinjaTimeout:
                 page.reload(wait_until="domcontentloaded")
