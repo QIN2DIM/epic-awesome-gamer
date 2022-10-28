@@ -363,7 +363,7 @@ class AssertUtils:
             return AssertUtils.GAME_OK if init else AssertUtils.GAME_CLAIM
         if "获取" in purchase_msg:
             try:
-                deadline = page.text_content("//span[contains(text(),'优惠截止于')]", timeout=0)
+                deadline = page.text_content("//span[contains(text(),'优惠截止于')]", timeout=500)
             except NinjaTimeout:
                 deadline = ""
             if init:
