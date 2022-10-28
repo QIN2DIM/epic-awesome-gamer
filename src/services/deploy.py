@@ -325,6 +325,7 @@ class GameClaimerInstance(BaseInstance):
             promotion.in_library = promotion.namespace in order_history
             self.task_queue_pending.put(promotion)
 
+    # skipcq: PYL-W0106
     def just_do_it(self):
         def recur_order_history(state: str, promotion: Promotion):
             if state in [self.bricklayer.utils.GAME_OK, self.bricklayer.utils.GAME_CLAIM]:
@@ -332,7 +333,6 @@ class GameClaimerInstance(BaseInstance):
                 self.task_sequence_worker.remove(promotion)
                 self.ph.save_order_history()
 
-        # skipcq: PYL-W0106
         def run(context: BrowserContext, trigger=0):
             page = context.new_page()
             # CLAIM_MODE_ADD 将未领取的促销实体逐项移至购物车后一并处理
