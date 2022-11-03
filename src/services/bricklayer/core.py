@@ -79,7 +79,7 @@ class ArmorKnight(solver.HolyChallenger):
     def get_label(self, frame_challenge: FrameLocator):
         try:
             self.prompt = frame_challenge.locator("//h2[@class='prompt-text']").text_content(
-                timeout=5000
+                timeout=10000
             )
         except NinjaTimeout:
             raise ChallengePassed("Man-machine challenge unexpectedly passed")
@@ -439,6 +439,8 @@ class EpicAwesomeGamer:
     def _click_order_button(page: Page) -> typing.Optional[bool]:
         fl = page.frame_locator(ArmorKnight.HOOK_PURCHASE)
         payment_btn = fl.locator("//button[contains(@class,'payment-btn')]")
+        with suppress(NinjaTimeout):
+            page.click("#onetrust-accept-btn-handler", timeout=2000)
         payment_btn.click()
         return True
 
@@ -468,7 +470,7 @@ class EpicAwesomeGamer:
     def _activate_payment(self, page: Page, mode: str) -> typing.Optional[bool]:
         """激活游戏订单"""
         if mode == self.CLAIM_MODE_ADD:
-            with suppress(TimeoutError):
+            with suppress(NinjaTimeout):
                 page.wait_for_load_state(state="networkidle")
             page.locator("//button[@data-testid='add-to-cart-cta-button']").first.click()
             logger.info("[🔖] 已添加商品至购物车")
@@ -477,8 +479,9 @@ class EpicAwesomeGamer:
                 page.click("//span[text()='下单']/parent::button")
                 logger.info("[🔖] 已激活购物车零元购订单")
         elif mode == self.CLAIM_MODE_GET:
-            page.click("//button[@data-testid='purchase-cta-button']", timeout=5000)
-            logger.info("[🔖] 已激活商品页零元购订单")
+            with suppress(NinjaTimeout):
+                page.click("//button[@data-testid='purchase-cta-button']")
+                logger.info("[🔖] 已激活商品页零元购订单")
 
         # self.assert_.surprise_warning_purchase(page)
         # except UnableToGet, ElementClickInterceptedException
