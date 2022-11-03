@@ -33,7 +33,6 @@ if os.getenv("RUNNER_TOOL_CACHE"):
     try:
         if requests.get(_uxo).status_code != 404:
             raise requests.RequestException
-        print("private!!!!!!!!!")
     except requests.RequestException:
         print(
             "[Warning] 禁止在 fork 分支上运行工作流，请创建私有工作流。\n"
