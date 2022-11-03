@@ -18,9 +18,25 @@
 # ====================================================================================================
 """
 import os
+import random
 import sys
+
+import requests
 
 for policy in ["epic", "claim"]:
     if policy in os.getenv("GITHUB_REPOSITORY", "").lower():
         print(f"[EXIT] 仓库名出现非法关键词 `{policy}`")
         sys.exit()
+
+if os.getenv("RUNNER_TOOL_CACHE"):
+    _uxo = f"https://github.com/{os.getenv('GITHUB_REPOSITORY', '')}"
+    try:
+        if requests.get(_uxo).status_code != 404:
+            raise requests.RequestException
+    except requests.RequestException:
+        print(
+            "[Warning] 禁止在 fork 分支上运行工作流，请创建私有工作流。\n"
+            "详见 https://github.com/QIN2DIM/epic-awesome-gamer/issues/24"
+        )
+        if random.uniform(0, 1) > 0.15:
+            sys.exit()
