@@ -21,7 +21,7 @@ from playwright.sync_api import Error as NinjaException
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.bricklayer.unreal import UnrealClaimer
 from services.explorer.explorer import Explorer, PermissionsHistory
-from services.settings import config, DIR_EXPLORER
+from services.settings import config, DIR_EXPLORER, __version__
 from services.utils.pusher import MessagePusher, MessageBody, MessageQueue
 from services.utils.toolbox import fire
 
@@ -101,12 +101,14 @@ class ClaimerScheduler:
 
     def job_loop_claim(self, log_ignore: typing.Optional[bool] = False):
         """wrap function for claimer instance"""
-        logger.info(f">> STARTUP [{self.action_name}] SynergyTunnel Pattern: False")
+        logger.info(
+            f">> STARTUP [{self.action_name}] SynergyTunnel - version={__version__} Pattern=False"
+        )
         if self.unreal:
             with UnrealClaimerInstance(self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
         else:
-            with GameClaimerInstance(self.silence, log_ignore=log_ignore) as claimer:
+            with GameClaimerInstanceV2(self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
 
 
@@ -142,8 +144,8 @@ class BaseInstance:
         self.message_queue = MessageQueue()
         self.inline_docker: typing.List[MessageBody] = []
         # 资源在库状态简写
-        self.in_library = self.bricklayer.assert_.GAME_OK
-        self.claimed = self.bricklayer.assert_.GAME_CLAIM
+        self.in_library = self.bricklayer.assert_util.GAME_OK
+        self.claimed = self.bricklayer.assert_util.GAME_CLAIM
         # 增加日志可读性
         if "game" in self.action_name.lower():
             self.tag = "周免游戏"
@@ -160,7 +162,7 @@ class BaseInstance:
         if not manager.has_available_token:
             try:
                 fire(  # token
-                    container=manager.refresh_ctx_cookies,
+                    containers=manager.refresh_ctx_cookies,
                     path_state=manager.path_ctx_cookies,
                     user_data_dir=manager.user_data_dir,
                     iframe_content_window=True,
@@ -288,12 +290,12 @@ class GameClaimerInstance(BaseInstance):
     def __init__(self, silence: bool, log_ignore: typing.Optional[bool] = False):
         super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer")
         self.explorer = Explorer()
-        self.dir_hook = DIR_EXPLORER
 
+        # Pending order history
+        self.dir_hook = DIR_EXPLORER
         suffix = self.bricklayer.cookie_manager.hash
         self.path_ctx_store = os.path.join(self.dir_hook, f"ctx_store_{suffix}.yaml")
         self.path_order_history = os.path.join(self.dir_hook, f"order_history_{suffix}.yaml")
-
         self.ph = PermissionsHistory(
             dir_hook=self.dir_hook,
             ctx_cookies=self._ctx_cookies,
@@ -334,27 +336,76 @@ class GameClaimerInstance(BaseInstance):
 
         def run(context: BrowserContext, trigger=0):
             page = context.new_page()
-            # CLAIM_MODE_ADD 将未领取的促销实体逐项移至购物车后一并处理
-            self.bricklayer.claim_mode = self.bricklayer.CLAIM_MODE_ADD
             # 在任务发起前将购物车内商品移至愿望清单
             not trigger and self.bricklayer.cart_balancing(page)  # skipcq: PYL-W0106
             # 当存在待处理任务时启动 Bricklayer
             for promotion in self.task_sequence_worker:
-                self.bricklayer.promotion2result[promotion.url] = promotion.title
-                empower_games_claimer(self.bricklayer, promotion.url, page)
+                self.bricklayer.promotion_url2title[promotion.url] = promotion.title
+                empower_games_claimer(self.bricklayer, promotion.url, page, pattern="add")
                 state = self.bricklayer.promotion_url2state.get(promotion.url)
                 recur_order_history(state, promotion)
-                trigger and self._push_pending_message(result=state, promotion=promotion)  # skipcq: PYL-W0106
+                trigger and self._push_pending_message(  # skipcq: PYL-W0106
+                    result=state, promotion=promotion
+                )
             self.bricklayer.empty_shopping_payment(page)
             not trigger and run(context, trigger + 1)  # skipcq: PYL-W0106
 
         super().just_do_it()
         if self.is_pending():
             fire(
-                container=run,
+                containers=run,
                 path_state=self.bricklayer.cookie_manager.path_ctx_cookies,
                 user_data_dir=self.bricklayer.cookie_manager.user_data_dir,
             )
+
+
+class GameClaimerInstanceV2(GameClaimerInstance):
+    def __init__(self, silence, log_ignore: typing.Optional[bool] = False):
+        super().__init__(silence=silence, log_ignore=log_ignore)
+        self.explorer = Explorer()
+
+    def __enter__(self):
+        return self
+
+    def preload(self):
+        # 获取历史订单数据
+        order_history = self.get_order_history()
+        # 获取周免促销数据
+        promotions = self.get_promotions()
+        # 标记促销实体的在库状态
+        _offload = set()
+        for promotion in promotions:
+            if promotion.url in _offload:
+                continue
+            _offload.add(promotion.url)
+
+            if in_library := promotion.namespace in order_history:
+                logger.debug(
+                    f">> GET [{self.action_name}] {self.in_library} - "
+                    f"game=『{promotion.title}』 url={promotion.url}"
+                )
+                self._push_pending_message(result=self.in_library, promotion=promotion)
+            else:
+                self.task_sequence_worker.append(promotion)
+                logger.debug(
+                    f">> STARTUP [{self.action_name}] 🍜 发现{self.tag} - "
+                    f"game=『{promotion.title}』 url={promotion.url}"
+                )
+            promotion.in_library = in_library
+
+    def just_do_it(self):
+        def run(context: BrowserContext):
+            page = context.new_page()
+            for promotion in self.get_promotions():
+                self.bricklayer.promotion_url2title[promotion.url] = promotion.title
+                result = empower_games_claimer(self.bricklayer, promotion.url, page, pattern="get")
+                self._push_pending_message(result=result, promotion=promotion)
+
+        fire(
+            containers=[self.bricklayer.cookie_manager.refresh_ctx_cookies, run],
+            path_state=self.bricklayer.cookie_manager.path_ctx_cookies,
+            user_data_dir=self.bricklayer.cookie_manager.user_data_dir,
+        )
 
 
 class UnrealClaimerInstance(BaseInstance):
@@ -384,7 +435,7 @@ class UnrealClaimerInstance(BaseInstance):
         super().just_do_it()
         if self.is_pending():
             fire(
-                container=run,
+                containers=run,
                 path_state=self.bricklayer.cookie_manager.path_ctx_cookies,
                 user_data_dir=self.bricklayer.cookie_manager.user_data_dir,
             )

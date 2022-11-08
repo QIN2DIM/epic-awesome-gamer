@@ -19,20 +19,12 @@ class GameClaimer(EpicAwesomeGamer):
 
     URL_GAME_CART = "https://store.epicgames.com/zh-CN/cart"
 
-    # 促销实体 任务结果
-    promotion2result = None
-
-    def __init__(self, email: str, password: str, silence: bool = None, claim_mode: str = None):
+    def __init__(self, email: str, password: str, silence: bool = None):
         super().__init__(email=email, password=password)
         self.result = ""
         self.silence = True if silence is None else silence
-        self.promotion2result = self.promotion2result or {}
         self.promotion_url2state = {}
-
-        if claim_mode not in [self.CLAIM_MODE_ADD, self.CLAIM_MODE_GET]:
-            self.claim_mode = self.CLAIM_MODE_ADD
-        else:
-            self.claim_mode = claim_mode
+        self.promotion_url2title = {}
 
         self.action_name = "GameClaimer"
         self.cookie_manager = CookieManager(auth_str="games", email=email, password=password)
@@ -85,55 +77,97 @@ class GameClaimer(EpicAwesomeGamer):
                 break
             self._activate_payment(page, mode=self.ACTIVE_BINGO)
             # [🚀] 新用户首次购买游戏需要处理许可协议书
-            if not i and self.assert_.surprise_license(page):
+            if not i and self.assert_util.surprise_license(page):  # mode: add
                 continue
             # [🚀] 处理游戏订单
-            self.cart_handle_payment(page)
+            self.cart_handle_payment(page)  # mode: add
 
-    def get_free_game(self, page_link: str, page: Page) -> typing.Optional[str]:
+    def purchase_status(self, page: Page, page_link: str, title: str) -> typing.Optional[str]:
+        """
+        断言当前上下文页面的游戏的在库状态。
+
+        :param title:
+        :param page_link:
+        :param page:
+        :return:
+        """
+        page.wait_for_load_state(timeout=60000)
+
+        # 捕获按钮对象，根据按钮上浮动的提示信息断言游戏在库状态 超时的空对象主动抛出异常
+        for _ in range(5):
+            try:
+                purchase_button = page.locator("//button[@data-testid='purchase-cta-button']")
+                purchase_button.first.wait_for(state="visible", timeout=2000)
+                break
+            except NinjaTimeout:
+                if "再进行一步操作" in page.content():
+                    return self.assert_util.ONE_MORE_STEP
+        else:
+            return self.assert_util.ASSERT_OBJECT_EXCEPTION
+
+        state2result = {"获取": self.assert_util.GAME_PENDING, "已在库中": self.assert_util.GAME_CLAIM}
+        # 游戏状态 在库|获取|购买|即将推出
+        purchase_msg = purchase_button.text_content()
+        logger.debug(
+            f">> Checkout [{self.action_name}] {title} - state={purchase_msg} link={page_link}"
+        )
+        for state in state2result:
+            if state in purchase_msg:
+                return state2result[state]
+        return purchase_msg
+
+    def get_free_game(
+        self, page_link: str, page: Page, pattern: typing.Literal["get", "add"]
+    ) -> typing.Optional[str]:
         """获取周免资源 游戏本体/附加内容 集成接口"""
-        for i in range(2):
+        for i in range(3):
             page.goto(page_link)
-            # [🚀] 处理前置的遮挡信息
-            self.assert_.surprise_warning_purchase(page)
-            # [🚀] 断言游戏的在库状态
-            self.result = self.assert_.purchase_status(
-                page=page,
-                page_link=page_link,
-                get=bool(self.claim_mode == self.CLAIM_MODE_GET),
-                promotion2url=self.promotion2result,
-                action_name=self.action_name,
-                init=not i,
+
+            # ------ {{< 检查游戏在库状态 | [GET/ADD] >}} ------
+            # 当游戏不处于 待认领 状态时跳过任务
+            # ------------------------------------------------
+            self.assert_util.surprise_warning_purchase(page)
+            self.result = self.purchase_status(
+                page=page, page_link=page_link, title=self.promotion_url2title[page_link]
             )
-            # 当游戏不处于 待认领 状态时跳过后续业务
             self.promotion_url2state[page_link] = self.result
-            if self.result != self.assert_.GAME_PENDING:
-                # <游戏状态断言超时>或<检测到异常的实体对象>
-                # 在超时阈值内尝试重新拉起服务
-                if self.result == self.assert_.ASSERT_OBJECT_EXCEPTION:
-                    continue
-                # 否则游戏状态处于<领取成功>或<已在库>或<付费游戏>
-                self.promotion2result.update({page_link: self.result})
-                return self.result
-            # [🚀] 激活游戏订单或将促销实体加入购物车
-            self._activate_payment(page, mode=self.claim_mode)
+            if self.result == self.assert_util.ASSERT_OBJECT_EXCEPTION:
+                continue
+            if self.result != self.assert_util.GAME_PENDING:
+                break
+            # ------ {{< DONE >}} ------
 
             # ------ {{< 上下文切换 | [GET/ADD] >}} ------
             self.captcha_runtime_memory(page, suffix="_switch")
-            if self.claim_mode == self.CLAIM_MODE_ADD:
+            if pattern == self.CLAIM_MODE_ADD:
+                with suppress(NinjaTimeout):
+                    page.wait_for_load_state(state="networkidle")
+                page.locator("//button[@data-testid='add-to-cart-cta-button']").first.click()
+                logger.info("[🔖] 已添加商品至购物车")
                 return self.result
+            if pattern == self.CLAIM_MODE_GET:
+                page.click("//button[@data-testid='purchase-cta-button']")
+                logger.info("[🔖] 已激活商品页零元购订单")
+                # [🚀] 新用户首次购买游戏需要处理许可协议书
+                if not i and self.assert_util.surprise_license(page):  # mode: get
+                    continue
+                # [🚀] 处理游戏订单
+                self.cart_handle_payment(page)  # mode: get
+                page.wait_for_timeout(2000)
             # ------ {{< DONE >}} ------
 
         return self.result
 
 
-def empower_games_claimer(claimer: GameClaimer, page_link: str, page: Page) -> typing.Optional[str]:
+def empower_games_claimer(
+    claimer: GameClaimer, page_link: str, page: Page, pattern: typing.Literal["get", "add"]
+) -> typing.Optional[str]:
     """获取周免资源 游戏本体/附加内容 集成接口"""
     action_name = claimer.action_name
     try:
-        return claimer.get_free_game(page_link=page_link, page=page)
+        return claimer.get_free_game(page_link=page_link, page=page, pattern=pattern)
     except UnableToGet as error:
         logger.debug(f">> QUIT [{action_name}] {str(error).strip()} - {page_link=}")
-        return claimer.assert_.GAME_LIMIT
+        return claimer.assert_util.GAME_LIMIT
     except AuthException as error:
         logger.critical(f">> SKIP [{action_name}] {error.msg}")

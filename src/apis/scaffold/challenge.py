@@ -15,7 +15,7 @@ def check_token():
     logger.info("STARTUP [ScaffoldChallenge] 正在更新身份令牌")
     claimer = GameClaimer(email=config.epic_email, password=config.epic_password)
     fire(
-        container=claimer.cookie_manager.refresh_ctx_cookies,
+        containers=claimer.cookie_manager.refresh_ctx_cookies,
         path_state=claimer.cookie_manager.path_ctx_cookies,
         user_data_dir=claimer.cookie_manager.user_data_dir,
     )

@@ -74,7 +74,7 @@ class UnrealClaimer(EpicAwesomeGamer):
             # [🚀] 从虚幻商店购物车激活订单
             self.result = self.unreal_activate_payment(page, init=not i)
             # [🚀] 处理购物车订单
-            if self.result == self.assert_.GAME_PENDING:
+            if self.result == self.assert_util.GAME_PENDING:
                 self.unreal_handle_payment(page)
-            elif self.result in (self.assert_.GAME_OK, self.assert_.GAME_CLAIM):
+            elif self.result in (self.assert_util.GAME_OK, self.assert_util.GAME_CLAIM):
                 break
