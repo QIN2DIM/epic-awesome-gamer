@@ -344,9 +344,9 @@ class GameClaimerInstance(BaseInstance):
                 empower_games_claimer(self.bricklayer, promotion.url, page, pattern="add")
                 state = self.bricklayer.promotion_url2state.get(promotion.url)
                 recur_order_history(state, promotion)
-                trigger and self._push_pending_message(
+                trigger and self._push_pending_message(  # skipcq: PYL-W0106
                     result=state, promotion=promotion
-                )  # skipcq: PYL-W0106
+                )
             self.bricklayer.empty_shopping_payment(page)
             not trigger and run(context, trigger + 1)  # skipcq: PYL-W0106
 
