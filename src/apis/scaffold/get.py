@@ -25,11 +25,7 @@ class IReallyWantToStayAtYourHouse:
         self.inline_docker: typing.List[MessageBody] = []
         self.player = config.message_pusher.player
 
-        self.claimer = GameClaimer(
-            email=config.epic_email,
-            password=config.epic_password,
-            claim_mode=GameClaimer.CLAIM_MODE_ADD,
-        )
+        self.claimer = GameClaimer(email=config.epic_email, password=config.epic_password)
         suffix = self.claimer.cookie_manager.hash
         self.path_ctx_store = os.path.join(dir_hook, f"ctx_store_{suffix}.yaml")
         self.path_order_history = os.path.join(dir_hook, f"order_history_{suffix}.yaml")
@@ -46,7 +42,7 @@ class IReallyWantToStayAtYourHouse:
         if not manager.has_available_token:
             with suppress(NinjaException):
                 fire(
-                    container=manager.refresh_ctx_cookies,
+                    containers=manager.refresh_ctx_cookies,
                     path_state=manager.path_ctx_cookies,
                     user_data_dir=manager.user_data_dir,
                 )
@@ -69,10 +65,10 @@ class IReallyWantToStayAtYourHouse:
         self.claimer.cart_balancing(page)
         # CLAIM_MODE_ADD 将未领取的促销实体逐项移至购物车后一并处理
         for game in task_list:
-            self.claimer.promotion2result[game.url] = game.title
-            result = empower_games_claimer(self.claimer, game.url, page)
-            if result == self.claimer.assert_.GAME_PENDING:
-                result = self.claimer.assert_.GAME_CLAIM
+            self.claimer.promotion_url2title[game.url] = game.title
+            result = empower_games_claimer(self.claimer, game.url, page, pattern="add")
+            if result == self.claimer.assert_util.GAME_PENDING:
+                result = self.claimer.assert_util.GAME_CLAIM
             self.set_pending_message(game, result)
         self.claimer.empty_shopping_payment(page)
 
@@ -106,7 +102,7 @@ class IReallyWantToStayAtYourHouse:
             self.offload(task_list, page)
 
         fire(
-            container=run,
+            containers=run,
             path_state=self.claimer.cookie_manager.path_ctx_cookies,
             user_data_dir=self.claimer.cookie_manager.user_data_dir,
         )

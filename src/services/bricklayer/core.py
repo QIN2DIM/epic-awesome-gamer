@@ -425,11 +425,11 @@ class EpicAwesomeGamer:
 
         # 注册挑战者
         self.armor = self.armor or ArmorKnight(debug=True, screenshot=False)
-        self.assert_ = AssertUtils()
+        self.assert_util = AssertUtils()
 
     @property
     def utils(self):
-        return self.assert_
+        return self.assert_util
 
     # ======================================================
     # Reused Action Chains
@@ -562,7 +562,7 @@ class EpicAwesomeGamer:
     def cart_handle_payment(self, page: Page):
         logger.debug("[🛵] 处理购物订单...")
         if self._click_order_button(page):  # cart_handle_payment
-            self.assert_.refund_info(page)  # cart_handle_payment
+            self.assert_util.refund_info(page)  # cart_handle_payment
             if not self.cart_success(page):
                 logger.debug("[⚔] 捕获隐藏在订单中的人机挑战...")
                 self._duel_with_challenge(page)  # cart_handle_payment
@@ -610,7 +610,7 @@ class EpicAwesomeGamer:
         # =======================================================
         # [🍜] 处理首次下单的许可协议
         # =======================================================
-        self.assert_.unreal_surprise_license(page)
+        self.assert_util.unreal_surprise_license(page)
 
         return AssertUtils.GAME_PENDING
 
@@ -618,7 +618,7 @@ class EpicAwesomeGamer:
         # [🍜] Click the [order] button
         self._click_order_button(page)  # unreal
         # [🍜] 处理 UK 地区账号的「退款及撤销权信息」
-        self.assert_.refund_info(page)  # unreal
+        self.assert_util.refund_info(page)  # unreal
         # [🍜] 捕获隐藏在订单中的人机挑战，仅在周免游戏中出现。
         self._duel_with_challenge(page)  # unreal
 

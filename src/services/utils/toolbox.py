@@ -67,7 +67,7 @@ def init_log(**sink_path):
 
 
 def fire(
-    container: typing.Callable[[SyncContext], None],
+    containers: typing.Union[typing.Callable[[SyncContext], None], typing.List],
     path_state: str,
     user_data_dir: str,
     iframe_content_window: typing.Optional[bool] = False,
@@ -78,6 +78,9 @@ def fire(
             user_data_dir=user_data_dir, headless=False, locale="zh-CN"
         )
         stealth_sync(context, config)
-        container(context)
+        if not isinstance(containers, list):
+            containers = [containers]
+        for container in containers:
+            container(context)
         context.storage_state(path=path_state)
         context.close()
