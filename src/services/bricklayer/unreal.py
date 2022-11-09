@@ -35,12 +35,14 @@ class UnrealClaimer(EpicAwesomeGamer):
         self.cookie_manager = CookieManager(auth_str="unreal", email=email, password=password)
 
     def get_promotions(
-        self, ctx_cookies: typing.List[dict]
+        self, ctx_cookies: typing.Optional[typing.List[dict]] = None
     ) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """领取任务后审查资源的在库状态"""
-        headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies)}
+        headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies) if ctx_cookies else ""}
         response = requests.get(self.URL_FREE_FOR_THE_MONTH, headers=headers, allow_redirects=False)
 
+        if not ctx_cookies:
+            logger.warning(f">> DROP [{self.action_name}] 无效的身份令牌，即将返回空数据")
         if response.status_code != 200:
             logger.error(f">> SKIP [{self.action_name}] 身份令牌已过期，无法获取有效的月供内容在库状态")
             return []
@@ -64,17 +66,18 @@ class UnrealClaimer(EpicAwesomeGamer):
                     "in_library": "撰写评论" in article.text,
                 }
                 for article in articles
+                if "100%OFF" in article.text
             ]
             return details
 
     def get_free_content(self, page: Page):
         """获取虚幻商城的本月免费内容"""
         for i in range(2):
-            page.goto(self.URL_UNREAL_MONTH)
             # [🚀] 从虚幻商店购物车激活订单
             self.result = self.unreal_activate_payment(page, init=not i)
             # [🚀] 处理购物车订单
             if self.result == self.assert_util.GAME_PENDING:
                 self.unreal_handle_payment(page)
             elif self.result in (self.assert_util.GAME_OK, self.assert_util.GAME_CLAIM):
-                break
+                return self.result
+            page.wait_for_timeout(2000)

@@ -404,7 +404,7 @@ class EpicAwesomeGamer:
 
     URL_UNREAL_STORE = "https://www.unrealengine.com/marketplace/zh-CN/assets"
     URL_UNREAL_MONTH = (
-        f"{URL_UNREAL_STORE}?count=20&sortBy=effectiveDate&sortDir=DESC&start=0&tag=4910"
+        f"{URL_UNREAL_STORE}?count=20&sortBy=currentPrice&sortDir=ASC&start=0&tag=4910"
     )
 
     CLAIM_MODE_ADD = "add"
@@ -507,6 +507,8 @@ class EpicAwesomeGamer:
                     return ArmorUtils.AUTH_SUCCESS
 
         page.goto(url_login, wait_until="networkidle")
+        if page.url == url_claim:
+            return ArmorUtils.AUTH_SUCCESS
         page.click("#login-with-epic", delay=200)
         page.type("#email", email, delay=100)
         page.type("#password", password, delay=110)
@@ -552,32 +554,38 @@ class EpicAwesomeGamer:
 
     def unreal_activate_payment(self, page: Page, init=True):
         """从虚幻商店购物车激活订单"""
+        page.goto(self.URL_UNREAL_MONTH)
+        # =======================================================
+        # [🍜] 清空购物车，确保仅添加免费商品
+        # =======================================================
+        if page.locator(".cart-amount").text_content() != "0":
+            page.click("//div[@class='shopping-cart']")
+            remove_buttons = page.locator(".remove")
+            remove_buttons.first.wait_for()
+            for _ in range(remove_buttons.count()):
+                remove_buttons.first.wait_for()
+                remove_buttons.first.click()
+            page.click("//div[@class='shopping-cart']")
         # =======================================================
         # [🍜] 将月供内容添加到购物车
         # =======================================================
-        offers = page.locator("//i[text()='添加到购物车']")
-        if not offers.count():
-            if not page.locator("//i[text()='购物车内']").count():
-                page.locator("//span[text()='撰写评论']")
-                _message = "本月免费内容均已在库" if init else "🥂 领取成功"
-                logger.success(f">> GET [{self.action_name}] {_message}")
-                return AssertUtils.GAME_OK if init else AssertUtils.GAME_CLAIM
+        in_library_tags = page.locator("//span[text()='撰写评论']").count()
+        all_free_tags = page.locator("//span[@class='asset-discount-percentage']").count()
+        if in_library_tags >= all_free_tags:
+            return AssertUtils.GAME_OK if init else AssertUtils.GAME_CLAIM
         else:
-            # 商品名
-            offer_names = page.locator("//article//h3//a")
-            # 商品状态：添加到购入车/购物车内/撰写评论(已在库)
-            offer_buttons = page.locator("//div[@class='asset-list-group']//article//i")
-            offer_labels = [
-                offer_buttons.nth(i).text_content() for i in range(offer_buttons.count())
-            ]
-            for i, offer_label in enumerate(offer_labels):
-                if offer_label == "添加到购物车":
-                    with suppress(IndexError, AttributeError):
-                        offer_name = offer_names.nth(i).text_content()
-                        logger.debug(
-                            f">> PENDING [{self.action_name}] 添加到购物车 - offer=『{offer_name}』"
-                        )
-                    offer_buttons.nth(i).click(delay=500)
+            offer_tags = page.locator("//div[@class='asset-list-group']//article")
+            for i in range(offer_tags.count()):
+                offer_tag = offer_tags.nth(i)
+                offer_name = offer_tag.locator("//h3//a").text_content()
+                offer_button = offer_tag.locator("//i").first
+                is_free = offer_tag.locator(
+                    "//span[@class='asset-discount-percentage']"
+                ).is_visible()
+                # If it is free offer, and you haven't received it yet
+                if is_free and offer_button.is_visible():
+                    offer_button.click(delay=500)
+                    logger.debug(f">> ADD [{self.action_name}] 添加到购物车 - offer=『{offer_name}』")
 
         # =======================================================
         # [🍜] 正在清空购物车
