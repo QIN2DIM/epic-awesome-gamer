@@ -75,7 +75,9 @@ class GameClaimer(EpicAwesomeGamer):
             if self.cart_is_empty(page):
                 logger.success(f"ADVANCE [{self.action_name}] ✔ 购物车已清空")
                 break
-            self._activate_payment(page, mode=self.ACTIVE_BINGO)
+            if page.locator("//span[text()='移至愿望清单']").first.is_visible():
+                page.click("//span[text()='下单']/parent::button")
+                logger.info("[🔖] 已激活购物车零元购订单")
             # [🚀] 新用户首次购买游戏需要处理许可协议书
             if not i and self.assert_util.surprise_license(page):  # mode: add
                 continue

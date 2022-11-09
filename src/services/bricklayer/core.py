@@ -441,12 +441,9 @@ class EpicAwesomeGamer:
         payment_btn = fl.locator("//button[contains(@class,'payment-btn')]")
         with suppress(NinjaTimeout):
             page.click("#onetrust-accept-btn-handler", timeout=2000)
-        try:
-            payment_btn.click(timeout=5000)
-        except NinjaTimeout:
-            with suppress(NinjaTimeout):
-                page.click("//span[text()='继续']/parent::button", timeout=2000)
-            payment_btn.click()
+        with suppress(NinjaTimeout):
+            page.click("//span[text()='继续']/parent::button", timeout=3000)
+        payment_btn.click()
         return True
 
     def _duel_with_challenge(self, page: Page, window="free") -> typing.Optional[bool]:
@@ -471,27 +468,6 @@ class EpicAwesomeGamer:
     # ======================================================
     # Business Action Chains
     # ======================================================
-
-    def _activate_payment(self, page: Page, mode: str) -> typing.Optional[bool]:
-        """激活游戏订单"""
-        if mode == self.CLAIM_MODE_ADD:
-            with suppress(NinjaTimeout):
-                page.wait_for_load_state(state="networkidle")
-            page.locator("//button[@data-testid='add-to-cart-cta-button']").first.click()
-            logger.info("[🔖] 已添加商品至购物车")
-        elif mode == self.ACTIVE_BINGO:
-            if page.locator("//span[text()='移至愿望清单']").first.is_visible():
-                page.click("//span[text()='下单']/parent::button")
-                logger.info("[🔖] 已激活购物车零元购订单")
-        elif mode == self.CLAIM_MODE_GET:
-            with suppress(NinjaTimeout):
-                page.click("//button[@data-testid='purchase-cta-button']")
-                logger.info("[🔖] 已激活商品页零元购订单")
-
-        # self.assert_.surprise_warning_purchase(page)
-        # except UnableToGet, ElementClickInterceptedException
-
-        return True
 
     @staticmethod
     def captcha_runtime_memory(page: Page, suffix: str = ""):
