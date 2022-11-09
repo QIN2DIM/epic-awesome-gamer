@@ -469,27 +469,6 @@ class EpicAwesomeGamer:
     # Business Action Chains
     # ======================================================
 
-    def _activate_payment(self, page: Page, mode: str) -> typing.Optional[bool]:
-        """激活游戏订单"""
-        if mode == self.CLAIM_MODE_ADD:
-            with suppress(NinjaTimeout):
-                page.wait_for_load_state(state="networkidle")
-            page.locator("//button[@data-testid='add-to-cart-cta-button']").first.click()
-            logger.info("[🔖] 已添加商品至购物车")
-        elif mode == self.ACTIVE_BINGO:
-            if page.locator("//span[text()='移至愿望清单']").first.is_visible():
-                page.click("//span[text()='下单']/parent::button")
-                logger.info("[🔖] 已激活购物车零元购订单")
-        elif mode == self.CLAIM_MODE_GET:
-            with suppress(NinjaTimeout):
-                page.click("//button[@data-testid='purchase-cta-button']")
-                logger.info("[🔖] 已激活商品页零元购订单")
-
-        # self.assert_.surprise_warning_purchase(page)
-        # except UnableToGet, ElementClickInterceptedException
-
-        return True
-
     @staticmethod
     def captcha_runtime_memory(page: Page, suffix: str = ""):
         _finger = os.path.join(DIR_SCREENSHOT, f"{int(time.time())}{suffix}")

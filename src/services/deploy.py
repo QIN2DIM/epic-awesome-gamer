@@ -368,6 +368,9 @@ class GameClaimerInstanceV2(GameClaimerInstance):
         return self
 
     def preload(self):
+        self._ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
+        if not self._ctx_cookies:
+            return self.get_promotions()
         # 获取历史订单数据
         order_history = self.get_order_history()
         # 获取周免促销数据
@@ -389,6 +392,7 @@ class GameClaimerInstanceV2(GameClaimerInstance):
                     f">> Checkout [{self.action_name}] {promotion.title} - state=待认领 link={promotion.url}"
                 )
             promotion.in_library = in_library
+        return self.task_sequence_worker
 
     def recur_order_history(self, state: str, promotion: Promotion):
         if state in [self.bricklayer.utils.GAME_OK, self.bricklayer.assert_util.GAME_CLAIM]:
@@ -399,11 +403,9 @@ class GameClaimerInstanceV2(GameClaimerInstance):
     def just_do_it(self):
         def run(context: BrowserContext):
             context.storage_state(path=self.bricklayer.cookie_manager.path_ctx_cookies)
-            self._ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
-            if self._ctx_cookies:
-                self.preload()
+            promotions = self.preload()
             page = context.new_page()
-            for promotion in self.task_sequence_worker:
+            for promotion in promotions:
                 self.bricklayer.promotion_url2title[promotion.url] = promotion.title
                 result = empower_games_claimer(self.bricklayer, promotion.url, page, pattern="get")
                 self._push_pending_message(result=result, promotion=promotion)
