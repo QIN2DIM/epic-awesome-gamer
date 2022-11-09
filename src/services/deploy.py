@@ -378,28 +378,36 @@ class GameClaimerInstanceV2(GameClaimerInstance):
             if promotion.url in _offload:
                 continue
             _offload.add(promotion.url)
-
             if in_library := promotion.namespace in order_history:
-                logger.debug(
-                    f">> GET [{self.action_name}] {self.in_library} - "
-                    f"game=『{promotion.title}』 url={promotion.url}"
-                )
                 self._push_pending_message(result=self.in_library, promotion=promotion)
+                logger.debug(
+                    f">> Checkout [{self.action_name}] {promotion.title} - state=已在库中 link={promotion.url}"
+                )
             else:
                 self.task_sequence_worker.append(promotion)
                 logger.debug(
-                    f">> STARTUP [{self.action_name}] 🍜 发现{self.tag} - "
-                    f"game=『{promotion.title}』 url={promotion.url}"
+                    f">> Checkout [{self.action_name}] {promotion.title} - state=待认领 link={promotion.url}"
                 )
             promotion.in_library = in_library
 
+    def recur_order_history(self, state: str, promotion: Promotion):
+        if state in [self.bricklayer.utils.GAME_OK, self.bricklayer.assert_util.GAME_CLAIM]:
+            self.ph.namespaces.add(promotion.namespace)
+            self.task_sequence_worker.remove(promotion)
+            self.ph.save_order_history()
+
     def just_do_it(self):
         def run(context: BrowserContext):
+            context.storage_state(path=self.bricklayer.cookie_manager.path_ctx_cookies)
+            self._ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
+            if self._ctx_cookies:
+                self.preload()
             page = context.new_page()
-            for promotion in self.get_promotions():
+            for promotion in self.task_sequence_worker:
                 self.bricklayer.promotion_url2title[promotion.url] = promotion.title
                 result = empower_games_claimer(self.bricklayer, promotion.url, page, pattern="get")
                 self._push_pending_message(result=result, promotion=promotion)
+                self.recur_order_history(result, promotion)
 
         fire(
             containers=[self.bricklayer.cookie_manager.refresh_ctx_cookies, run],

@@ -441,12 +441,9 @@ class EpicAwesomeGamer:
         payment_btn = fl.locator("//button[contains(@class,'payment-btn')]")
         with suppress(NinjaTimeout):
             page.click("#onetrust-accept-btn-handler", timeout=2000)
-        try:
-            payment_btn.click(timeout=5000)
-        except NinjaTimeout:
-            with suppress(NinjaTimeout):
-                page.click("//span[text()='继续']/parent::button", timeout=2000)
-            payment_btn.click()
+        with suppress(NinjaTimeout):
+            page.click("//span[text()='继续']/parent::button", timeout=3000)
+        payment_btn.click()
         return True
 
     def _duel_with_challenge(self, page: Page, window="free") -> typing.Optional[bool]:
