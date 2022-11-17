@@ -244,33 +244,44 @@ class ArmorKnight(solver.HolyChallenger):
             frame_purchase = page.frame_locator(self.HOOK_PURCHASE)
             frame_challenge = frame_purchase.frame_locator(self.HOOK_CHALLENGE)
 
-        # [👻] 人机挑战！
-        for i in range(2):
-            # [👻] 获取挑战标签
-            self.get_label(frame_challenge)
-            # [👻] 編排定位器索引
-            self.mark_samples(frame_challenge)
-            # [👻] 拉取挑戰圖片
-            self.download_images()
-            # [👻] 滤除无法处理的挑战类别
-            if not self.label_alias.get(self.label):
-                path = f"datas/temp_cache/captcha_screenshot/{int(time.time())}.{self.label}.png"
-                page.screenshot(path=path)
-                return self.CHALLENGE_BACKCALL
-            # [👻] 注册解决方案
-            # 根据挑战类型自动匹配不同的模型
-            model = self.switch_solution()
-            # [👻] 識別|點擊|提交
-            self.challenge(frame_challenge, model=model)
-            # [👻] 輪詢控制臺響應
-            with suppress(TypeError):
-                result, message = self.challenge_success(
-                    page, frame_challenge, window=window, init=not i, hook_url=recur_url
-                )
-                self.log("获取响应", desc=f"{message}({result})")
-                if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:
-                    return result
-                page.wait_for_timeout(200)
+        try:
+            # [👻] 人机挑战！
+            for i in range(2):
+                # [👻] 获取挑战标签
+                self.get_label(frame_challenge)
+                # [👻] 編排定位器索引
+                self.mark_samples(frame_challenge)
+                # [👻] 拉取挑戰圖片
+                self.download_images()
+                # [👻] 滤除无法处理的挑战类别
+                if not self.label_alias.get(self.label):
+                    path = (
+                        f"datas/temp_cache/captcha_screenshot/{int(time.time())}.{self.label}.png"
+                    )
+                    page.screenshot(path=path)
+                    return self.CHALLENGE_BACKCALL
+                # [👻] 注册解决方案
+                # 根据挑战类型自动匹配不同的模型
+                model = self.switch_solution()
+                # [👻] 識別|點擊|提交
+                self.challenge(frame_challenge, model=model)
+                # [👻] 輪詢控制臺響應
+                with suppress(TypeError):
+                    result, message = self.challenge_success(
+                        page, frame_challenge, window=window, init=not i, hook_url=recur_url
+                    )
+                    self.log("获取响应", desc=f"{message}({result})")
+                    if result in [
+                        self.CHALLENGE_SUCCESS,
+                        self.CHALLENGE_CRASH,
+                        self.CHALLENGE_RETRY,
+                    ]:
+                        return result
+                    page.wait_for_timeout(2000)
+        # from::mark_samples url = re.split(r'[(")]', image_style)[2]
+        except IndexError:
+            page.evaluate("hcaptcha.getResponse()")
+            return self.anti_hcaptcha(page, window, recur_url)
 
 
 class AssertUtils:
@@ -484,7 +495,7 @@ class EpicAwesomeGamer:
             url_login = f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={url_claim}"
             try:
                 page.goto(url_store, wait_until="domcontentloaded")
-                page.goto(url_claim, wait_until="domcontentloaded")
+                page.goto(url_claim, wait_until="load")
             except NinjaTimeout:
                 page.reload(wait_until="domcontentloaded")
             with suppress(NinjaTimeout):
