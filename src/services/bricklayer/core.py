@@ -170,14 +170,13 @@ class ArmorKnight(solver.HolyChallenger):
                 prompts_obj = frame_challenge.locator("//div[@class='error-text']")
                 prompts_obj.first.wait_for(timeout=2000)
                 self.log("Checkout - status=再试一次")
-            except NinjaError:
-                return False
+                return True
             except NinjaTimeout:
                 task_image = frame_challenge.locator("//div[@class='task-image']")
                 task_image.first.wait_for(state="detached", timeout=3000)
                 return False
-            else:
-                return True
+            except NinjaError:
+                return False
 
         def is_init_clickable():
             with suppress(NinjaError):
