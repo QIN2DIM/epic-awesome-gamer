@@ -93,27 +93,27 @@ class ArmorKnight(solver.HolyChallenger):
         self.runtime_workspace = self._init_workspace()
         # Initialize the data container
         start = time.time()
+        self.log("正在下载挑战图片")
         for alias_, url_ in self.alias2url.items():
             path_challenge_img_ = os.path.join(self.runtime_workspace, f"{alias_}.png")
             self.alias2path.update({alias_: path_challenge_img_})
             with open(path_challenge_img_, "wb") as file:
-                file.write(requests.get(url_).content)
+                file.write(requests.get(url_, proxies=getproxies()).content)
         self.log(message="Download challenge images", timeit=f"{round(time.time() - start, 2)}s")
 
     def mark_samples(self, frame_challenge: FrameLocator):
         """Get the download link and locator of each challenge image"""
+        self.log("正在编排索引")
         samples = frame_challenge.locator("//div[@class='task-image']")
-        for i in range(samples.count()):
+        count = samples.count()
+        for i in range(count):
             sample = samples.nth(i)
+            sample.wait_for()
             alias = sample.get_attribute("aria-label")
             image_style = sample.locator(".image").get_attribute("style")
-            while True:
-                with suppress(IndexError):
-                    url = re.split(r'[(")]', image_style)[2]
-                    self.alias2url.update({alias: url})
-                    self.alias2locator.update({alias: sample})
-                    break
-                sample.page.wait_for_timeout(100)
+            url = re.split(r'[(")]', image_style)[2]
+            self.alias2url.update({alias: url})
+            self.alias2locator.update({alias: sample})
 
     def challenge(self, frame_challenge: FrameLocator, model):
         ta = []
@@ -167,16 +167,16 @@ class ArmorKnight(solver.HolyChallenger):
             True >> it's clickable
             """
             try:
+                prompts_obj = frame_challenge.locator("//div[@class='error-text']")
+                prompts_obj.first.wait_for(timeout=2000)
+                self.log("Checkout - status=再试一次")
+                return True
+            except NinjaTimeout:
                 task_image = frame_challenge.locator("//div[@class='task-image']")
                 task_image.first.wait_for(state="detached", timeout=3000)
-                # dom elements hidden
                 return False
-            except NinjaTimeout:
-                prompts_obj = frame_challenge.locator("//div[@class='error-text']")
-                if prompts_obj.is_visible():
-                    logger.warning(prompts_obj.text_content())
-                # Is clickable
-                return True
+            except NinjaError:
+                return False
 
         def is_init_clickable():
             with suppress(NinjaError):
@@ -187,7 +187,6 @@ class ArmorKnight(solver.HolyChallenger):
         # 其次是被识别为自动化控制，这种情况也是仅执行一轮，回到登录窗格提示“返回数据错误”
         if init and is_init_clickable():
             return self.CHALLENGE_CONTINUE, "继续挑战"
-        page.wait_for_timeout(2000)
         if is_continue_clickable():
             return self.CHALLENGE_CONTINUE, "继续挑战"
 
@@ -271,7 +270,7 @@ class ArmorKnight(solver.HolyChallenger):
                 self.log("获取响应", desc=f"{message}({result})")
                 if result in [self.CHALLENGE_SUCCESS, self.CHALLENGE_CRASH, self.CHALLENGE_RETRY]:
                     return result
-                page.wait_for_timeout(2000)
+                page.wait_for_timeout(200)
 
 
 class AssertUtils:
@@ -404,7 +403,7 @@ class EpicAwesomeGamer:
 
     URL_UNREAL_STORE = "https://www.unrealengine.com/marketplace/zh-CN/assets"
     URL_UNREAL_MONTH = (
-        f"{URL_UNREAL_STORE}?count=20&sortBy=effectiveDate&sortDir=DESC&start=0&tag=4910"
+        f"{URL_UNREAL_STORE}?count=20&sortBy=currentPrice&sortDir=ASC&start=0&tag=4910"
     )
 
     CLAIM_MODE_ADD = "add"
@@ -507,6 +506,8 @@ class EpicAwesomeGamer:
                     return ArmorUtils.AUTH_SUCCESS
 
         page.goto(url_login, wait_until="networkidle")
+        if page.url == url_claim:
+            return ArmorUtils.AUTH_SUCCESS
         page.click("#login-with-epic", delay=200)
         page.type("#email", email, delay=100)
         page.type("#password", password, delay=110)
@@ -552,32 +553,38 @@ class EpicAwesomeGamer:
 
     def unreal_activate_payment(self, page: Page, init=True):
         """从虚幻商店购物车激活订单"""
+        page.goto(self.URL_UNREAL_MONTH)
+        # =======================================================
+        # [🍜] 清空购物车，确保仅添加免费商品
+        # =======================================================
+        if page.locator(".cart-amount").text_content() != "0":
+            page.click("//div[@class='shopping-cart']")
+            remove_buttons = page.locator(".remove")
+            remove_buttons.first.wait_for()
+            for _ in range(remove_buttons.count()):
+                remove_buttons.first.wait_for()
+                remove_buttons.first.click()
+            page.click("//div[@class='shopping-cart']")
         # =======================================================
         # [🍜] 将月供内容添加到购物车
         # =======================================================
-        offers = page.locator("//i[text()='添加到购物车']")
-        if not offers.count():
-            if not page.locator("//i[text()='购物车内']").count():
-                page.locator("//span[text()='撰写评论']")
-                _message = "本月免费内容均已在库" if init else "🥂 领取成功"
-                logger.success(f">> GET [{self.action_name}] {_message}")
-                return AssertUtils.GAME_OK if init else AssertUtils.GAME_CLAIM
+        in_library_tags = page.locator("//span[text()='撰写评论']").count()
+        all_free_tags = page.locator("//span[@class='asset-discount-percentage']").count()
+        if in_library_tags >= all_free_tags:
+            return AssertUtils.GAME_OK if init else AssertUtils.GAME_CLAIM
         else:
-            # 商品名
-            offer_names = page.locator("//article//h3//a")
-            # 商品状态：添加到购入车/购物车内/撰写评论(已在库)
-            offer_buttons = page.locator("//div[@class='asset-list-group']//article//i")
-            offer_labels = [
-                offer_buttons.nth(i).text_content() for i in range(offer_buttons.count())
-            ]
-            for i, offer_label in enumerate(offer_labels):
-                if offer_label == "添加到购物车":
-                    with suppress(IndexError, AttributeError):
-                        offer_name = offer_names.nth(i).text_content()
-                        logger.debug(
-                            f">> PENDING [{self.action_name}] 添加到购物车 - offer=『{offer_name}』"
-                        )
-                    offer_buttons.nth(i).click(delay=500)
+            offer_tags = page.locator("//div[@class='asset-list-group']//article")
+            for i in range(offer_tags.count()):
+                offer_tag = offer_tags.nth(i)
+                offer_name = offer_tag.locator("//h3//a").text_content()
+                offer_button = offer_tag.locator("//i").first
+                is_free = offer_tag.locator(
+                    "//span[@class='asset-discount-percentage']"
+                ).is_visible()
+                # If it is free offer, and you haven't received it yet
+                if is_free and offer_button.is_visible():
+                    offer_button.click(delay=500)
+                    logger.debug(f">> ADD [{self.action_name}] 添加到购物车 - offer=『{offer_name}』")
 
         # =======================================================
         # [🍜] 正在清空购物车

@@ -108,7 +108,7 @@ class ClaimerScheduler:
             with UnrealClaimerInstance(self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
         else:
-            with GameClaimerInstanceV2(self.silence, log_ignore=log_ignore) as claimer:
+            with GameClaimerInstance(self.silence, log_ignore=log_ignore) as claimer:
                 claimer.just_do_it()
 
 
@@ -168,6 +168,7 @@ class BaseInstance:
                     iframe_content_window=True,
                 )
             except NinjaException as err:
+                logger.exception(err)
                 self._bad_omen(str(err))
         self._ctx_cookies = manager.load_ctx_cookies()
         return self
@@ -228,61 +229,6 @@ class BaseInstance:
         """是否可发起驱动任务 True:执行 False/None:结束"""
         return self.task_sequence_worker and self._ctx_cookies
 
-    def promotions_filter(self):
-        """
-        促销实体过滤器
-
-        1. 判断游戏本体是否在库
-        2. 判断是否存在免费附加内容
-        3. 识别并弹出已在库资源
-        4. 返回待认领的实体资源
-        :return:
-        """
-        raise NotImplementedError
-
-    def promotions_splitter(self):
-        """实体分治 <已在库><领取成功><待领取>"""
-        _offload = set()
-        while not self.task_queue_pending.empty():
-            promotion: Promotion = self.task_queue_pending.get()
-
-            if promotion.url in _offload:
-                continue
-            _offload.add(promotion.url)
-
-            if promotion.in_library:
-                logger.debug(
-                    f">> GET [{self.action_name}] {self.in_library} - "
-                    f"game=『{promotion.title}』 url={promotion.url}"
-                )
-                self._push_pending_message(result=self.in_library, promotion=promotion)
-            # 待领取资源 将实例移动至 worker 分治队列
-            else:
-                self.task_sequence_worker.append(promotion)
-                logger.debug(
-                    f">> STARTUP [{self.action_name}] 🍜 发现{self.tag} - "
-                    f"game=『{promotion.title}』 url={promotion.url}"
-                )
-
-    def just_do_it(self):
-        """启动接口"""
-        # ======================================
-        # [🚀] 你以为是武器吧？但是居然是讯息……
-        # ======================================
-        # 1. 获取资源<本周免费>
-        # 2. 剔除资源<已在库中>
-        # ======================================
-        self.promotions_filter()
-        self.promotions_splitter()
-
-        # ======================================
-        # [🚀] 前有重要道具！但是人机挑战……
-        # ======================================
-        # 1. 启动消息队列 编排消息模版
-        # 2. 启动任务队列 领取周免游戏
-        # ======================================
-        # [🛵] 接下来，跳跃很有用
-
 
 class GameClaimerInstance(BaseInstance):
     """单步子任务 认领周免游戏"""
@@ -304,6 +250,9 @@ class GameClaimerInstance(BaseInstance):
             outdated_interval_order_history=432000,
         )
 
+    def __enter__(self):
+        return self
+
     def get_promotions(self) -> typing.List[Promotion]:
         """获取游戏促销信息"""
         promotions = self.explorer.get_promotions()
@@ -311,68 +260,14 @@ class GameClaimerInstance(BaseInstance):
             self.promotions.new_promotion(**promotion)
         return self.promotions.promotion_sequence
 
-    def get_order_history(self):
-        self.ph.load_memory()
-        self.ph.get_oder_history(ctx_cookies=self._ctx_cookies)
-        return self.ph.namespaces
-
-    def promotions_filter(self):
-        """获取游戏在库信息"""
-        # 获取历史订单数据
-        order_history = self.get_order_history()
-        # 获取周免促销数据
-        promotions = self.get_promotions()
-        # 标记促销实体的在库状态
-        for promotion in promotions:
-            promotion.in_library = promotion.namespace in order_history
-            self.task_queue_pending.put(promotion)
-
-    def just_do_it(self):
-        def recur_order_history(state: str, promotion: Promotion):
-            if state in [self.bricklayer.utils.GAME_OK, self.bricklayer.utils.GAME_CLAIM]:
-                self.ph.namespaces.add(promotion.namespace)
-                self.task_sequence_worker.remove(promotion)
-                self.ph.save_order_history()
-
-        def run(context: BrowserContext, trigger=0):
-            page = context.new_page()
-            # 在任务发起前将购物车内商品移至愿望清单
-            not trigger and self.bricklayer.cart_balancing(page)  # skipcq: PYL-W0106
-            # 当存在待处理任务时启动 Bricklayer
-            for promotion in self.task_sequence_worker:
-                self.bricklayer.promotion_url2title[promotion.url] = promotion.title
-                empower_games_claimer(self.bricklayer, promotion.url, page, pattern="add")
-                state = self.bricklayer.promotion_url2state.get(promotion.url)
-                recur_order_history(state, promotion)
-                trigger and self._push_pending_message(  # skipcq: PYL-W0106
-                    result=state, promotion=promotion
-                )
-            self.bricklayer.empty_shopping_payment(page)
-            not trigger and run(context, trigger + 1)  # skipcq: PYL-W0106
-
-        super().just_do_it()
-        if self.is_pending():
-            fire(
-                containers=run,
-                path_state=self.bricklayer.cookie_manager.path_ctx_cookies,
-                user_data_dir=self.bricklayer.cookie_manager.user_data_dir,
-            )
-
-
-class GameClaimerInstanceV2(GameClaimerInstance):
-    def __init__(self, silence, log_ignore: typing.Optional[bool] = False):
-        super().__init__(silence=silence, log_ignore=log_ignore)
-        self.explorer = Explorer()
-
-    def __enter__(self):
-        return self
-
     def preload(self):
         self._ctx_cookies = self.bricklayer.cookie_manager.load_ctx_cookies()
         if not self._ctx_cookies:
             return self.get_promotions()
         # 获取历史订单数据
-        order_history = self.get_order_history()
+        self.ph.load_memory()
+        self.ph.get_oder_history(ctx_cookies=self._ctx_cookies)
+        order_history = self.ph.namespaces
         # 获取周免促销数据
         promotions = self.get_promotions()
         # 标记促销实体的在库状态
@@ -394,13 +289,13 @@ class GameClaimerInstanceV2(GameClaimerInstance):
             promotion.in_library = in_library
         return self.task_sequence_worker
 
-    def recur_order_history(self, state: str, promotion: Promotion):
-        if state in [self.bricklayer.utils.GAME_OK, self.bricklayer.assert_util.GAME_CLAIM]:
-            self.ph.namespaces.add(promotion.namespace)
-            self.task_sequence_worker.remove(promotion)
-            self.ph.save_order_history()
-
     def just_do_it(self):
+        def recur_order_history(state: str, promotion: Promotion):
+            if state in [self.bricklayer.utils.GAME_OK, self.bricklayer.assert_util.GAME_CLAIM]:
+                self.ph.namespaces.add(promotion.namespace)
+                self.task_sequence_worker.remove(promotion)
+                self.ph.save_order_history()
+
         def run(context: BrowserContext):
             context.storage_state(path=self.bricklayer.cookie_manager.path_ctx_cookies)
             promotions = self.preload()
@@ -409,7 +304,7 @@ class GameClaimerInstanceV2(GameClaimerInstance):
                 self.bricklayer.promotion_url2title[promotion.url] = promotion.title
                 result = empower_games_claimer(self.bricklayer, promotion.url, page, pattern="get")
                 self._push_pending_message(result=result, promotion=promotion)
-                self.recur_order_history(result, promotion)
+                recur_order_history(result, promotion)
 
         fire(
             containers=[self.bricklayer.cookie_manager.refresh_ctx_cookies, run],
@@ -431,18 +326,30 @@ class UnrealClaimerInstance(BaseInstance):
             self.promotions.new_promotion(**promotion)
         return self.promotions.promotion_sequence
 
-    def promotions_filter(self):
+    def preload(self):
+        _offload = set()
         for promotion in self.get_promotions():
-            self.task_queue_pending.put(promotion)
+            if promotion.url in _offload:
+                continue
+            _offload.add(promotion.url)
+            if promotion.in_library:
+                self._push_pending_message(result=self.in_library, promotion=promotion)
+                logger.debug(
+                    f">> CHECKOUT [{self.action_name}] {promotion.title} - state=已在库中 link={promotion.url}"
+                )
+            else:
+                self.task_sequence_worker.append(promotion)
+                logger.debug(
+                    f">> CHECKOUT [{self.action_name} {promotion.title}] - state=待认领 link={promotion.url}"
+                )
 
     def just_do_it(self):
         def run(context: BrowserContext):
-            self.bricklayer.get_free_content(page=context.new_page())
-            # 将无效的任务缓存出队
+            result = self.bricklayer.get_free_content(page=context.new_page())
             for promotion in self.task_sequence_worker:
-                self._push_pending_message(result=self.in_library, promotion=promotion)
+                self._push_pending_message(result=result, promotion=promotion)
 
-        super().just_do_it()
+        self.preload()
         if self.is_pending():
             fire(
                 containers=run,
