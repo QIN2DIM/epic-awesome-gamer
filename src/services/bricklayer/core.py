@@ -64,7 +64,7 @@ class ArmorKnight(solver.HolyChallenger):
     # //iframe[@id='talon_frame_checkout_free_prod']
     HOOK_PURCHASE = "//div[@id='webPurchaseContainer']//iframe"
     HOOK_CHECKBOX = "//iframe[contains(@title, 'checkbox for hCaptcha')]"
-    HOOK_CHALLENGE = "//iframe[contains(@title, 'content of the hCaptcha')]"
+    HOOK_CHALLENGE = "//iframe[contains(@title, 'hCaptcha挑战')]"
 
     def __init__(
         self, debug: typing.Optional[bool] = False, screenshot: typing.Optional[bool] = False
