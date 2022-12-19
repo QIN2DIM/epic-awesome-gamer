@@ -466,7 +466,8 @@ class EpicAwesomeGamer:
             with suppress(NinjaError):
                 if window == "free":
                     fl = page.frame_locator(ArmorKnight.HOOK_PURCHASE)
-                    return fl.locator(ArmorKnight.HOOK_CHALLENGE).is_visible()
+                    fl.locator(ArmorKnight.HOOK_CHALLENGE).first.wait_for()
+                    return True
                 return page.locator(ArmorKnight.HOOK_PURCHASE).is_visible()
 
         if fall_in_captcha_runtime():
@@ -519,10 +520,11 @@ class EpicAwesomeGamer:
         page.goto(url_login, wait_until="networkidle")
         if page.url == url_claim:
             return ArmorUtils.AUTH_SUCCESS
-        page.click("#login-with-epic", delay=200)
-        page.type("#email", email, delay=100)
-        page.type("#password", password, delay=110)
-        page.click("#sign-in", delay=200)
+        page.click("#login-with-epic")
+        page.wait_for_timeout(1000)
+        page.type("#email", email)
+        page.type("#password", password)
+        page.click("#sign-in")
         logger.info(f">> MATCH [{self.action_name}] 实体信息注入完毕")
 
     @staticmethod

@@ -310,6 +310,7 @@ class GameClaimerInstance(BaseInstance):
             containers=[self.bricklayer.cookie_manager.refresh_ctx_cookies, run],
             path_state=self.bricklayer.cookie_manager.path_ctx_cookies,
             user_data_dir=self.bricklayer.cookie_manager.user_data_dir,
+            iframe_content_window=True
         )
 
 

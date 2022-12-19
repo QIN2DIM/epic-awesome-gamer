@@ -74,7 +74,7 @@ def fire(
 ):
     config = StealthConfig(iframe_content_window=iframe_content_window)
     with sync_playwright() as p:
-        context = p.chromium.launch_persistent_context(
+        context = p.webkit.launch_persistent_context(
             user_data_dir=user_data_dir, headless=False, locale="zh-CN"
         )
         stealth_sync(context, config)
