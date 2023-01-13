@@ -37,10 +37,11 @@ class ToolBox:
 def init_log(**sink_path):
     """初始化 loguru 日志信息"""
     event_logger_format = (
-        "<g>{time:YYYY-MM-DD HH:mm:ss}</g> | "
-        "<lvl>{level}</lvl> - "
-        # "<c><u>{name}</u></c> | "
-        "{message}"
+        "{time:HH:mm:ss} - "
+        "<green>{level}</green>\t| "
+        "<cyan>{module}</cyan>.<cyan>{function}</cyan>"
+        ":<cyan>{line}</cyan> - "
+        "<level>{message}</level>"
     )
     logger.remove()
     logger.add(
@@ -75,7 +76,7 @@ def fire(
     config = StealthConfig(iframe_content_window=iframe_content_window)
     with sync_playwright() as p:
         context = p.chromium.launch_persistent_context(
-            user_data_dir=user_data_dir, headless=False, locale="zh-CN"
+            user_data_dir=user_data_dir, headless=False, locale="zh-CN", args=['--disable-blink-features=AutomationControlled']
         )
         stealth_sync(context, config)
         if not isinstance(containers, list):
