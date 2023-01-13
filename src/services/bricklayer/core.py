@@ -86,24 +86,24 @@ class ArmorKnight(solver.HolyChallenger):
 
         _label = solver.HolyChallenger.split_prompt_message(self.prompt, self.lang)
         self.label = self.label_cleaning(_label)
-        self.log(message="Get label", label=f"「{self.label}」")
+        logger.info(f"Get label - label=「{self.label}」")
 
     def download_images(self):
         # Initialize the challenge image download directory
         self.runtime_workspace = self._init_workspace()
         # Initialize the data container
         start = time.time()
-        self.log("正在下载挑战图片")
+        logger.info("正在下载挑战图片")
         for alias_, url_ in self.alias2url.items():
             path_challenge_img_ = os.path.join(self.runtime_workspace, f"{alias_}.png")
             self.alias2path.update({alias_: path_challenge_img_})
             with open(path_challenge_img_, "wb") as file:
                 file.write(requests.get(url_, proxies=getproxies()).content)
-        self.log(message="Download challenge images", timeit=f"{round(time.time() - start, 2)}s")
+        logger.info(f"Download challenge images - timeit={round(time.time() - start, 2)}s")
 
     def mark_samples(self, frame_challenge: FrameLocator):
         """Get the download link and locator of each challenge image"""
-        self.log("正在编排索引")
+        logger.info("正在编排索引")
         samples = frame_challenge.locator("//div[@class='task-image']")
         count = samples.count()
         for i in range(count):
@@ -140,7 +140,7 @@ class ArmorKnight(solver.HolyChallenger):
             frame_challenge.locator("//div[@class='button-submit button']").click(
                 delay=1000, timeout=5000
             )
-            self.log(message=f"Submit the challenge - {model.flag}: {round(sum(ta), 2)}s")
+            logger.info(f"Submit the challenge - {model.flag}: {round(sum(ta), 2)}s")
 
     def challenge_success(
         self,
@@ -169,7 +169,7 @@ class ArmorKnight(solver.HolyChallenger):
             try:
                 prompts_obj = frame_challenge.locator("//div[@class='error-text']")
                 prompts_obj.first.wait_for(timeout=2000)
-                self.log("Checkout - status=再试一次")
+                logger.info("Checkout - status=再试一次")
                 return True
             except NinjaTimeout:
                 task_image = frame_challenge.locator("//div[@class='task-image']")
@@ -238,6 +238,7 @@ class ArmorKnight(solver.HolyChallenger):
         :param page:
         :return:
         """
+        logger.debug(self.HOOK_CHALLENGE)
         if window == "login":
             frame_challenge = page.frame_locator(self.HOOK_CHALLENGE)
         else:
@@ -247,6 +248,7 @@ class ArmorKnight(solver.HolyChallenger):
         try:
             # [👻] 人机挑战！
             for i in range(2):
+                logger.debug(frame_challenge)
                 # [👻] 获取挑战标签
                 self.get_label(frame_challenge)
                 # [👻] 編排定位器索引
@@ -270,12 +272,14 @@ class ArmorKnight(solver.HolyChallenger):
                     result, message = self.challenge_success(
                         page, frame_challenge, window=window, init=not i, hook_url=recur_url
                     )
-                    self.log("获取响应", desc=f"{message}({result})")
+                    logger.info(f"获取响应 - desc={message}({result})")
+
                     if result in [
                         self.CHALLENGE_SUCCESS,
                         self.CHALLENGE_CRASH,
                         self.CHALLENGE_RETRY,
                     ]:
+                        logger.info('登录成功')
                         return result
                     page.wait_for_timeout(2000)
         # from::mark_samples url = re.split(r'[(")]', image_style)[2]
@@ -488,7 +492,7 @@ class EpicAwesomeGamer:
 
     def login(self, email: str, password: str, page: Page, auth_str: str):
         """作为被动方式，登陆账号，刷新 identity token"""
-        logger.info(f">> MATCH [{self.action_name}] 刷新令牌")
+        logger.info(f">> MATCH [{self.action_name}] 刷新令牌 - {auth_str}")
         if auth_str == "games":
             url_store = "https://store.epicgames.com/zh-CN/"
             url_claim = self.URL_FREE_GAMES
