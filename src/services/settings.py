@@ -7,10 +7,11 @@ import os
 import random
 import shutil
 import sys
+import time
 import typing
 from dataclasses import dataclass, field
 from datetime import datetime
-from os.path import join, dirname
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
@@ -18,91 +19,34 @@ import yaml
 
 from services.utils.toolbox import init_log
 
-__all__ = [
-    "logger",
-    "DIR_COOKIES",
-    "DIR_USERS",
-    "DIR_EXPLORER",
-    "PATH_USR_COOKIES",
-    "DIR_SCREENSHOT",
-    "DIR_LOG",
-    "config",
-]
-__version__ = "0.4.4-dev"
-# ================================================ ʕ•ﻌ•ʔ ================================================
-#                                             (·▽·)欢迎嫖友入座
-# ================================================ ʕ•ﻌ•ʔ ================================================
-# ---------------------------------------------------
-# [√]Lock the project directory
-# ---------------------------------------------------
-# epic-free-games
-#  ├── requirements.txt
-#  └── src
-#      ├── apis
-#      ├── config-sample.yaml
-#      ├── config.yaml
-#      ├── database
-#      ├── datas
-#      ├── main.py
-#      └── services
-# ---------------------------------------------------
-# 系统根目录
-PROJECT_SRC = dirname(dirname(__file__))
-# 文件数据库目录
-PROJECT_DATABASE = join(PROJECT_SRC, "database")
-# Cookie 工作目录
-DIR_COOKIES = join(PROJECT_DATABASE, "cookies")
-PATH_USR_COOKIES = join(DIR_COOKIES, "user_cookies.txt")
-DIR_USERS = join(PROJECT_DATABASE, "users")
-# FreeGame Mining Workspace
-DIR_EXPLORER = join(PROJECT_DATABASE, "explorer")
-# 服务日志目录
-DIR_LOG = join(PROJECT_DATABASE, "logs")
-DIR_SCREENSHOT = join(DIR_LOG, "screenshot")
-# ---------------------------------------------------
-# [√]服务器日志配置
-# ---------------------------------------------------
-logger = init_log(error=join(DIR_LOG, "error.log"), runtime=join(DIR_LOG, "runtime.log"))
-
-# 防止新建目录越界
-for _pending in [DIR_EXPLORER, DIR_COOKIES, DIR_USERS, DIR_SCREENSHOT]:
-    os.makedirs(_pending, exist_ok=True)
-
-
-# ================================================== ʕ•ﻌ•ʔ ==================================================
-#                                   若您并非项目开发者 请勿修改以下变量的默认参数
-# ================================================== ʕ•ﻌ•ʔ ==================================================
-#
-#                                           Enjoy it -> ♂ main.py
-
 
 @dataclass
-class MessagePusher:
-    pusher: typing.Dict[str, str] = field(default_factory=dict)
-    player: str = ""
-    enable: bool = False
+class Project:
+    root = Path(__file__).parent.parent
+    database = root.joinpath("database")
 
-    ACTIVE_PUSHERS: typing.List[str] = field(default_factory=list)
-    ACTIVE_SERVERS: typing.List[str] = field(default_factory=list)
+    claim_history_dir = database.joinpath("claim_history")
+    logs_dir = root.joinpath("logs")
 
-    # fmt:off
-    CONVERTER = [
-        "沫雯喂", "辰丽", "荪彦孜", "有坷唯", "郑姊祺", "弹蓶蓶", "王飛",
-        "Makise Kurisu", "Rem", "Lacus Clyne", "Megumin", "Misaka Mikoto",
-        "Yukino", "ゆずりは いのり", "Gokou Ruri", "がえん とおえ", "Yuuki Asuna",
-    ]
-
-    # fmt:on
+    user_data_dir = root.joinpath("user_data_dir")
+    record_dir = database.joinpath("record")
 
     def __post_init__(self):
-        self.pusher["PUSHER_QIN2DIM"] = ""
+        for ck in [self.logs_dir, self.user_data_dir, self.record_dir, self.claim_history_dir]:
+            ck.mkdir(777, parents=True, exist_ok=True)
 
-    def diagnose(self):
-        if not any(self.pusher.values()):
-            self.enable = False
-        self.ACTIVE_PUSHERS = [_p[0] for _p in self.pusher.items() if _p[-1]]
-        self.ACTIVE_SERVERS = [_p[-1] for _p in self.pusher.items() if _p[-1]]
-        self.player = self.player or f"{random.choice(self.CONVERTER)}({datetime.now().day})"
+    @property
+    def record_har_path(self) -> Path:
+        return self.record_dir.joinpath(f"eg-{int(time.time())}.har")
+
+
+project = Project()
+
+logger = init_log(
+    error=project.logs_dir.joinpath("error.log"),
+    runtime=project.logs_dir.joinpath("runtime.log"),
+    serialize=project.logs_dir.joinpath("serialize.log"),
+)
 
 
 @dataclass

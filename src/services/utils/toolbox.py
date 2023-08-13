@@ -10,7 +10,6 @@ from typing import List, Union, Dict
 from loguru import logger
 from playwright.sync_api import BrowserContext as SyncContext
 from playwright.sync_api import sync_playwright
-from undetected_playwright import stealth_sync, StealthConfig
 
 
 class ToolBox:
@@ -34,34 +33,40 @@ class ToolBox:
         return "; ".join([f"{i['name']}={i['value']}" for i in api_cookies])
 
 
-def init_log(**sink_path):
-    """初始化 loguru 日志信息"""
-    event_logger_format = (
-        "<g>{time:YYYY-MM-DD HH:mm:ss}</g> | "
-        "<lvl>{level}</lvl> - "
-        # "<c><u>{name}</u></c> | "
-        "{message}"
-    )
+def init_log(**sink_channel):
+    event_logger_format = "<g>{time:YYYY-MM-DD HH:mm:ss}</g> | <lvl>{level}</lvl> - {message}"
+    serialize_format = event_logger_format + "- {extra}"
     logger.remove()
     logger.add(
-        sink=sys.stdout, colorize=True, level="DEBUG", format=event_logger_format, diagnose=False
+        sink=sys.stdout, colorize=True, level="DEBUG", format=serialize_format, diagnose=False
     )
-    if sink_path.get("error"):
+    if sink_channel.get("error"):
         logger.add(
-            sink=sink_path.get("error"),
+            sink=sink_channel.get("error"),
             level="ERROR",
             rotation="1 week",
             encoding="utf8",
             diagnose=False,
+            format=serialize_format,
         )
-    if sink_path.get("runtime"):
+    if sink_channel.get("runtime"):
         logger.add(
-            sink=sink_path.get("runtime"),
+            sink=sink_channel.get("runtime"),
             level="DEBUG",
             rotation="20 MB",
             retention="20 days",
             encoding="utf8",
             diagnose=False,
+            format=serialize_format,
+        )
+    if sink_channel.get("serialize"):
+        logger.add(
+            sink=sink_channel.get("serialize"),
+            level="DEBUG",
+            format=serialize_format,
+            encoding="utf8",
+            diagnose=False,
+            serialize=True,
         )
     return logger
 

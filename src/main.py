@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Time       : 2022/1/16 0:24
 # Author     : QIN2DIM
-# Github     : https://github.com/QIN2DIM
+# GitHub     : https://github.com/QIN2DIM
 # Description: 🚀 哟！Epic免费人！
 from fire import Fire
 
