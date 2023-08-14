@@ -20,9 +20,16 @@ from playwright.sync_api import Error as NinjaError
 from playwright.sync_api import Page, FrameLocator, BrowserContext
 from playwright.sync_api import TimeoutError as NinjaTimeout
 
-from services.settings import DIR_COOKIES, DIR_SCREENSHOT, DIR_USERS
-from services.utils.toolbox import ToolBox
-from .exceptions import UnableToGet, AuthMFA, AuthUnknownException, LoginException
+from services.bricklayer.exceptions import (
+    UnableToGet,
+    AuthMFA,
+    AuthUnknownException,
+    LoginException,
+)
+from services.settings import project
+from utils.toolbox import transfer_cookies
+from services.models import Ranni
+
 
 
 class ArmorUtils:
@@ -424,11 +431,11 @@ class EpicAwesomeGamer:
     # Talon Service Challenger
     armor = None
 
-    def __init__(self, email: str, password: str):
+    def __init__(self):
         """定义了一系列领取免费游戏所涉及到的浏览器操作。"""
         # 实体对象参数
         self.action_name = "BaseAction"
-        self.email, self.password = email, password
+        self.ranni = Ranni.from_mode(mode="epic-games")
 
         # 驱动参数
         self.loop_timeout = 300
@@ -472,58 +479,58 @@ class EpicAwesomeGamer:
         if fall_in_captcha_runtime():
             with suppress(ChallengePassed):
                 resp = self.armor.anti_hcaptcha(page, window=window)
-                self.captcha_runtime_memory(page, suffix=f"_{window}")
                 return resp
 
     # ======================================================
     # Business Action Chains
     # ======================================================
 
-    @staticmethod
-    def captcha_runtime_memory(page: Page, suffix: str = ""):
-        _finger = os.path.join(DIR_SCREENSHOT, f"{int(time.time())}{suffix}")
-        page.screenshot(path=f"{_finger}.png")
-        with open(f"{_finger}.mhtml", "w", newline="", encoding="utf8") as file:
-            file.write(page.content())
-
-    def login(self, email: str, password: str, page: Page, auth_str: str):
-        """作为被动方式，登陆账号，刷新 identity token"""
-        logger.info(f">> MATCH [{self.action_name}] 刷新令牌")
-        if auth_str == "games":
-            url_store = "https://store.epicgames.com/zh-CN/"
-            url_claim = self.URL_FREE_GAMES
-            url_login = f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={url_claim}"
-            try:
-                page.goto(url_store, wait_until="domcontentloaded")
-                page.goto(url_claim, wait_until="load")
-            except NinjaTimeout:
-                page.reload(wait_until="domcontentloaded")
-            with suppress(NinjaTimeout):
-                sign_text = page.locator("//span[contains(@class, 'sign-text')]").text_content()
-                if sign_text != "登录":
-                    logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
-                    return ArmorUtils.AUTH_SUCCESS
-        else:
-            url_claim = self.URL_UNREAL_MONTH
-            url_login = f"https://www.unrealengine.com/id/login?lang=zh_CN&redirectUrl={url_claim}"
-            try:
-                page.goto(url_claim)
-            except NinjaTimeout:
-                page.reload(wait_until="domcontentloaded")
-            with suppress(NinjaTimeout):
-                sign_text = page.locator("//span[contains(@class, 'user-label')]").text_content()
-                if sign_text != "登录":
-                    logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
-                    return ArmorUtils.AUTH_SUCCESS
-
-        page.goto(url_login, wait_until="networkidle")
+    def _login_unreal(self, page: Page):
+        url_claim = self.URL_UNREAL_MONTH
+        url_login = f"https://www.unrealengine.com/id/login?lang=zh_CN&redirectUrl={url_claim}"
+        try:
+            page.goto(url_claim)
+        except NinjaTimeout:
+            page.reload(wait_until="domcontentloaded")
+        with suppress(NinjaTimeout):
+            sign_text = page.locator("//span[contains(@class, 'user-label')]").text_content()
+            if sign_text != "登录":
+                logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
+                return ArmorUtils.AUTH_SUCCESS
+        page.goto(url_login)
         if page.url == url_claim:
             return ArmorUtils.AUTH_SUCCESS
-        page.click("#login-with-epic", delay=200)
-        page.type("#email", email, delay=100)
-        page.type("#password", password, delay=110)
-        page.click("#sign-in", delay=200)
-        logger.info(f">> MATCH [{self.action_name}] 实体信息注入完毕")
+        page.click("#login-with-epic")
+        page.fill("#email", self.player.epic_email)
+        page.fill("#password", self.player.epic_password)
+        page.click("#sign-in")
+
+    def _login_game(self, page: Page):
+        url_claim = "https://store.epicgames.com/en-US/free-games"
+        url_login = f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={url_claim}"
+
+        page.goto(url_claim, wait_until="domcontentloaded")
+        while page.locator('a[role="button"]:has-text("Sign In")').count() > 0:
+            logger.info("login", mode="game")
+            page.goto(url_login, wait_until="domcontentloaded")
+            page.click("#login-with-epic")
+            page.fill("#email", self.player.epic_email)
+            page.fill("#password", self.player.epic_password)
+            page.click("#sign-in")
+            page.wait_for_url(url_claim)
+        return ArmorUtils.AUTH_SUCCESS
+
+    def login(self, page: Page, auth_str: str):
+        """作为被动方式，登陆账号，刷新 identity token"""
+        logger.info("尝试刷新令牌", action=self.action_name)
+        if auth_str == "games":
+            result = self._login_game(page)
+        else:
+            # FIXME: Unreliable
+            result = self._login_unreal(page)
+
+        logger.info("玩家信息注入完毕", action=self.action_name)
+        return result
 
     @staticmethod
     def cart_is_empty(page: Page):
@@ -625,20 +632,21 @@ class EpicAwesomeGamer:
 class CookieManager(EpicAwesomeGamer):
     """管理上下文身份令牌"""
 
-    def __init__(self, auth_str: typing.Literal["games", "unreal"], email: str, password: str):
-        super().__init__(email=email, password=password)
-
+    def __init__(self, auth_str: typing.Literal["games", "unreal"]):
+        super().__init__()
         self.action_name = "CookieManager"
         self.auth_str = auth_str
-        self.path_ctx_cookies = os.path.join(DIR_COOKIES, f"{self._t()}.json")
-        self.user_data_dir = os.path.join(DIR_USERS, self._t())
-        self.ctx_session = None
+        self.path_ctx_cookies = project.ctx_cookies_dir.joinpath(f"{self._t()}.json")
+        self.user_data_dir = project.user_data_dir.joinpath(self._t())
+        self.user_data_dir.mkdir(777, exist_ok=True, parents=True)
+
         self._ctx_cookies = None
 
     def _t(self) -> str:
+        email = self.player.epic_email
         return (
-            sha256(f"{self.email[-3::-1]}{self.auth_str}".encode("utf-8")).hexdigest()
-            if self.email
+            sha256(f"{email[-3::-1]}{self.auth_str}".encode("utf-8")).hexdigest()
+            if email
             else "ctx_cookies"
         )
 
@@ -673,7 +681,7 @@ class CookieManager(EpicAwesomeGamer):
         if cookies := ctx_cookies or self.load_ctx_cookies():
             _kwargs = {
                 "headers": {
-                    "cookie": ToolBox.transfer_cookies(cookies),
+                    "cookie": transfer_cookies(cookies),
                     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
                     " Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.42",
                     "origin": "https://www.epicgames.com",
@@ -696,7 +704,7 @@ class CookieManager(EpicAwesomeGamer):
         while balance_operator < 8:
             balance_operator += 1
             # Enter the account information and jump to the man-machine challenge page.
-            result = self.login(self.email, self.password, page=page, auth_str=self.auth_str)
+            result = self.login(page=page, auth_str=self.auth_str)
             # Assert if you are caught in a man-machine challenge.
             if result not in [ArmorUtils.AUTH_SUCCESS]:
                 result = ArmorUtils.fall_in_captcha_login(page)

@@ -3,17 +3,13 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
+from __future__ import annotations
+
 import os.path
-import random
-import sys
-import time
-import typing
 from dataclasses import dataclass
 from queue import Queue
+from typing import Literal, List
 
-from apscheduler.job import Job
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
 from playwright.sync_api import BrowserContext
 from playwright.sync_api import Error as NinjaException
@@ -21,9 +17,8 @@ from playwright.sync_api import Error as NinjaException
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.bricklayer.unreal import UnrealClaimer
 from services.explorer.explorer import Explorer, PermissionsHistory
-from services.settings import config, DIR_EXPLORER, __version__
-from services.utils.pusher import MessagePusher, MessageBody, MessageQueue
-from services.utils.toolbox import fire
+from services.settings import project
+from utils.pusher import MessageBody, MessageQueue
 
 
 @dataclass
@@ -43,7 +38,7 @@ class Promotion:
 
 @dataclass
 class Promotions:
-    promotion_sequence: typing.List[Promotion] = None
+    promotion_sequence: List[Promotion] = None
 
     def __post_init__(self):
         self.promotion_sequence = self.promotion_sequence or []
@@ -52,97 +47,31 @@ class Promotions:
         self.promotion_sequence.append(Promotion(**kwargs))
 
 
-class ClaimerScheduler:
-    """系统任务调度器"""
-
-    def __init__(
-        self, silence: typing.Optional[bool] = None, unreal: typing.Optional[bool] = False
-    ):
-        self.action_name = "AwesomeScheduler"
-        self.silence = silence
-        self.unreal = unreal
-
-        # 服务注册
-        self._scheduler = BackgroundScheduler()
-        self._job = None
-        self._job_id = "tango"
-        self.logger = logger
-
-    def deploy_on_vps(self):
-        jitter_minute = [random.randint(10, 20), random.randint(35, 57)]
-
-        # [⚔] 首发任务用于主动认领，备用方案用于非轮询审核
-        self._job: Job = self._scheduler.add_job(
-            func=self._on_job_claim,
-            trigger=CronTrigger(
-                day_of_week="fri",
-                hour="0",
-                minute=f"{jitter_minute[0]},{jitter_minute[-1]}",
-                timezone="Asia/Shanghai",
-                jitter=15,
-            ),
-            id=self._job_id,
-        )
-
-        # [⚔] Gracefully run scheduler.
-        self._scheduler.start()
-        logger.info(f">> JOB [{self.action_name}] - next_run_time={self._job.next_run_time}")
-
-        try:
-            while True:
-                time.sleep(3600)
-        except (KeyboardInterrupt, EOFError):
-            self._scheduler.shutdown()
-            logger.debug(f">> EXITS [{self.action_name}] Received keyboard interrupt signal")
-
-    def _on_job_claim(self):
-        self.job_loop_claim(log_ignore=False)
-        logger.success(f">> OFFLOAD [{self.action_name}] Job has been safely released")
-
-    def job_loop_claim(self, log_ignore: typing.Optional[bool] = False):
-        """wrap function for claimer instance"""
-        logger.info(
-            f">> STARTUP [{self.action_name}] SynergyTunnel - version={__version__} Pattern=False"
-        )
-        if self.unreal:
-            with UnrealClaimerInstance(self.silence, log_ignore=log_ignore) as claimer:
-                claimer.just_do_it()
-        else:
-            with GameClaimerInstance(self.silence, log_ignore=log_ignore) as claimer:
-                claimer.just_do_it()
-
+# Scheduler 核心核心邏輯：
+# 1. 运行前检查 cookie 有效性
+#   尝试初始化 cookie，读入 cookie
+# 2. 对于 epic, 可以直接发起携带 cookie 的 request 请求
+#   - 查询用户游戏库
+# 3. 对于 epic，可以直接发起 request 请求查询当周促销游戏
 
 class BaseInstance:
     """Atomic Scheduler"""
 
     def __init__(
-        self,
-        silence: bool,
-        log_ignore: typing.Optional[bool] = False,
-        action_name: typing.Optional[str] = None,
+            self, action_name: str | None = None
     ):
-        """
-
-        :param silence:
-        :param log_ignore: 过滤掉已在库的资源实体的推送信息。
-        """
-        self.silence = silence
-        self.log_ignore = log_ignore
         self.action_name = "AwesomeInstance" if action_name is None else action_name
 
         # 服务注册
         self.logger = logger
-        self.bricklayer = GameClaimer(
-            email=config.epic_email, password=config.epic_password, silence=silence
-        )
+        self.bricklayer = GameClaimer()
         # 任务队列 按顺缓存周免游戏及其免费附加内容的认领任务
         self.promotions = Promotions()
         self.task_queue_pending = Queue()
         self.task_sequence_worker = []
         # 消息队列 按序缓存认领任务的执行状态
-        self.pusher_settings = config.message_pusher
         self.message_queue = MessageQueue()
-        self.inline_docker: typing.List[MessageBody] = []
+        self.inline_docker: List[MessageBody] = []
         # 资源在库状态简写
         self.in_library = self.bricklayer.assert_util.GAME_OK
         self.claimed = self.bricklayer.assert_util.GAME_CLAIM
@@ -161,71 +90,20 @@ class BaseInstance:
         manager = self.bricklayer.cookie_manager
         if not manager.has_available_token:
             try:
-                fire(  # token
-                    containers=manager.refresh_ctx_cookies,
-                    path_state=manager.path_ctx_cookies,
-                    user_data_dir=manager.user_data_dir,
-                    iframe_content_window=True,
-                )
+                tarnished.boost(tasks=manager.refresh_ctx_cookies)
             except NinjaException as err:
                 logger.exception(err)
-                self._bad_omen(str(err))
         self._ctx_cookies = manager.load_ctx_cookies()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._pusher_wrapper()
+        pass
 
     def _push_pending_message(self, result, promotion: Promotion):
         element = MessageBody(url=promotion.url, title=promotion.title, result=result, dlc=False)
         self.message_queue.put(element)
 
-    def _pusher_wrapper(self):
-        while not self.message_queue.empty():
-            element: MessageBody = self.message_queue.get()
-            # 过滤已在库的游戏资源的推送数据
-            if self.log_ignore is True and element.result == self.in_library:
-                continue
-            self.inline_docker.append(element)
-
-        # 在 `ignore` 模式下当所有资源实体都已在库时不推送消息
-        if (
-            self.inline_docker
-            and self.pusher_settings.enable
-            and any(self.pusher_settings.ACTIVE_SERVERS)
-        ):
-            with MessagePusher(
-                servers=self.pusher_settings.ACTIVE_SERVERS,
-                player=self.pusher_settings.player,
-                inline_docker=self.inline_docker,
-                key_images=Explorer.cdn_image_urls,
-            ):
-                logger.success(
-                    f">> Notify [{self.action_name}] 推送运行报告 - "
-                    f"active_pusher={self.pusher_settings.ACTIVE_PUSHERS}"
-                )
-        # 在 `ignore` 模式下追加 DEBUG 标签日志
-        elif self.log_ignore:
-            logger.debug(
-                f">> Notify [{self.action_name}] 忽略已在库的资源实体推送信息 - ignore={self.log_ignore}"
-            )
-
-    def _bad_omen(self, err_message=None):
-        preview_link = "https://images2.alphacoders.com/127/1276555.png"
-        element = MessageBody(url=preview_link, title=f"error={err_message}", result="🎃 领取失败")
-        with MessagePusher(
-            servers=self.pusher_settings.ACTIVE_SERVERS,
-            player=self.pusher_settings.player,
-            inline_docker=[element],
-            key_images=[preview_link],
-        ):
-            logger.error(
-                f">> Notify [{self.action_name}] 推送运行日志 - "
-                f"active_pusher={self.pusher_settings.ACTIVE_PUSHERS} err={err_message}"
-            )
-        sys.exit()
-
-    def is_pending(self) -> typing.Optional[bool]:
+    def is_pending(self) -> bool | None:
         """是否可发起驱动任务 True:执行 False/None:结束"""
         return self.task_sequence_worker and self._ctx_cookies
 
@@ -233,12 +111,12 @@ class BaseInstance:
 class GameClaimerInstance(BaseInstance):
     """单步子任务 认领周免游戏"""
 
-    def __init__(self, silence: bool, log_ignore: typing.Optional[bool] = False):
-        super(GameClaimerInstance, self).__init__(silence, log_ignore, "GameClaimer")
+    def __init__(self):
+        super(GameClaimerInstance, self).__init__("GameClaimer")
         self.explorer = Explorer()
 
         # Pending order history
-        self.dir_hook = DIR_EXPLORER
+        self.dir_hook = project.claim_history_dir
         suffix = self.bricklayer.cookie_manager.hash
         self.path_ctx_store = os.path.join(self.dir_hook, f"ctx_store_{suffix}.yaml")
         self.path_order_history = os.path.join(self.dir_hook, f"order_history_{suffix}.yaml")
@@ -253,7 +131,7 @@ class GameClaimerInstance(BaseInstance):
     def __enter__(self):
         return self
 
-    def get_promotions(self) -> typing.List[Promotion]:
+    def get_promotions(self) -> List[Promotion]:
         """获取游戏促销信息"""
         promotions = self.explorer.get_promotions()
         for promotion in promotions:
@@ -306,21 +184,17 @@ class GameClaimerInstance(BaseInstance):
                 self._push_pending_message(result=result, promotion=promotion)
                 recur_order_history(result, promotion)
 
-        fire(
-            containers=[self.bricklayer.cookie_manager.refresh_ctx_cookies, run],
-            path_state=self.bricklayer.cookie_manager.path_ctx_cookies,
-            user_data_dir=self.bricklayer.cookie_manager.user_data_dir,
-        )
+        tarnished.boost(tasks=[self.bricklayer.cookie_manager.refresh_ctx_cookies, run])
 
 
 class UnrealClaimerInstance(BaseInstance):
     """虚幻商城月供砖家"""
 
-    def __init__(self, silence: bool, log_ignore: typing.Optional[bool] = False):
-        super().__init__(silence, log_ignore, "UnrealClaimer")
-        self.bricklayer = UnrealClaimer(email=config.epic_email, password=config.epic_password)
+    def __init__(self):
+        super().__init__("UnrealClaimer")
+        self.bricklayer = UnrealClaimer()
 
-    def get_promotions(self) -> typing.List[Promotion]:
+    def get_promotions(self) -> List[Promotion]:
         promotions = self.bricklayer.get_promotions(self._ctx_cookies)
         for promotion in promotions:
             self.promotions.new_promotion(**promotion)
@@ -351,8 +225,15 @@ class UnrealClaimerInstance(BaseInstance):
 
         self.preload()
         if self.is_pending():
-            fire(
-                containers=run,
-                path_state=self.bricklayer.cookie_manager.path_ctx_cookies,
-                user_data_dir=self.bricklayer.cookie_manager.user_data_dir,
-            )
+            tarnished.boost(tasks=run)
+
+
+@logger.catch()
+def build_claimer(mode: Literal["epic-games", "unreal", "gog", "apg", "xbox"] = "epic-games"):
+    logger.info(f">> STARTUP SynergyTunnel - Pattern=False")
+    if mode == "epic-games":
+        with GameClaimerInstance() as claimer:
+            claimer.just_do_it()
+    elif mode == "unreal":
+        with UnrealClaimerInstance() as claimer:
+            claimer.just_do_it()

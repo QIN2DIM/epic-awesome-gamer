@@ -14,18 +14,16 @@ from playwright.sync_api import Page, BrowserContext
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.explorer.core import Game
 from services.explorer.explorer import PermissionsHistory
-from services.settings import config, DIR_EXPLORER
-from services.utils.pusher import MessageBody, MessagePusher
-from services.utils.toolbox import fire
+from services.settings import config, project
+from services.models import Ranni
+from utils.pusher import MessageBody, MessagePusher
 
 
 class IReallyWantToStayAtYourHouse:
-    def __init__(self, dir_hook: str = DIR_EXPLORER):
+    def __init__(self, dir_hook: str = project.claim_history_dir):
         self._ctx_cookies = None
         self.inline_docker: typing.List[MessageBody] = []
-        self.player = config.message_pusher.player
-
-        self.claimer = GameClaimer(email=config.epic_email, password=config.epic_password)
+        self.claimer = GameClaimer()
         suffix = self.claimer.cookie_manager.hash
         self.path_ctx_store = os.path.join(dir_hook, f"ctx_store_{suffix}.yaml")
         self.path_order_history = os.path.join(dir_hook, f"order_history_{suffix}.yaml")
@@ -41,11 +39,7 @@ class IReallyWantToStayAtYourHouse:
         manager = self.claimer.cookie_manager
         if not manager.has_available_token:
             with suppress(NinjaException):
-                fire(
-                    containers=manager.refresh_ctx_cookies,
-                    path_state=manager.path_ctx_cookies,
-                    user_data_dir=manager.user_data_dir,
-                )
+                tarnished.boost(tasks=manager.refresh_ctx_cookies)
         self._ctx_cookies = manager.load_ctx_cookies()
         self.ph.ctx_cookies = self._ctx_cookies
         return self
@@ -82,7 +76,7 @@ class IReallyWantToStayAtYourHouse:
         active_pusher = config.message_pusher.ACTIVE_PUSHERS
         with MessagePusher(
             servers=active_servers,
-            player=self.player,
+            player=self.claimer.player.username,
             inline_docker=self.inline_docker,
             key_images=self.ph.key_images,
         ):
@@ -96,13 +90,9 @@ class IReallyWantToStayAtYourHouse:
             self.ph.get_oder_history(ctx_cookies=self._ctx_cookies)
 
             task_list = self.ph.game_pool.filter_games(self.ph.namespaces)
-            logger.info(f"当前玩家 {self.player} 可领取 {self.ph.total_free_games} 款常驻免费游戏")
-            logger.info(f"当前玩家 {self.player} 仍有 {len(task_list)} 款免费游戏尚未领取")
+            logger.info(f"当前玩家 {self.claimer.player} 可领取 {self.ph.total_free_games} 款常驻免费游戏")
+            logger.info(f"当前玩家 {self.claimer.player} 仍有 {len(task_list)} 款免费游戏尚未领取")
 
             self.offload(task_list, page)
 
-        fire(
-            containers=run,
-            path_state=self.claimer.cookie_manager.path_ctx_cookies,
-            user_data_dir=self.claimer.cookie_manager.user_data_dir,
-        )
+        tarnished.boost(tasks=run)

@@ -9,9 +9,9 @@ import requests
 from bs4 import BeautifulSoup
 from loguru import logger
 from playwright.sync_api import Page
+from utils.toolbox import transfer_cookies
 
-from services.utils.toolbox import ToolBox
-from .core import CookieManager, EpicAwesomeGamer
+from services.bricklayer.core import CookieManager, EpicAwesomeGamer
 
 
 class UnrealClaimer(EpicAwesomeGamer):
@@ -28,17 +28,17 @@ class UnrealClaimer(EpicAwesomeGamer):
         + "?count=20&priceRange=%5B0%2C0%5D&sortBy=effectiveDate&sortDir=DESC&start=0"
     )
 
-    def __init__(self, email: str, password: str):
-        super().__init__(email=email, password=password)
+    def __init__(self):
+        super().__init__()
         self.result = ""
         self.action_name = "UnrealClaimer"
-        self.cookie_manager = CookieManager(auth_str="unreal", email=email, password=password)
+        self.cookie_manager = CookieManager(auth_str="unreal")
 
     def get_promotions(
         self, ctx_cookies: typing.Optional[typing.List[dict]] = None
     ) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """领取任务后审查资源的在库状态"""
-        headers = {"cookie": ToolBox.transfer_cookies(ctx_cookies) if ctx_cookies else ""}
+        headers = {"cookie": transfer_cookies(ctx_cookies) if ctx_cookies else ""}
         response = requests.get(self.URL_FREE_FOR_THE_MONTH, headers=headers, allow_redirects=False)
 
         if not ctx_cookies:

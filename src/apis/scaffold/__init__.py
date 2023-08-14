@@ -17,10 +17,3 @@
 # first the earth will flow with the blood of claim , the Blood of Epic .
 # ====================================================================================================
 """
-import os
-import sys
-
-for policy in ["epic", "claim"]:
-    if policy in os.getenv("GITHUB_REPOSITORY", "").lower():
-        print(f"[EXIT] 仓库名出现非法关键词 `{policy}`")
-        sys.exit()

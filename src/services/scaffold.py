@@ -3,11 +3,13 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-from typing import Optional
+from __future__ import annotations
+
+from typing import Literal
 
 from loguru import logger
 
-from apis.scaffold import challenge, install, claimer, console, get
+from apis.scaffold import challenge, install, deploy, log, get
 
 install.do(upgrade=False)
 
@@ -16,19 +18,12 @@ class Scaffold:
     """系统脚手架 顶级接口指令"""
 
     @staticmethod
-    def install(onnx_prefix: Optional[str] = None, upgrade: Optional[bool] = None):
+    def install(onnx_prefix: str | None = None, upgrade: bool | None = None):
         """下载运行依赖"""
         install.do(yolo_onnx_prefix=onnx_prefix, upgrade=upgrade)
 
     @staticmethod
-    def test():
-        """[弃用]检查挑战者驱动版本是否适配"""
-        logger.warning(
-            "The scaffolding command `test` is not open for use at this time, and related tasks will be skipped."
-        )
-
-    @staticmethod
-    def challenge(silence: Optional[bool] = False):
+    def challenge(silence: bool | None = False):
         """
         为当前账号获取有效的身份令牌
 
@@ -93,11 +88,7 @@ class Scaffold:
         logger.success("DONE [ScaffoldGet] 任务退出")
 
     @staticmethod
-    def claim(
-        silence: Optional[bool] = False,
-        ignore: Optional[bool] = False,
-        unreal: Optional[bool] = False,
-    ):
+    def claim(mode: Literal["epic-games", "unreal", "gog", "apg", "xbox"] = "epic-games"):
         """
         认领周免游戏，优雅地
 
@@ -123,41 +114,15 @@ class Scaffold:
         **基于 apprise 实现的消息推送模型**
           ``claim`` 在上述业务结束后将根据当前的 ``pusher`` 参数推送追踪日志。
           需要注意的是，未配置或配置错误均不会发送消息。
-
-        :param silence: 默认True。是否静默启动浏览器。除非你想观赏系统的作业流程，否则别徒增功耗。
-          该项在 Linux 上始终为True，无法手动指定。
-        :param ignore: 默认False。忽略已在库的推送数据。若所有周免内容均已在库，跳过消息推送。
-          该参数为开发者设计，部分推送渠道的试用账号按条数收费或每日限量收发，使用此参数可在重复
-          任务时节约资源。
-        :param unreal: 默认False。虚幻商城月供砖家。将任务句柄由<游戏商店>切换至<虚幻商店>，
-          业务内容保持一致。脚手架指令 unreal 与此入口意义相同。
         :return:
         """
-        if silence:
-            logger.warning(">> SKIP [Scaffold] Prohibit starting headless browser")
-        claimer.run(silence=silence, log_ignore=ignore, unreal=unreal)
+        deploy.build_claimer(mode=mode)
 
     @staticmethod
-    def unreal(silence: Optional[bool] = False, ignore: Optional[bool] = False):
-        """虚幻商城月供砖家 贤者专用"""
-        Scaffold.claim(silence=silence, ignore=ignore, unreal=True)
-
-    @staticmethod
-    def deploy(unreal: Optional[bool] = False):
-        """
-        部署系统定时任务
-
-        :param unreal: 默认False。虚幻商城月供砖家。将任务句柄由<游戏商店>切换至<虚幻商店>，
-          业务内容保持一致。
-        :return:
-        """
-        claimer.deploy(unreal=unreal)
-
-    @staticmethod
-    def log(start: Optional[bool] = False):
+    def log(start: bool | None = False):
         """
         显示最近一次的运行日志
         :param start: Default False. 自动打开日志目录（linux无效，仅会显示文件目录）。
         :return:
         """
-        console.get_logger(start=start)
+        log.get_logger(start=start)

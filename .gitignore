@@ -140,4 +140,6 @@ docs/
 docker-compose.yaml
 src/datas
 src/logs
+src/user_data_dir
 archivist/
+src/config.json

@@ -17,8 +17,8 @@ from loguru import logger
 from playwright.sync_api import Page
 from requests import RequestException
 
-from services.utils.toolbox import ToolBox
-from .core import GamePool, new_store_explorer
+from utils.toolbox import transfer_cookies
+from services.explorer.core import GamePool, new_store_explorer
 
 
 class Explorer:
@@ -128,7 +128,7 @@ class Explorer:
         _kwargs = {
             "headers": {
                 "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44",
-                "cookie": ToolBox.transfer_cookies(ctx_cookies),
+                "cookie": transfer_cookies(ctx_cookies),
             },
             "params": {"locale": "zh-CN", "page": page or "0", "latCreateAt": last_create_at or ""},
             "allow_redirects": False,

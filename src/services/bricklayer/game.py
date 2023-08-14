@@ -10,8 +10,8 @@ from loguru import logger
 from playwright.sync_api import Page
 from playwright.sync_api import TimeoutError as NinjaTimeout
 
-from .core import EpicAwesomeGamer, CookieManager
-from .exceptions import AuthException, UnableToGet
+from services.bricklayer.core import EpicAwesomeGamer, CookieManager
+from services.bricklayer.exceptions import AuthException, UnableToGet
 
 
 class GameClaimer(EpicAwesomeGamer):
@@ -19,15 +19,14 @@ class GameClaimer(EpicAwesomeGamer):
 
     URL_GAME_CART = "https://store.epicgames.com/zh-CN/cart"
 
-    def __init__(self, email: str, password: str, silence: bool = None):
-        super().__init__(email=email, password=password)
+    def __init__(self):
+        super().__init__()
         self.result = ""
-        self.silence = True if silence is None else silence
         self.promotion_url2state = {}
         self.promotion_url2title = {}
 
         self.action_name = "GameClaimer"
-        self.cookie_manager = CookieManager(auth_str="games", email=email, password=password)
+        self.cookie_manager = CookieManager(auth_str="games")
 
     def cart_balancing(self, page: Page):
         """
@@ -140,7 +139,6 @@ class GameClaimer(EpicAwesomeGamer):
             # ------ {{< DONE >}} ------
 
             # ------ {{< 上下文切换 | [GET/ADD] >}} ------
-            self.captcha_runtime_memory(page, suffix="_switch")
             if pattern == self.CLAIM_MODE_ADD:
                 with suppress(NinjaTimeout):
                     page.wait_for_load_state(state="networkidle")

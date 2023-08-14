@@ -4,11 +4,9 @@
 # Github     : https://github.com/QIN2DIM
 # Description:
 import json
-import os
 import typing
 from collections import deque
 from dataclasses import dataclass, field
-from hashlib import sha256
 
 from playwright.sync_api import Page
 
@@ -106,31 +104,6 @@ class StoreExplorer:
                 "namespace": element["namespace"],
             }
             game_pool.put(**detailed)
-
-
-class GameLibManager:
-    """游戏对象管理 缓存商城数据以及判断游戏在库状态"""
-
-    def __init__(self, email: str, dir_workspace: str):
-        self.email = email
-        self.action_name = "GameLibManager"
-        self.auth_str = "explorer"
-
-        # Set workspace
-        self.dir_workspace = (
-            "database/explorer"
-            if not dir_workspace or not os.path.isdir(dir_workspace)
-            else dir_workspace
-        )
-        self.path_free_games = os.path.join(self.dir_workspace, f"ctx_store{self._z()}.yaml")
-        os.makedirs(os.path.dirname(self.path_free_games), exist_ok=True)
-
-    def _z(self) -> str:
-        try:
-            h = sha256(f"{self.email[-3::-2]}{self.auth_str}".encode("utf-8")).hexdigest()
-            return f"_{h}"
-        except (AttributeError, TypeError, IndexError):
-            return ""
 
 
 def new_store_explorer(page: Page) -> StoreExplorer:
