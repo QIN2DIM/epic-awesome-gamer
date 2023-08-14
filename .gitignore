@@ -130,7 +130,6 @@ dmypy.json
 .idea
 src/database
 src/model
-src/config.yaml
 tests/
 docs-src/
 docs/

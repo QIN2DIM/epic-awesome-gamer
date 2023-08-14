@@ -47,15 +47,6 @@ class Player:
     mode: Literal["epic-games", "unreal", "gog", "apg", "xbox"] = "epic-games"
     """
     Context relay mode
-
-    | Mode       | Target                                                       |
-    | ---------- | ------------------------------------------------------------ |
-    | epic-games | [Epic Games Store](https://www.epicgames.com/store/free-games) |
-    | unreal     | [Unreal Engine](https://www.unrealengine.com)                |
-    | gog        | [GOG](https://www.gog.com)                                   |
-    | apg        | [Amazon Prime Gaming](https://gaming.amazon.com)             |
-    | xbox       | [Xbox Live Games with Gold](https://www.xbox.com/en-US/live/gold#gameswithgold) |                             |
-
     """
 
     user_data_dir: Path = Path(__file__).parent.parent.joinpath("user_data_dir")
