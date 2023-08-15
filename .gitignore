@@ -129,10 +129,7 @@ dmypy.json
 .pyre/
 .idea
 src/database
-src/model
 tests/
-docs-src/
-docs/
 .github/workflows/automated.yaml
 .github/workflows/automated_claim.yaml
 .github/workflows/sync_repo.yaml
