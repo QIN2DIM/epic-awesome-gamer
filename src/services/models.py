@@ -3,50 +3,65 @@
 # Author     : QIN2DIM
 # Github     : https://github.com/QIN2DIM
 # Description:
-import sys
+from __future__ import annotations
+
+import abc
+import json
 import time
 from abc import ABC
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Any, Literal
 
-from loguru import logger
+import httpx
 
 from services.settings import config
 from utils.toolbox import Tarnished
 
 
 @dataclass
-class Cookie(ABC):
-    cookie_path: Path
+class EpicCookie:
+    cookies: Dict[str, str] = field(default_factory=dict)
 
-    @property
-    def is_available(self) -> bool:
-        return True
+    URL_VERIFY_COOKIES = "https://www.epicgames.com/account/personal"
 
-    def load(self):
-        pass
+    @classmethod
+    def from_state(cls, fp: Path) -> EpicCookie:
+        """Jsonify cookie from Playwright"""
+        cookies = {}
+        try:
+            data = json.loads(fp.read_text())["cookies"]
+            cookies = {ck["name"]: ck["value"] for ck in data}
+        except (FileNotFoundError, KeyError):
+            pass
+        return cls(cookies=cookies)
 
-    def flush(self):
-        pass
+    def is_available(self) -> bool | None:
+        if not self.cookies:
+            return
+        with suppress(httpx.ConnectError):
+            headers = {
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203",
+                "origin": "https://www.epicgames.com",
+                "referer": "https://www.epicgames.com/",
+            }
+            resp = httpx.get(self.URL_VERIFY_COOKIES, headers=headers, cookies=self.cookies)
+            return resp.status_code == 200
 
 
 @dataclass
-class EpicCookie(Cookie):
-    pass
-
-
-@dataclass
-class Player:
-    epic_email: str
-    epic_password: str
+class Player(ABC):
+    email: str
+    password: str
     """
-    Epic Account
+    Player's account
     """
 
-    mode: Literal["epic-games", "unreal", "gog", "apg", "xbox"] = "epic-games"
+    mode: Literal["epic-games", "unreal", "gog", "apg", "xbox"]
     """
-    Context relay mode
+    Game Platform
     """
 
     user_data_dir: Path = Path(__file__).parent.parent.joinpath("user_data_dir")
@@ -54,7 +69,7 @@ class Player:
     Mount user cache
     - database
     - user_data_dir
-        - alice@games # runtime user_data_dir
+        - games@email # runtime user_data_dir
             - context
             - record
                 - captcha.mp4
@@ -62,53 +77,26 @@ class Player:
             - ctx_cookie.json
             - ctx_store.json
             - order_history.json
-        - alice@unreal
+        - unreal@email
             - context
             - record
                 - captcha.mp4
                 - eg-record.har
-            - ctx_cookie.json
-        - alice@gog
-        - alice@steam
-    """
-
-    username: str = "Lucy"
-    """
-    Epic username
-    """
-
-    repository: Dict[str, Any] = field(default_factory=dict)
-    """
-    Player's game repository
-    """
-
-    ctx_cookie: Cookie = None
-    """
-    Persistent Playwright state
+        - gog@alice
+        - xbox@alice
     """
 
     def __post_init__(self):
-        self.repository = self.repository or {}
-        if not self.ctx_cookie:
-            if self.mode == "epic-games":
-                pass
-
-    @classmethod
-    def from_mode(cls, mode: Literal["epic-games", "unreal", "gog", "apg", "xbox"]):
-        epic_email, epic_password = config.epic_email, config.epic_password
-        if not all([epic_email, epic_password]):
-            logger.critical("Email / Password information is incomplete")
-            sys.exit(1)
-
-        instance = cls(epic_email=epic_email, epic_password=epic_password, mode=mode)
-        namespace = f"{epic_email.split('@')[0]}@{mode}"
-        instance.user_data_dir = instance.user_data_dir.joinpath(namespace)
-
+        namespace = f"{self.mode}@{self.email.split('@')[0]}"
+        self.user_data_dir = self.user_data_dir.joinpath(namespace)
         for ck in ["browser_context", "record"]:
-            ckp = instance.user_data_dir.joinpath(ck)
+            ckp = self.user_data_dir.joinpath(ck)
             ckp.mkdir(777, parents=True, exist_ok=True)
 
-        return instance
+    @classmethod
+    @abc.abstractmethod
+    def from_account(cls, *args, **kwargs):
+        raise NotImplementedError
 
     @property
     def browser_context_dir(self) -> Path:
@@ -126,6 +114,32 @@ class Player:
     def ctx_cookie_path(self) -> Path:
         return self.user_data_dir.joinpath("ctx_cookie.json")
 
+    def build_agent(self):
+        return Tarnished(
+            user_data_dir=self.browser_context_dir,
+            record_dir=self.record_dir,
+            record_har_path=self.record_har_path,
+            state_path=self.ctx_cookie_path,
+        )
+
+
+@dataclass
+class EpicPlayer(Player):
+    lib: Dict[str, Any] = field(default_factory=dict)
+    """
+    Player's game repository
+    """
+
+    _ctx_cookies: EpicCookie = None
+
+    def __post_init__(self):
+        super().__post_init__()
+        self._ctx_cookies = EpicCookie.from_state(fp=self.ctx_cookie_path)
+
+    @classmethod
+    def from_account(cls):
+        return cls(email=config.epic_email, password=config.epic_password, mode="epic-games")
+
     @property
     def ctx_store_path(self) -> Path:
         return self.user_data_dir.joinpath("ctx_store.json")
@@ -134,31 +148,10 @@ class Player:
     def order_history_path(self) -> Path:
         return self.user_data_dir.joinpath("order_history.json")
 
+    @property
+    def ctx_cookies(self) -> EpicCookie:
+        return self._ctx_cookies
 
-class Ranni(Tarnished):
-    """Web browser driver over Playwright"""
-
-    def __init__(self, player: Player, **kwargs):
-        super().__init__(**kwargs)
-        self.player = player
-
-    @classmethod
-    def from_player(cls, player: Player):
-        return cls(
-            player=player,
-            user_data_dir=player.browser_context_dir,
-            record_dir=player.record_dir,
-            record_har_path=player.record_har_path,
-            state_path=player.ctx_cookie_path
-        )
-
-    @classmethod
-    def from_mode(cls, mode: Literal["epic-games", "unreal", "gog", "apg", "xbox"]):
-        player = Player.from_mode(mode)
-        return cls(
-            player=player,
-            user_data_dir=player.browser_context_dir,
-            record_dir=player.record_dir,
-            record_har_path=player.record_har_path,
-            state_path=player.ctx_cookie_path
-        )
+    @property
+    def cookies(self) -> Dict[str, str]:
+        return self._ctx_cookies.cookies

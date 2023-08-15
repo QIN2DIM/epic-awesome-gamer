@@ -14,13 +14,12 @@ from playwright.sync_api import Page, BrowserContext
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.explorer.core import Game
 from services.explorer.explorer import PermissionsHistory
-from services.settings import config, project
-from services.models import Ranni
+from services.settings import config
 from utils.pusher import MessageBody, MessagePusher
 
 
 class IReallyWantToStayAtYourHouse:
-    def __init__(self, dir_hook: str = project.claim_history_dir):
+    def __init__(self):
         self._ctx_cookies = None
         self.inline_docker: typing.List[MessageBody] = []
         self.claimer = GameClaimer()
@@ -39,7 +38,7 @@ class IReallyWantToStayAtYourHouse:
         manager = self.claimer.cookie_manager
         if not manager.has_available_token:
             with suppress(NinjaException):
-                tarnished.boost(tasks=manager.refresh_ctx_cookies)
+                tarnished.execute(sequence=manager.refresh_ctx_cookies)
         self._ctx_cookies = manager.load_ctx_cookies()
         self.ph.ctx_cookies = self._ctx_cookies
         return self
@@ -95,4 +94,4 @@ class IReallyWantToStayAtYourHouse:
 
             self.offload(task_list, page)
 
-        tarnished.boost(tasks=run)
+        tarnished.execute(sequence=run)

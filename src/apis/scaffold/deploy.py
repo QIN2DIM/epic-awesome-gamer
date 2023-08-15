@@ -12,7 +12,6 @@ from typing import Literal, List
 
 from loguru import logger
 from playwright.sync_api import BrowserContext
-from playwright.sync_api import Error as NinjaException
 
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.bricklayer.unreal import UnrealClaimer
@@ -54,16 +53,12 @@ class Promotions:
 #   - 查询用户游戏库
 # 3. 对于 epic，可以直接发起 request 请求查询当周促销游戏
 
+
 class BaseInstance:
     """Atomic Scheduler"""
 
-    def __init__(
-            self, action_name: str | None = None
-    ):
-        self.action_name = "AwesomeInstance" if action_name is None else action_name
-
+    def __init__(self):
         # 服务注册
-        self.logger = logger
         self.bricklayer = GameClaimer()
         # 任务队列 按顺缓存周免游戏及其免费附加内容的认领任务
         self.promotions = Promotions()
@@ -75,29 +70,8 @@ class BaseInstance:
         # 资源在库状态简写
         self.in_library = self.bricklayer.assert_util.GAME_OK
         self.claimed = self.bricklayer.assert_util.GAME_CLAIM
-        # 增加日志可读性
-        if "game" in self.action_name.lower():
-            self.tag = "周免游戏"
-        elif "unreal" in self.action_name.lower():
-            self.tag = "月免内容"
-        else:
-            self.tag = "免费资源"
 
         self._ctx_cookies = None
-
-    def __enter__(self):
-        """激活挑战者并获取身份令牌"""
-        manager = self.bricklayer.cookie_manager
-        if not manager.has_available_token:
-            try:
-                tarnished.boost(tasks=manager.refresh_ctx_cookies)
-            except NinjaException as err:
-                logger.exception(err)
-        self._ctx_cookies = manager.load_ctx_cookies()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
 
     def _push_pending_message(self, result, promotion: Promotion):
         element = MessageBody(url=promotion.url, title=promotion.title, result=result, dlc=False)
@@ -112,7 +86,7 @@ class GameClaimerInstance(BaseInstance):
     """单步子任务 认领周免游戏"""
 
     def __init__(self):
-        super(GameClaimerInstance, self).__init__("GameClaimer")
+        super(GameClaimerInstance, self).__init__()
         self.explorer = Explorer()
 
         # Pending order history
@@ -127,9 +101,6 @@ class GameClaimerInstance(BaseInstance):
             path_order_history=self.path_order_history,
             outdated_interval_order_history=432000,
         )
-
-    def __enter__(self):
-        return self
 
     def get_promotions(self) -> List[Promotion]:
         """获取游戏促销信息"""
@@ -156,24 +127,14 @@ class GameClaimerInstance(BaseInstance):
             _offload.add(promotion.url)
             if in_library := promotion.namespace in order_history:
                 self._push_pending_message(result=self.in_library, promotion=promotion)
-                logger.debug(
-                    f">> Checkout [{self.action_name}] {promotion.title} - state=已在库中 link={promotion.url}"
-                )
+                logger.debug(f"{promotion.title} - state=已在库中 link={promotion.url}")
             else:
                 self.task_sequence_worker.append(promotion)
-                logger.debug(
-                    f">> Checkout [{self.action_name}] {promotion.title} - state=待认领 link={promotion.url}"
-                )
+                logger.debug(f"{promotion.title} - state=待认领 link={promotion.url}")
             promotion.in_library = in_library
         return self.task_sequence_worker
 
     def just_do_it(self):
-        def recur_order_history(state: str, promotion: Promotion):
-            if state in [self.bricklayer.utils.GAME_OK, self.bricklayer.assert_util.GAME_CLAIM]:
-                self.ph.namespaces.add(promotion.namespace)
-                self.task_sequence_worker.remove(promotion)
-                self.ph.save_order_history()
-
         def run(context: BrowserContext):
             context.storage_state(path=self.bricklayer.cookie_manager.path_ctx_cookies)
             promotions = self.preload()
@@ -182,16 +143,15 @@ class GameClaimerInstance(BaseInstance):
                 self.bricklayer.promotion_url2title[promotion.url] = promotion.title
                 result = empower_games_claimer(self.bricklayer, promotion.url, page, pattern="get")
                 self._push_pending_message(result=result, promotion=promotion)
-                recur_order_history(result, promotion)
 
-        tarnished.boost(tasks=[self.bricklayer.cookie_manager.refresh_ctx_cookies, run])
+        tarnished.execute(sequence=[self.bricklayer.cookie_manager.refresh_ctx_cookies, run])
 
 
 class UnrealClaimerInstance(BaseInstance):
     """虚幻商城月供砖家"""
 
     def __init__(self):
-        super().__init__("UnrealClaimer")
+        super().__init__()
         self.bricklayer = UnrealClaimer()
 
     def get_promotions(self) -> List[Promotion]:
@@ -208,14 +168,10 @@ class UnrealClaimerInstance(BaseInstance):
             _offload.add(promotion.url)
             if promotion.in_library:
                 self._push_pending_message(result=self.in_library, promotion=promotion)
-                logger.debug(
-                    f">> CHECKOUT [{self.action_name}] {promotion.title} - state=已在库中 link={promotion.url}"
-                )
+                logger.debug(f"{promotion.title} - state=已在库中 link={promotion.url}")
             else:
                 self.task_sequence_worker.append(promotion)
-                logger.debug(
-                    f">> CHECKOUT [{self.action_name} {promotion.title}] - state=待认领 link={promotion.url}"
-                )
+                logger.debug(f" {promotion.title}] - state=待认领 link={promotion.url}")
 
     def just_do_it(self):
         def run(context: BrowserContext):
@@ -225,7 +181,7 @@ class UnrealClaimerInstance(BaseInstance):
 
         self.preload()
         if self.is_pending():
-            tarnished.boost(tasks=run)
+            tarnished.execute(sequence=run)
 
 
 @logger.catch()

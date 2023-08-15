@@ -54,21 +54,6 @@ def init_log(**sink_channel):
     return logger
 
 
-def transfer_cookies(api_cookies: List[Dict[str, str]] | str) -> str | List[Dict[str, str]]:
-    """
-    ctx_cookies --> request_cookies
-    request_cookies --> ctx_cookies
-
-    :param api_cookies: api.get_cookies() or cookie_body
-    :return:
-    """
-    if isinstance(api_cookies, str):
-        return [
-            {"name": i.split("=")[0], "value": i.split("=")[1]} for i in api_cookies.split("; ")
-        ]
-    return "; ".join([f"{i['name']}={i['value']}" for i in api_cookies])
-
-
 def from_dict_to_model(cls, data: Dict[str, Any]):
     return cls(
         **{
@@ -112,8 +97,10 @@ class Tarnished:
         ]
 
         for e in enabled_evasions:
-            evasion_code = Path(f"puppeteer-extra-plugin-stealth/evasions/{e}/index.js").read_text(
-                encoding="utf8"
+            evasion_code = (
+                Path(__file__)
+                .parent.joinpath(f"puppeteer-extra-plugin-stealth/evasions/{e}/index.js")
+                .read_text(encoding="utf8")
             )
             context.add_init_script(evasion_code)
 
@@ -130,9 +117,7 @@ class Tarnished:
         }
         context.add_cookies([cookie])
 
-    def boost(self, *, tasks: Callable[[SyncContext], None] | List, **kwargs):
-        logger.info("startup FireEngine")
-
+    def execute(self, *, sequence: Callable[[SyncContext], None] | List, **kwargs):
         with sync_playwright() as p:
             context = p.firefox.launch_persistent_context(
                 user_data_dir=self._user_data_dir,
@@ -141,15 +126,15 @@ class Tarnished:
                 record_video_dir=self._record_dir,
                 record_har_path=self._record_har_path,
                 args=["--hide-crash-restore-bubble"],
-                **kwargs
+                **kwargs,
             )
             self._apply_stealth(context)
             self._patch_cookies(context)
 
-            if not isinstance(tasks, list):
-                tasks = [tasks]
-            for container in tasks:
-                logger.info("launch container")
+            if not isinstance(sequence, list):
+                sequence = [sequence]
+            for container in sequence:
+                logger.info("Execute task", task=container.__name__)
                 container(context)
             if self.state_path:
                 context.storage_state(path=self.state_path)

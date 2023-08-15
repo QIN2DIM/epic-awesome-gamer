@@ -17,8 +17,8 @@ from loguru import logger
 from playwright.sync_api import Page
 from requests import RequestException
 
-from utils.toolbox import transfer_cookies
 from services.explorer.core import GamePool, new_store_explorer
+from utils.toolbox import transfer_cookies
 
 
 class Explorer:
@@ -49,10 +49,6 @@ class Explorer:
     @property
     def namespaces(self):
         return self._namespaces
-
-    @property
-    def promotion_detailed(self):
-        return self._promotion_detailed
 
     def get_free_now(self, page: Page):
         """获取准确的周免游戏数据"""

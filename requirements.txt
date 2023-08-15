@@ -9,6 +9,7 @@ pyyaml==6.0.1
 bs4>=0.0.1
 beautifulsoup4>=4.10.0
 lxml>=4.9.3
+httpx
 
 # {{< Challenger Drive >}}
 hcaptcha-challenger
@@ -16,3 +17,4 @@ playwright>=1.36.0
 
 # {{< Message Push >}}
 apprise==1.1.0
+
