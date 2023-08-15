@@ -12,7 +12,7 @@ from abc import ABC
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Any, Literal
+from typing import Literal, Dict
 
 import httpx
 
@@ -23,6 +23,9 @@ from utils.toolbox import Tarnished
 @dataclass
 class EpicCookie:
     cookies: Dict[str, str] = field(default_factory=dict)
+    """
+    cookies in the Request Header
+    """
 
     URL_VERIFY_COOKIES = "https://www.epicgames.com/account/personal"
 
@@ -42,10 +45,8 @@ class EpicCookie:
             return
         with suppress(httpx.ConnectError):
             headers = {
-                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203",
-                "origin": "https://www.epicgames.com",
-                "referer": "https://www.epicgames.com/",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203",
+                "origin": "https://store.epicgames.com/zh-CN/p/orwell-keeping-an-eye-on-you",
             }
             resp = httpx.get(self.URL_VERIFY_COOKIES, headers=headers, cookies=self.cookies)
             return resp.status_code == 200
@@ -125,11 +126,6 @@ class Player(ABC):
 
 @dataclass
 class EpicPlayer(Player):
-    lib: Dict[str, Any] = field(default_factory=dict)
-    """
-    Player's game repository
-    """
-
     _ctx_cookies: EpicCookie = None
 
     def __post_init__(self):
@@ -155,3 +151,7 @@ class EpicPlayer(Player):
     @property
     def cookies(self) -> Dict[str, str]:
         return self._ctx_cookies.cookies
+
+    @cookies.setter
+    def cookies(self, cookies: Dict[str, str]):
+        self._ctx_cookies.cookies = cookies

@@ -18,7 +18,6 @@ from playwright.sync_api import Page
 from requests import RequestException
 
 from services.explorer.core import GamePool, new_store_explorer
-from utils.toolbox import transfer_cookies
 
 
 class Explorer:
@@ -33,35 +32,7 @@ class Explorer:
     cdn_image_urls = []
 
     def __init__(self):
-        self.action_name = "Explorer"
-
-        # 玩家在库资源总数（DLC/GAMES/UNREAL）
-        self._orders_count = 0
-        # 资源对象在库情况，普通促销商品以`UUID`命名，虚幻商店以`ue`作为key
-        self._namespaces = set()
-        # 周免游戲數據
         self._promotion_detailed = []
-
-    @property
-    def orders_count(self):
-        return self._orders_count
-
-    @property
-    def namespaces(self):
-        return self._namespaces
-
-    def get_free_now(self, page: Page):
-        """获取准确的周免游戏数据"""
-        promotions = self.get_promotions()
-        page.goto("https://store.epicgames.com/zh-CN/", wait_until="domcontentloaded")
-        free_games = page.locator("//a[contains(@aria-label,'现在免费')]")
-        free_games.last.wait_for()
-        hrefs = {
-            "https://store.epicgames.com" + free_games.nth(i).get_attribute("href")
-            for i in range(free_games.count())
-        }
-        promotions = [promotion for promotion in promotions if promotion["url"] in hrefs]
-        return promotions
 
     def get_promotions(self) -> typing.List[typing.Dict[str, typing.Union[str, bool]]]:
         """

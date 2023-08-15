@@ -117,6 +117,11 @@ class Tarnished:
         }
         context.add_cookies([cookie])
 
+    def storage_state(self, context: SyncContext):
+        if self.state_path:
+            logger.info("Storage ctx_cookie", path=self.state_path)
+            context.storage_state(path=self.state_path)
+
     def execute(self, *, sequence: Callable[[SyncContext], None] | List, **kwargs):
         with sync_playwright() as p:
             context = p.firefox.launch_persistent_context(
@@ -134,8 +139,6 @@ class Tarnished:
             if not isinstance(sequence, list):
                 sequence = [sequence]
             for container in sequence:
-                logger.info("Execute task", task=container.__name__)
+                logger.info("Execute task", name=container.__name__)
                 container(context)
-            if self.state_path:
-                context.storage_state(path=self.state_path)
             context.close()

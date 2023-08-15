@@ -21,7 +21,7 @@ from services.models import EpicPlayer
 from utils.toolbox import from_dict_to_model
 
 # fmt:off
-URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
+URL_CLAIM = "https://store.epicgames.com/zh-CN/free-games"
 URL_LOGIN = f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={URL_CLAIM}"
 URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions"
 URL_PRODUCT_PAGE = "https://store.epicgames.com/zh-CN/p/"
@@ -106,9 +106,12 @@ def get_order_history(
 
     try:
         data = json.loads(request_history())
+        logger.info("captcha order history", data=data)
         for order in data["orders"]:
+            if order["orderType"] != "PURCHASE":
+                continue
             for item in order["items"]:
-                if order["orderStatus"] != "COMPLETED" or len(item["namespace"]) != 32:
+                if len(item["namespace"]) != 32:
                     continue
                 completed_orders.append(from_dict_to_model(CompletedOrder, item))
     except (JSONDecodeError, KeyError) as err:
@@ -132,11 +135,6 @@ class EpicGames:
     """
     Free promotional items for the week, 
     considered metadata for task sequence of the agent
-    """
-
-    _orders: List[CompletedOrder] = field(default_factory=list)
-    """
-    Completed game orders
     """
 
     @classmethod
