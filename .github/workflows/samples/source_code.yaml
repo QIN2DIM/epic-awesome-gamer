@@ -18,12 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: "3.10"
-        cache: 'pip'
-    - name: Setup GIT user
-      uses: fregante/setup-git-user@v1
 
     - name: Clone & Init
       run: |
@@ -31,6 +25,11 @@ jobs:
         git clone -b hello-world https://github.com/QIN2DIM/epic-awesome-gamer.git epic
         if [ -d "user_data_dir" ];then cp -rfp user_data_dir epic/user_data_dir/; fi
         touch epic/src/config.json
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        cache: 'pip'
 
     - name: Install dependencies
       run: |
@@ -42,6 +41,9 @@ jobs:
       run: |
         cd epic/src/
         xvfb-run python claim
+
+    - name: Setup GIT user
+      uses: fregante/setup-git-user@v1
 
     - name: Cache browser context
       run: |

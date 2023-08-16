@@ -1,20 +1,16 @@
-# {{< Scaffolding dependency >}}
-fire==0.5.0
-
-# {{< Log system >}}
-loguru==0.6.0
-pyyaml==6.0.1
-
-# {{< Interface /Data cleaning >}}
+# [install_requires]
+fire
+loguru
+pyyaml
 bs4>=0.0.1
 beautifulsoup4>=4.10.0
 lxml>=4.9.3
 httpx
-
-# {{< Challenger Drive >}}
-hcaptcha-challenger==0.5.1
 playwright>=1.36.0
 
-# {{< Message Push >}}
+# [extra_requires.solver]
+hcaptcha-challenger==0.5.1
+
+# [extra_requires.notify]
 apprise==1.1.0
 
