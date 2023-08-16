@@ -8,3 +8,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN apt update -y \
     && apt install -y wget xvfb tini \
     && playwright install-deps firefox
+
+COPY src ./
