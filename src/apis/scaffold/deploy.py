@@ -16,7 +16,7 @@ from playwright.sync_api import BrowserContext
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.bricklayer.unreal import UnrealClaimer
 from services.explorer.explorer import Explorer, PermissionsHistory
-from services.settings import project
+from settings import project
 from utils.pusher import MessageBody, MessageQueue
 
 

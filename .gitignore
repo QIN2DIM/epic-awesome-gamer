@@ -128,14 +128,13 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .idea
-src/database
 tests/
 .github/workflows/automated.yaml
 .github/workflows/automated_claim.yaml
 .github/workflows/sync_repo.yaml
 docker-compose.yaml
-src/datas
-src/logs
-src/user_data_dir
 archivist/
 src/config.json
+user_data_dir/
+logs/
+database/

@@ -12,7 +12,7 @@ lxml>=4.9.3
 httpx
 
 # {{< Challenger Drive >}}
-hcaptcha-challenger
+hcaptcha-challenger==0.5.1
 playwright>=1.36.0
 
 # {{< Message Push >}}

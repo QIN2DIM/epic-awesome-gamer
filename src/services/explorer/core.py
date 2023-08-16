@@ -5,42 +5,8 @@
 # Description:
 import json
 import typing
-from collections import deque
-from dataclasses import dataclass, field
 
 from playwright.sync_api import Page
-
-
-@dataclass
-class Game:
-    title: str
-    url: str
-    image_url: str
-    namespace: str
-    in_library: None
-
-
-@dataclass
-class GamePool:
-    _games: typing.Deque[Game] = field(default_factory=list)
-
-    def __post_init__(self):
-        self._games = deque()
-
-    def __len__(self):
-        return 0 if not self._games else len(self._games)
-
-    def empty(self):
-        return self.__len__() == 0
-
-    def put(self, **kwargs):
-        self._games.append(Game(**kwargs))
-
-    def to_dict(self):
-        return {"_games": [game.__dict__ for game in self._games]}
-
-    def filter_games(self, namespace: set):
-        return [game for game in self._games if game.namespace not in namespace]
 
 
 class StoreExplorer:
@@ -62,13 +28,7 @@ class StoreExplorer:
 
     def __init__(self, page: Page):
         self.action_name = "StoreExplorer"
-        # 当前账户可领取的所有免费游戏
-        self._total_free_games = 0
         self.page = page
-
-    @property
-    def total_free_games(self):
-        return self._total_free_games
 
     def discovery_free_games(self, game_pool: GamePool):
         self.page.goto(self.URL_STORE_FREE_GAME, wait_until="domcontentloaded")
@@ -104,7 +64,3 @@ class StoreExplorer:
                 "namespace": element["namespace"],
             }
             game_pool.put(**detailed)
-
-
-def new_store_explorer(page: Page) -> StoreExplorer:
-    return StoreExplorer(page)

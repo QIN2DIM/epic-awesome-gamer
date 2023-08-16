@@ -14,11 +14,11 @@ from playwright.sync_api import Page, BrowserContext
 from services.bricklayer.game import GameClaimer, empower_games_claimer
 from services.explorer.core import Game
 from services.explorer.explorer import PermissionsHistory
-from services.settings import config
+from settings import config
 from utils.pusher import MessageBody, MessagePusher
 
 
-class IReallyWantToStayAtYourHouse:
+class IReallyWantToStayAtYourHeart:
     def __init__(self):
         self._ctx_cookies = None
         self.inline_docker: typing.List[MessageBody] = []
@@ -47,7 +47,6 @@ class IReallyWantToStayAtYourHouse:
         # 推送消息
         self.push_all_message()
         # 缓存订单数据和商城数据
-        self.ph.save_order_history()
         self.ph.save_ctx_store()
 
     def offload(self, task_list, page: Page):

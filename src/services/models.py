@@ -16,7 +16,7 @@ from typing import Literal, Dict
 
 import httpx
 
-from services.settings import config
+from settings import config, project
 from utils.toolbox import Tarnished
 
 
@@ -65,7 +65,7 @@ class Player(ABC):
     Game Platform
     """
 
-    user_data_dir: Path = Path(__file__).parent.parent.joinpath("user_data_dir")
+    user_data_dir: Path = project.user_data_dir
     """
     Mount user cache
     - database

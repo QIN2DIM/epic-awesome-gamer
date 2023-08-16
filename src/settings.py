@@ -15,11 +15,14 @@ from utils.toolbox import init_log
 
 @dataclass
 class Project:
-    root = Path(__file__).parent.parent
-    config_path = root.joinpath("config.json")
-    database = root.joinpath("database")
+    src_dir = Path(__file__).parent
+    root_dir = src_dir.parent
+    config_path = src_dir.joinpath("config.json")
+    database = root_dir.joinpath("database")
 
-    logs_dir = root.joinpath("logs")
+    logs_dir = root_dir.joinpath("logs")
+
+    user_data_dir = root_dir.joinpath("user_data_dir")
 
 
 @dataclass

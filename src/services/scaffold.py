@@ -9,7 +9,7 @@ from typing import Literal
 
 from loguru import logger
 
-from apis.scaffold import challenge, install, deploy, log, get
+from apis.scaffold import install, deploy, log, get
 
 install.do(upgrade=False)
 
@@ -21,30 +21,6 @@ class Scaffold:
     def install(onnx_prefix: str | None = None, upgrade: bool | None = None):
         """下载运行依赖"""
         install.do(yolo_onnx_prefix=onnx_prefix, upgrade=upgrade)
-
-    @staticmethod
-    def challenge(silence: bool | None = False):
-        """
-        为当前账号获取有效的身份令牌
-
-        Introduction
-        --------
-
-        - 请确保你已在 ``config.yaml`` 中配置了正确的账号信息。
-        - 更新后的身份令牌存储在 ``/src/database/cookies/user_cookies.txt``
-
-        Tips
-        --------
-
-        ``challenge`` **不会强制激活人机验证**。获取有效的身份令牌才是目的，不要徒增功耗。
-
-        :param silence: 默认True。是否静默启动浏览器。除非你想观赏系统的作业流程，否则别徒增功耗。
-          该项在 Linux 上始终为True，无法手动指定。
-        :return:
-        """
-        if silence:
-            logger.warning(">> SKIP [Scaffold] Prohibit starting headless browser")
-        challenge.check_token()
 
     @staticmethod
     def get():
@@ -83,7 +59,7 @@ class Scaffold:
         :return:
         """
         logger.info("STARTUP [ScaffoldGet] 正在清空免费商店...")
-        with get.IReallyWantToStayAtYourHouse() as lucy:
+        with get.IReallyWantToStayAtYourHeart() as lucy:
             lucy.attach()
         logger.success("DONE [ScaffoldGet] 任务退出")
 

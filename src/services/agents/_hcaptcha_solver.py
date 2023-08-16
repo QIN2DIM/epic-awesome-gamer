@@ -53,7 +53,14 @@ class Radagon(solver.HolyChallenger):
     HOOK_CHALLENGE = "//iframe[contains(@title, 'hCaptcha挑战')]"
 
     def __init__(self):
-        super().__init__(debug=False, screenshot=False, lang="zh")
+        super().__init__(
+            dir_workspace=solver.project.challenge_cache_dir,
+            models_dir=solver.project.models_dir,
+            objects_path=solver.project.objects_path,
+            debug=False,
+            screenshot=False,
+            lang="en"
+        )
         self.critical_threshold = 3
 
     def get_label(self, frame_challenge: FrameLocator):
@@ -123,13 +130,13 @@ class Radagon(solver.HolyChallenger):
             self.log(message=f"Submit the challenge - {model.flag}: {round(sum(ta), 2)}s")
 
     def challenge_success(
-        self,
-        page: Page,
-        frame_challenge: FrameLocator = None,
-        window=None,
-        init=True,
-        hook_url=None,
-        **kwargs,
+            self,
+            page: Page,
+            frame_challenge: FrameLocator = None,
+            window=None,
+            init=True,
+            hook_url=None,
+            **kwargs,
     ) -> Tuple[str, str]:
         """
         判断挑战是否成功的复杂逻辑

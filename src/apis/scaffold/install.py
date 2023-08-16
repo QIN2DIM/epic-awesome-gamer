@@ -8,7 +8,7 @@ import typing
 
 import hcaptcha_challenger as solver
 
-from services.settings import config
+from settings import config
 
 
 def do(yolo_onnx_prefix: typing.Optional[str] = None, upgrade: typing.Optional[bool] = False):
