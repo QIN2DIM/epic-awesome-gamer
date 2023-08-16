@@ -131,7 +131,7 @@ class Tarnished:
             context = p.firefox.launch_persistent_context(
                 user_data_dir=self._user_data_dir,
                 headless=False,
-                locale="zh-CN",
+                locale="en-US",
                 record_video_dir=self._record_dir,
                 record_har_path=self._record_har_path,
                 args=["--hide-crash-restore-bubble"],
