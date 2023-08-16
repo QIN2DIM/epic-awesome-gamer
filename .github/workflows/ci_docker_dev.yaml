@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - v0.4.1
+      - hello-world
     paths-ignore:
-#      - ".github/**"
+      # - ".github/**"
       - "README.md"
       - "LICENSE"
       - ".gitignore"
       - ".deepsource.toml"
 env:
-  IMAGE_TAG: ${{ secrets.DOCKERHUB_USERNAME }}/awesome-epic:alice
+  IMAGE_TAG: ${{ secrets.DOCKERHUB_USERNAME }}/awesome-epic:fish
 
 jobs:
   docker:
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Scaffold Init
-        run: cd src && cp config-sample.yaml config.yaml
+        run: cd src && echo '{}' > config.json
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2

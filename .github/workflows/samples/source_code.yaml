@@ -24,7 +24,7 @@ jobs:
         sudo timedatectl set-timezone "Asia/Shanghai"
         git clone -b hello-world https://github.com/QIN2DIM/epic-awesome-gamer.git epic
         if [ -d "user_data_dir" ];then cp -rfp user_data_dir epic/user_data_dir/; fi
-        touch epic/src/config.json
+        echo "{}" > epic/src/config.json
 
     - uses: actions/setup-python@v4
       with:
@@ -34,7 +34,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r epic/requirements.txt
-        playwright install firefox --with-deps
+        playwright install-deps firefox
         cd epic/src/ && python main.py install
 
     - name: Run tasks
