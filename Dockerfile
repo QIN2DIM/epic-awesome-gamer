@@ -7,6 +7,6 @@ RUN apt update -y \
     && apt install -y wget xvfb tini \
     && playwright install-deps firefox
 
-WORKDIR /home/epic/
+WORKDIR /home/epic/src
 
-COPY src ./src
+COPY src ./
