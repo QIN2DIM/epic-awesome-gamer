@@ -59,7 +59,7 @@ class Radagon(solver.HolyChallenger):
             objects_path=solver.project.objects_path,
             debug=False,
             screenshot=False,
-            lang="en"
+            lang="en",
         )
         self.critical_threshold = 3
 
@@ -130,13 +130,13 @@ class Radagon(solver.HolyChallenger):
             self.log(message=f"Submit the challenge - {model.flag}: {round(sum(ta), 2)}s")
 
     def challenge_success(
-            self,
-            page: Page,
-            frame_challenge: FrameLocator = None,
-            window=None,
-            init=True,
-            hook_url=None,
-            **kwargs,
+        self,
+        page: Page,
+        frame_challenge: FrameLocator = None,
+        window=None,
+        init=True,
+        hook_url=None,
+        **kwargs,
     ) -> Tuple[str, str]:
         """
         判断挑战是否成功的复杂逻辑

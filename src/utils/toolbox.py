@@ -9,7 +9,7 @@ import inspect
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Callable, Any
+from typing import Dict, Callable, Any
 
 from loguru import logger
 from playwright.sync_api import BrowserContext as SyncContext
@@ -61,6 +61,10 @@ def from_dict_to_model(cls, data: Dict[str, Any]):
             for key, val in inspect.signature(cls).parameters.items()
         }
     )
+
+
+AgentMan = Callable[[SyncContext], None]
+AgentSu = Callable[[SyncContext, ...], None]
 
 
 class Tarnished:
@@ -122,7 +126,7 @@ class Tarnished:
             logger.info("Storage ctx_cookie", path=self.state_path)
             context.storage_state(path=self.state_path)
 
-    def execute(self, *, sequence: Callable[[SyncContext], None] | List, **kwargs):
+    def execute(self, *, sequence: AgentMan | AgentSu, parameters: Dict[str, Any] = None, **kwargs):
         with sync_playwright() as p:
             context = p.firefox.launch_persistent_context(
                 user_data_dir=self._user_data_dir,
@@ -140,5 +144,14 @@ class Tarnished:
                 sequence = [sequence]
             for container in sequence:
                 logger.info("Execute task", name=container.__name__)
-                container(context)
+                kws = {}
+                params = inspect.signature(container).parameters
+                if parameters and isinstance(parameters, dict):
+                    for name in params:
+                        if name != "context" and name in parameters:
+                            kws[name] = parameters[name]
+                if not kws:
+                    container(context)
+                else:
+                    container(context, **kws)
             context.close()

@@ -1,56 +1,53 @@
-name: source-git # 修改你的名称
+name: I really want to stay at your heart
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "10 23 * * 4,5" # 修改你的定时配置
+#  schedule:
+#    - cron: "10 23 * * 4,5"
+
+permissions:
+  contents: write
 
 jobs:
   setup:
     env:
-      COMMAND_CLAIM: "xvfb-run python main.py claim"
-      COMMAND_GET: "xvfb-run python main.py get"
-      COMMAND_UNREAL: "xvfb-run python main.py unreal"
-      FAKE_HASH: "Automated deployment @ $(date '+%Y-%m-%d %H:%M:%S') Asia/Shanghai"
+      EPIC_EMAIL: ${{ EPIC_EMAIL }}
+      EPIC_PASSWORD: ${{ EPIC_PASSWORD }}
+      APPRISE_TELEGRAM: ${{ APPRISE_TELEGRAM }}
+      RIGHT_NOW: "Automated deployment @ $(date '+%Y-%m-%d %H:%M:%S') Asia/Shanghai"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: 初始化环境 & 拉取项目
-      run: |
-        sudo timedatectl set-timezone "Asia/Shanghai"
-        git clone https://github.com/QIN2DIM/epic-awesome-gamer.git epic
-        cp epic/requirements.txt .
-    - name: 初始化配置文件
-      run: |
-        cd epic/src
-        echo "PUSHER_TELEGRAM: ${{ secrets.PUSHER_TELEGRAM }}" >> config.yaml
-        echo "EPIC_EMAIL: ${{ secrets.EPIC_EMAIL }}" >> config.yaml
-        echo "EPIC_PASSWORD: ${{ secrets.EPIC_PASSWORD }}" >> config.yaml
-        echo "PLAYER: ${{ secrets.PLAYER }}" >>config.yaml
     - uses: actions/setup-python@v4
       with:
         python-version: "3.10"
-        cache: 'pip' # caching pip dependencies
-    - name: 安装依赖
-      run: |
-        pip install -r epic/requirements.txt
-        cd epic/src/ && python main.py install
-    - name: 启动项目
-      run: |
-        if [ -d "database" ];then cp -rfp database epic/src/; fi
-        cd epic/src/
-        ${{ env.COMMAND_CLAIM }}
-        # ${{ env.COMMAND_GET }} # Optional
-        # ${{ env.COMMAND_UNREAL }} # Optional
+        cache: 'pip'
     - name: Setup GIT user
       uses: fregante/setup-git-user@v1
-    - name: 缓存身份令牌
+
+    - name: Clone & Init
       run: |
-        if [ -d "epic/src/database" ];then cp -rfp epic/src/database .; fi
-        if [ -f "epic/src/datas/logs/runtime.log" ];then cp epic/src/datas/logs/runtime.log datas.log; fi
-        cp epic/src/database/logs/runtime.log .
-        echo "${{ env.FAKE_HASH }}" > _token
+        sudo timedatectl set-timezone "Asia/Shanghai"
+        git clone -b hello-world https://github.com/QIN2DIM/epic-awesome-gamer.git epic
+        if [ -d "user_data_dir" ];then cp -rfp user_data_dir epic/user_data_dir/; fi
+        touch epic/src/config.json
+
+    - name: Install dependencies
+      run: |
+        pip install -r epic/requirements.txt
+        playwright install firefox --with-deps
+        cd epic/src/ && python main.py install
+
+    - name: Run tasks
+      run: |
+        cd epic/src/
+        xvfb-run python claim
+
+    - name: Cache browser context
+      run: |
+        if [ -d "epic/user_data_dir" ];then cp -rfp epic/user_data_dir .; fi
+        if [ -d "epic/logs" ];then cp -rfp epic/logs .; fi
         rm -rf epic
         git add .
-        git commit -m "${{ env.FAKE_HASH }}" 
+        git commit -m "${{ env.RIGHT_NOW }}" 
         git push -f          

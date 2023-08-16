@@ -18,7 +18,6 @@ class Project:
     src_dir = Path(__file__).parent
     root_dir = src_dir.parent
     config_path = src_dir.joinpath("config.json")
-    database = root_dir.joinpath("database")
 
     logs_dir = root_dir.joinpath("logs")
 
@@ -56,10 +55,10 @@ class Config:
             sys.exit(1)
 
         try:
-            epic_email = os.environ.get("EPIC_EMAIL", _config["epic_email"])
-            epic_password = os.environ.get("EPIC_PASSWORD", _config["epic_password"])
+            epic_email = os.environ.get("EPIC_EMAIL", _config.get("epic_email", ""))
+            epic_password = os.environ.get("EPIC_PASSWORD", _config.get("epic_password", ""))
             apprise_servers = [os.environ[k] for k in os.environ if k.startswith("APPRISE_")]
-            apprise_servers.extend(_config["apprise_servers"])
+            apprise_servers.extend(_config.get("apprise_servers", []))
             cdn = (
                 "https://dl.capoo.xyz"
                 if not os.getenv("GITHUB_REPOSITORY") and _config.get("enable_https_cdn")

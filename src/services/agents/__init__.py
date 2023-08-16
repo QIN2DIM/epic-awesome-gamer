@@ -15,3 +15,6 @@ XLangAI Agents https://github.com/xlang-ai/
 | xbox       | [Xbox Live Games with Gold](https://www.xbox.com/en-US/live/gold#gameswithgold) |
 
 """
+from services.agents.epic_games import EpicGamesAgent
+
+__all__ = ["EpicGamesAgent"]

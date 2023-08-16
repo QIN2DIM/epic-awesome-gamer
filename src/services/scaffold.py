@@ -9,7 +9,7 @@ from typing import Literal
 
 from loguru import logger
 
-from apis.scaffold import install, deploy, log, get
+from apis.scaffold import install, log
 
 install.do(upgrade=False)
 
@@ -58,10 +58,7 @@ class Scaffold:
         存储内容与当前上下文身份令牌有关（不同地区权限不同）。
         :return:
         """
-        logger.info("STARTUP [ScaffoldGet] 正在清空免费商店...")
-        with get.IReallyWantToStayAtYourHeart() as lucy:
-            lucy.attach()
-        logger.success("DONE [ScaffoldGet] 任务退出")
+        logger.success("DONE [ScaffoldGet] 任务退出", reason="NotImplemented")
 
     @staticmethod
     def claim(mode: Literal["epic-games", "unreal", "gog", "apg", "xbox"] = "epic-games"):
@@ -92,7 +89,7 @@ class Scaffold:
           需要注意的是，未配置或配置错误均不会发送消息。
         :return:
         """
-        deploy.build_claimer(mode=mode)
+        logger.info("Pass task", reason="NotImplemented")
 
     @staticmethod
     def log(start: bool | None = False):
