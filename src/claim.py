@@ -15,13 +15,14 @@ player = EpicPlayer.from_account()
 epic = EpicGames.from_player(player)
 
 
-def task(context: BrowserContext):
+def claim_epic_games(context: BrowserContext):
     # Authorize
     if not player.ctx_cookies.is_available():
         if epic.authorize(context):
             epic.flush_token(context)
         else:
             logger.error("Exit test case", reason="Failed to flush token")
+            return
 
     # Create tasks
     orders = get_order_history(player.cookies)
@@ -37,7 +38,7 @@ def task(context: BrowserContext):
 
 def run():
     agent = player.build_agent()
-    agent.execute(sequence=[task])
+    agent.execute(sequence=[claim_epic_games])
 
 
 if __name__ == "__main__":

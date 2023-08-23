@@ -15,9 +15,9 @@ from pathlib import Path
 from typing import Literal, Dict
 
 import httpx
+from hcaptcha_challenger.agents.playwright import Tarnished
 
 from settings import config, project
-from utils.toolbox import Tarnished
 
 
 @dataclass

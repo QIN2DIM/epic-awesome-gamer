@@ -18,7 +18,7 @@ from loguru import logger
 from playwright.sync_api import BrowserContext, expect, TimeoutError
 from playwright.sync_api import Page
 
-from services.agents.hcaptcha_solver import AuStatus, is_fall_in_captcha, Radagon
+from services.agents.hcaptcha_solver import is_fall_in_captcha, Radagon
 from services.models import EpicPlayer
 from utils.toolbox import from_dict_to_model
 
@@ -77,12 +77,7 @@ class EpicGames:
 
     @classmethod
     def from_player(cls, player: EpicPlayer):
-        return cls(player=player)
-
-    @property
-    def radagon(self) -> Radagon:
-        self._radagon = self._radagon or Radagon.from_modelhub()
-        return self._radagon
+        return cls(player=player, _radagon=Radagon.from_modelhub())
 
     @property
     def promotions(self) -> List[Game]:
@@ -99,11 +94,11 @@ class EpicGames:
             page.type("#password", self.player.password)
             page.click("#sign-in")
             try:
-                self.radagon.anti_hcaptcha(page, window="login", recur_url=URL_CLAIM)
+                self._radagon.anti_hcaptcha(page, window="login", recur_url=URL_CLAIM)
             except ChallengePassed:
                 pass
             page.wait_for_url(URL_CLAIM)
-        return AuStatus.AUTH_SUCCESS
+        return self._radagon.status.AUTH_SUCCESS
 
     def authorize(self, context: BrowserContext) -> bool | None:
         page = context.new_page()
@@ -113,14 +108,14 @@ class EpicGames:
             beta += 1
             result = self._login(page)
             # Assert if you are fall in the hcaptcha challenge
-            if result not in [AuStatus.AUTH_SUCCESS]:
+            if result not in [self._radagon.status.AUTH_SUCCESS]:
                 result = is_fall_in_captcha(page)
             # Pass Challenge
-            if result == AuStatus.AUTH_SUCCESS:
+            if result == self._radagon.status.AUTH_SUCCESS:
                 return True
             # Exciting moment :>
-            if result == AuStatus.AUTH_CHALLENGE:
-                resp = self.radagon.anti_hcaptcha(page, window="login")
+            if result == self._radagon.status.AUTH_CHALLENGE:
+                resp = self._radagon.anti_hcaptcha(page, window="login")
                 if resp == Status.CHALLENGE_SUCCESS:
                     return True
                 if resp == Status.CHALLENGE_REFRESH:
@@ -191,7 +186,7 @@ class EpicGames:
 
         # <-- Insert challenge
         try:
-            self.radagon.anti_hcaptcha(page, window="free", recur_url=URL_CART_SUCCESS)
+            self._radagon.anti_hcaptcha(page, window="free", recur_url=URL_CART_SUCCESS)
         except ChallengePassed:
             pass
 
@@ -240,14 +235,14 @@ def get_promotions() -> List[Game]:
 
 
 def get_order_history(
-    cookies: Dict[str, str], page: str | None = None, last_create_at: str | None = None
+        cookies: Dict[str, str], page: str | None = None, last_create_at: str | None = None
 ) -> List[CompletedOrder]:
     """获取最近的订单纪录"""
 
     def request_history() -> str | None:
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-            " Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203"
+                          " Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203"
         }
         params = {"locale": "zh-CN", "page": page or "0", "latCreateAt": last_create_at or ""}
         resp = httpx.get(URL_ORDER_HISTORY, headers=headers, cookies=cookies, params=params)

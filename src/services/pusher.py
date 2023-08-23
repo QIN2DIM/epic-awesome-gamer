@@ -5,7 +5,6 @@
 # Description:
 import random
 import typing
-from collections import deque
 from copy import copy
 from dataclasses import dataclass
 from datetime import datetime
@@ -22,29 +21,6 @@ class MessageBody:
     dlc: bool = None
 
 
-@dataclass
-class MessageQueue:
-    _elements: typing.Deque[MessageBody] = None
-
-    def __post_init__(self):
-        self._elements = self._elements or deque()
-
-    def get(self) -> typing.Optional[MessageBody]:
-        return self._elements.popleft() if self._elements else None
-
-    def put(self, element: typing.Union[MessageBody, dict]):
-        if isinstance(element, MessageBody):
-            self._elements.append(element)
-        elif isinstance(element, dict):
-            self._elements.append(MessageBody(**element))
-
-    def __len__(self):
-        return 0 if not self._elements else len(self._elements)
-
-    def empty(self):
-        return self.__len__() == 0
-
-
 class MessagePusher:
     _dividing_width = 26
     _dividing_char = "="
@@ -57,11 +33,11 @@ class MessagePusher:
     _copyright_text = ["Author: QIN2DIM", "GitHub: QIN2DIM/epic-awesome-gamer"]
 
     def __init__(
-        self,
-        servers,
-        player: str,
-        inline_docker: typing.List[MessageBody],
-        key_images: typing.List[str] = None,
+            self,
+            servers,
+            player: str,
+            inline_docker: typing.List[MessageBody],
+            key_images: typing.List[str] = None,
     ):
         """
 
@@ -111,9 +87,9 @@ class MessagePusher:
         if self.key_images:
             cdn_image_url = random.choice(self.key_images)
             if (
-                isinstance(cdn_image_url, str)
-                and cdn_image_url.startswith("https://")
-                and "cdn" in cdn_image_url
+                    isinstance(cdn_image_url, str)
+                    and cdn_image_url.startswith("https://")
+                    and "cdn" in cdn_image_url
             ):
                 _preview = [f"[​]({cdn_image_url})"]
         # 创建粗体标题
@@ -125,7 +101,7 @@ class MessagePusher:
         return context_textbox, "", server
 
     def for_general(
-        self, inline_docker: typing.List[MessageBody], _copyright: typing.List[str] = None
+            self, inline_docker: typing.List[MessageBody], _copyright: typing.List[str] = None
     ):
         _inline_textbox = self._copyright_text if _copyright is None else _copyright
         _inline_textbox += ["<周免游戏>".center(self._dividing_width, self._dividing_char)]

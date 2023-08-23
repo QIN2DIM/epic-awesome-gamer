@@ -9,7 +9,7 @@ httpx
 playwright
 
 # [extra_requires.solver]
-hcaptcha-challenger>=0.6.2-post1
+hcaptcha-challenger>=0.6.3-post1
 
 # [extra_requires.notify]
 apprise==1.1.0
