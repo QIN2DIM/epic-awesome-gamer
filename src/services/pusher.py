@@ -5,7 +5,6 @@
 # Description:
 import random
 import typing
-from collections import deque
 from copy import copy
 from dataclasses import dataclass
 from datetime import datetime
@@ -20,29 +19,6 @@ class MessageBody:
     title: str
     result: str
     dlc: bool = None
-
-
-@dataclass
-class MessageQueue:
-    _elements: typing.Deque[MessageBody] = None
-
-    def __post_init__(self):
-        self._elements = self._elements or deque()
-
-    def get(self) -> typing.Optional[MessageBody]:
-        return self._elements.popleft() if self._elements else None
-
-    def put(self, element: typing.Union[MessageBody, dict]):
-        if isinstance(element, MessageBody):
-            self._elements.append(element)
-        elif isinstance(element, dict):
-            self._elements.append(MessageBody(**element))
-
-    def __len__(self):
-        return 0 if not self._elements else len(self._elements)
-
-    def empty(self):
-        return self.__len__() == 0
 
 
 class MessagePusher:
