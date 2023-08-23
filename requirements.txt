@@ -6,10 +6,10 @@ bs4>=0.0.1
 beautifulsoup4>=4.10.0
 lxml>=4.9.3
 httpx
-playwright>=1.36.0
+playwright
 
 # [extra_requires.solver]
-hcaptcha-challenger==0.5.1
+hcaptcha-challenger>=0.6.2-post1
 
 # [extra_requires.notify]
 apprise==1.1.0

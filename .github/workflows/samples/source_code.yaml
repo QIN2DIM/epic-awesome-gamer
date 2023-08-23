@@ -34,13 +34,13 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r epic/requirements.txt
+        playwright install firefox
         playwright install-deps firefox
-        cd epic/src/ && python main.py install
 
     - name: Run tasks
       run: |
         cd epic/src/
-        xvfb-run python claim
+        xvfb-run python claim.py
 
     - name: Setup GIT user
       uses: fregante/setup-git-user@v1

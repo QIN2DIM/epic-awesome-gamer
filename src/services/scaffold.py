@@ -5,22 +5,25 @@
 # Description:
 from __future__ import annotations
 
+import os
 from typing import Literal
 
 from loguru import logger
-
-from apis.scaffold import install, log
-
-install.do(upgrade=False)
 
 
 class Scaffold:
     """系统脚手架 顶级接口指令"""
 
     @staticmethod
-    def install(onnx_prefix: str | None = None, upgrade: bool | None = None):
+    def install(upgrade: bool | None = None):
         """下载运行依赖"""
-        install.do(yolo_onnx_prefix=onnx_prefix, upgrade=upgrade)
+        from settings import config
+        import hcaptcha_challenger as solver
+
+        os.system("playwright install firefox")
+        os.system("playwright install-deps firefox")
+        solver.set_reverse_proxy(config.cdn)
+        solver.install(upgrade=upgrade)
 
     @staticmethod
     def get():
@@ -98,4 +101,3 @@ class Scaffold:
         :param start: Default False. 自动打开日志目录（linux无效，仅会显示文件目录）。
         :return:
         """
-        log.get_logger(start=start)

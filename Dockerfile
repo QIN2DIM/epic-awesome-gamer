@@ -5,7 +5,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN apt update -y \
     && apt install -y wget xvfb tini \
-    && playwright install \
+    && playwright install firefox \
     && playwright install-deps firefox
 
 WORKDIR /home/epic/src
