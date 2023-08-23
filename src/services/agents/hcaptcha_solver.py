@@ -132,13 +132,13 @@ class Radagon(PlaywrightAgent):
                 page.wait_for_timeout(2000)
                 # [👻] 获取挑战标签
                 self.get_label(frame_challenge)
-                if "please click on the" in self._label.lower():
-                    logger.warning("Pass challenge", label=self._label, case="NotBinaryChallenge")
                 # [👻] 編排定位器索引
                 self.mark_samples(frame_challenge)
                 # [👻] 拉取挑戰圖片
                 self.download_images()
                 # [👻] 滤除无法处理的挑战类别
+                if "please click on the" in self._label.lower():
+                    return self.status.CHALLENGE_BACKCALL
                 if not self._label_alias.get(self._label):
                     return self.status.CHALLENGE_BACKCALL
                 # [👻] 注册解决方案

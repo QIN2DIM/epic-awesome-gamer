@@ -90,14 +90,24 @@ class EpicGames:
             page.goto(URL_LOGIN, wait_until="domcontentloaded")
             logger.info("login", url=page.url)
             page.click("#login-with-epic")
+            logger.info("login-with-epic", url=page.url)
             page.fill("#email", self.player.email)
             page.type("#password", self.player.password)
-            page.click("#sign-in")
-            try:
-                self._radagon.anti_hcaptcha(page, window="login", recur_url=URL_CLAIM)
-            except ChallengePassed:
-                pass
+
+            for _ in range(8):
+                page.click("#sign-in")
+                try:
+                    result = self._radagon.anti_hcaptcha(page, window="login", recur_url=URL_CLAIM)
+                    if result in [self._radagon.status.CHALLENGE_BACKCALL]:
+                        page.click("//a[@class='talon_close_button']")
+                        page.wait_for_timeout(1000)
+                        continue
+                    break
+                except ChallengePassed:
+                    pass
+
             page.wait_for_url(URL_CLAIM)
+
         return self._radagon.status.AUTH_SUCCESS
 
     def authorize(self, context: BrowserContext) -> bool | None:
