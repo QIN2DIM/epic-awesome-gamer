@@ -2,15 +2,15 @@ name: ci
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - ".github/**"
-      - "README.md"
-      - "LICENSE"
-      - ".gitignore"
-      - ".deepsource.toml"
+#  push:
+#    branches:
+#      - main
+#    paths-ignore:
+#      - ".github/**"
+#      - "README.md"
+#      - "LICENSE"
+#      - ".gitignore"
+#      - ".deepsource.toml"
 env:
   IMAGE_TAG: ${{ secrets.DOCKERHUB_USERNAME }}/awesome-epic:daddy
 

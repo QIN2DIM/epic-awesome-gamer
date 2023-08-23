@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - hello-world
+      - main
     paths-ignore:
       # - ".github/**"
       - "README.md"
