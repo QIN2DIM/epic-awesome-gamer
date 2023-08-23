@@ -12,7 +12,7 @@ from playwright.sync_api import Error as NinjaError
 from playwright.sync_api import Page, BrowserContext
 from playwright.sync_api import TimeoutError as NinjaTimeout
 
-from services.agents._hcaptcha_solver import Status, Radagon, is_fall_in_captcha
+from services.agents.hcaptcha_solver import AuStatus, Radagon, is_fall_in_captcha
 from services.bricklayer.exceptions import UnableToGet
 
 
@@ -216,10 +216,10 @@ class EpicAwesomeGamer:
             sign_text = page.locator("//span[contains(@class, 'user-label')]").text_content()
             if sign_text != "登录":
                 logger.info(f">> MATCH [{self.action_name}] 持久化信息未过期")
-                return Status.AUTH_SUCCESS
+                return AuStatus.AUTH_SUCCESS
         page.goto(url_login)
         if page.url == url_claim:
-            return Status.AUTH_SUCCESS
+            return AuStatus.AUTH_SUCCESS
         page.click("#login-with-epic")
         page.fill("#email", self.player.epic_email)
         page.fill("#password", self.player.epic_password)
@@ -238,7 +238,7 @@ class EpicAwesomeGamer:
             page.fill("#password", self.player.epic_password)
             page.click("#sign-in")
             page.wait_for_url(url_claim)
-        return Status.AUTH_SUCCESS
+        return AuStatus.AUTH_SUCCESS
 
     def login(self, page: Page, auth_str: str):
         """作为被动方式，登陆账号，刷新 identity token"""
@@ -368,13 +368,13 @@ class CookieManager(EpicAwesomeGamer):
             # Enter the account information and jump to the man-machine challenge page.
             result = self.login(page=page, auth_str=self.auth_str)
             # Assert if you are caught in a man-machine challenge.
-            if result not in [Status.AUTH_SUCCESS]:
+            if result not in [AuStatus.AUTH_SUCCESS]:
                 result = is_fall_in_captcha(page)
             # Skip Challenge.
-            if result == Status.AUTH_SUCCESS:
+            if result == AuStatus.AUTH_SUCCESS:
                 return True
             # Winter is coming, so hear me roar!
-            elif result == Status.AUTH_CHALLENGE:
+            elif result == AuStatus.AUTH_CHALLENGE:
                 resp = self.armor.anti_hcaptcha(page, window="login", recur_url=recur_url)
                 if resp == self.armor.CHALLENGE_SUCCESS:
                     return True

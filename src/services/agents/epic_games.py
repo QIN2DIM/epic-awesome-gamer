@@ -16,7 +16,8 @@ from loguru import logger
 from playwright.sync_api import BrowserContext, expect, TimeoutError
 from playwright.sync_api import Page
 
-from services.agents._hcaptcha_solver import Status, is_fall_in_captcha, Radagon
+from services.agents.hcaptcha_solver import AuStatus, is_fall_in_captcha, Radagon
+from hcaptcha_challenger.agents.skeleton import Status
 from services.models import EpicPlayer
 from utils.toolbox import from_dict_to_model
 
@@ -97,7 +98,7 @@ class EpicGames:
             page.type("#password", self.player.password)
             page.click("#sign-in")
             page.wait_for_url(URL_CLAIM)
-        return Status.AUTH_SUCCESS
+        return AuStatus.AUTH_SUCCESS
 
     def authorize(self, context: BrowserContext) -> bool | None:
         page = context.new_page()
@@ -107,21 +108,21 @@ class EpicGames:
             beta += 1
             result = self._login(page)
             # Assert if you are fall in the hcaptcha challenge
-            if result not in [Status.AUTH_SUCCESS]:
+            if result not in [AuStatus.AUTH_SUCCESS]:
                 result = is_fall_in_captcha(page)
             # Pass Challenge
-            if result == Status.AUTH_SUCCESS:
+            if result == AuStatus.AUTH_SUCCESS:
                 return True
             # Exciting moment :>
-            if result == Status.AUTH_CHALLENGE:
+            if result == AuStatus.AUTH_CHALLENGE:
                 resp = self.radagon.anti_hcaptcha(page, window="login")
-                if resp == self.radagon.CHALLENGE_SUCCESS:
+                if resp == Status.CHALLENGE_SUCCESS:
                     return True
-                if resp == self.radagon.CHALLENGE_REFRESH:
+                if resp == Status.CHALLENGE_REFRESH:
                     beta -= 0.5
-                elif resp == self.radagon.CHALLENGE_BACKCALL:
+                elif resp == Status.CHALLENGE_BACKCALL:
                     beta -= 0.75
-                elif resp == self.radagon.CHALLENGE_CRASH:
+                elif resp == Status.CHALLENGE_CRASH:
                     beta += 0.5
         logger.critical("Failed to flush token", agent=self.__class__.__name__)
 
