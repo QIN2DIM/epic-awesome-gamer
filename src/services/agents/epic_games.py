@@ -185,23 +185,32 @@ class EpicGames:
                 accept.click()
 
         # --> Move to webPurchaseContainer iframe
-        logger.info("claim_weekly_games", action="Move to webPurchaseContainer iframe")
+        logger.info("claim_weekly_games", action="move to webPurchaseContainer iframe")
         wpc = page.frame_locator("//iframe[@class='']")
         locator = wpc.locator("//div[@class='payment-order-confirm']")
         with suppress(Exception):
             expect(locator).to_be_attached()
         page.wait_for_timeout(2000)
-        locator.click()
-        logger.info("claim_weekly_games", action="Click payment button")
 
         # <-- Insert challenge
-        try:
-            self._radagon.anti_hcaptcha(page, window="free", recur_url=URL_CART_SUCCESS)
-        except ChallengePassed:
-            pass
+        for _ in range(8):
+            locator.click()
+            logger.info("claim_weekly_games", action="click payment button")
+            try:
+                result = self._radagon.anti_hcaptcha(
+                    page, window="free", recur_url=URL_CART_SUCCESS
+                )
+                if result in [self._radagon.status.CHALLENGE_BACKCALL]:
+                    page.click("//a[@class='talon_close_button']")
+                    page.wait_for_timeout(1000)
+                    continue
+                break
+            except ChallengePassed:
+                pass
 
         # --> Wait for success
         page.wait_for_url(URL_CART_SUCCESS)
+        logger.success("claim_weekly_games", action="success", url=page.url)
 
 
 def get_promotions() -> List[Game]:
