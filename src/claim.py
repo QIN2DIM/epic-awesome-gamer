@@ -41,7 +41,7 @@ def prelude():
             action="Pass claim task",
             reason="All free games of the week are in my library",
         )
-        sys.exit(1)
+        sys.exit()
 
 
 def claim_epic_games(context: BrowserContext):

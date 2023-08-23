@@ -4,7 +4,7 @@
     <img src="https://img.shields.io/static/v1?message=reference&color=blue&style=for-the-badge&logo=micropython&label=python">
     <img src="https://img.shields.io/github/license/QIN2DIM/epic-awesome-gamer?style=for-the-badge">
     <a href="https://hub.docker.com/r/ech0sec/awesome-epic"><img src="https://img.shields.io/docker/pulls/ech0sec/awesome-epic?color=green&style=for-the-badge"></a>
-	<a href=""><img src="https://img.shields.io/github/actions/workflow/status/QIN2DIM/epic-awesome-gamer/ci_docker_dev.yaml?style=for-the-badge"></a>
+	<a href=""><img src="https://img.shields.io/github/actions/workflow/status/QIN2DIM/epic-awesome-gamer/ci_docker_fish.yaml?style=for-the-badge"></a>
 	<br>
     <a href="https://github.com/QIN2DIM/epic-awesome-gamer/"><img src="https://img.shields.io/github/stars/QIN2DIM/epic-awesome-gamer?style=social"></a>
 	<a href="https://t.me/+Wdtxnn1yxU5jMmY5"><img src="https://img.shields.io/static/v1?style=social&logo=telegram&label=chat&message=studio" ></a>
