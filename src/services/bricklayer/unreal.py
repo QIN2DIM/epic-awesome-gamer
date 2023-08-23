@@ -11,7 +11,6 @@ from loguru import logger
 from playwright.sync_api import Page
 
 from services.bricklayer.core import CookieManager, EpicAwesomeGamer
-from utils.toolbox import transfer_cookies
 
 
 class UnrealClaimer(EpicAwesomeGamer):

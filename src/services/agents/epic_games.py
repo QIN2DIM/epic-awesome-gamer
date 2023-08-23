@@ -12,12 +12,13 @@ from json import JSONDecodeError
 from typing import List, Dict
 
 import httpx
+from hcaptcha_challenger.agents.exceptions import ChallengePassed
+from hcaptcha_challenger.agents.skeleton import Status
 from loguru import logger
 from playwright.sync_api import BrowserContext, expect, TimeoutError
 from playwright.sync_api import Page
 
 from services.agents.hcaptcha_solver import AuStatus, is_fall_in_captcha, Radagon
-from hcaptcha_challenger.agents.skeleton import Status
 from services.models import EpicPlayer
 from utils.toolbox import from_dict_to_model
 
@@ -80,7 +81,7 @@ class EpicGames:
 
     @property
     def radagon(self) -> Radagon:
-        self._radagon = self._radagon or Radagon()
+        self._radagon = self._radagon or Radagon.from_modelhub()
         return self._radagon
 
     @property
@@ -97,6 +98,10 @@ class EpicGames:
             page.fill("#email", self.player.email)
             page.type("#password", self.player.password)
             page.click("#sign-in")
+            try:
+                self.radagon.anti_hcaptcha(page, window="login", recur_url=URL_CLAIM)
+            except ChallengePassed:
+                pass
             page.wait_for_url(URL_CLAIM)
         return AuStatus.AUTH_SUCCESS
 
@@ -136,8 +141,7 @@ class EpicGames:
         context.storage_state(path=self.player.ctx_cookie_path)
         self.player.ctx_cookies.reload(self.player.ctx_cookie_path)
 
-    @staticmethod
-    def claim_weekly_games(context: BrowserContext, promotions: List[Game]):
+    def claim_weekly_games(self, context: BrowserContext, promotions: List[Game]):
         """
 
         :param context:
@@ -148,7 +152,7 @@ class EpicGames:
 
         # --> Add promotions to Cart
         for promotion in promotions:
-            logger.info("go to store", url=promotion.url)
+            logger.info("claim_weekly_games", action="go to store", url=promotion.url)
             page.goto(promotion.url, wait_until="load")
 
             # <-- Handle pre-page
@@ -176,9 +180,22 @@ class EpicGames:
                 accept.click()
 
         # --> Move to webPurchaseContainer iframe
+        logger.info("claim_weekly_games", action="Move to webPurchaseContainer iframe")
         wpc = page.frame_locator("//iframe[@class='']")
-        wpc.locator("//div[@class='payment-order-confirm']").click()
-        logger.info("Move to webPurchaseContainer iframe")
+        locator = wpc.locator("//div[@class='payment-order-confirm']")
+        with suppress(Exception):
+            expect(locator).to_be_attached()
+        page.wait_for_timeout(2000)
+        locator.click()
+        logger.info("claim_weekly_games", action="Click payment button")
+
+        # <-- Insert challenge
+        try:
+            self.radagon.anti_hcaptcha(page, window="free", recur_url=URL_CART_SUCCESS)
+        except ChallengePassed:
+            pass
+
+        # --> Wait for success
         page.wait_for_url(URL_CART_SUCCESS)
 
 

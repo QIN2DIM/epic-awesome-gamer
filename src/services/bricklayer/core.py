@@ -6,7 +6,7 @@
 import typing
 from contextlib import suppress
 
-from hcaptcha_challenger.exceptions import ChallengePassed
+from hcaptcha_challenger.agents.exceptions import ChallengePassed
 from loguru import logger
 from playwright.sync_api import Error as NinjaError
 from playwright.sync_api import Page, BrowserContext

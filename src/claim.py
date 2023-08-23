@@ -3,15 +3,14 @@
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
 # Description:
-
-from hcaptcha_challenger import install
+import hcaptcha_challenger as solver
 from loguru import logger
 from playwright.sync_api import BrowserContext
 
 from services.agents.epic_games import EpicPlayer, EpicGames
 from services.agents.epic_games import get_promotions, get_order_history
 
-install()
+solver.install(upgrade=True)
 player = EpicPlayer.from_account()
 epic = EpicGames.from_player(player)
 

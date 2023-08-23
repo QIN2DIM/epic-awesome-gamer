@@ -12,9 +12,10 @@ from contextlib import suppress
 from dataclasses import dataclass
 from typing import Tuple
 
+import httpx
+from hcaptcha_challenger.agents.exceptions import ChallengePassed
 from hcaptcha_challenger.agents.skeleton import Skeleton, Status
 from hcaptcha_challenger.components.prompt_handler import split_prompt_message, label_cleaning
-from hcaptcha_challenger.exceptions import ChallengePassed
 from loguru import logger
 from playwright.sync_api import Error as NinjaError
 from playwright.sync_api import Page, FrameLocator
@@ -33,10 +34,11 @@ class AuStatus:
 @dataclass
 class Radagon(Skeleton):
     """人机对抗模组"""
+
     # //iframe[@id='talon_frame_checkout_free_prod']
     HOOK_PURCHASE = "//div[@id='webPurchaseContainer']//iframe"
     HOOK_CHECKBOX = "//iframe[contains(@title, 'checkbox for hCaptcha')]"
-    HOOK_CHALLENGE = "//iframe[contains(@title, 'hCaptcha挑战')]"
+    HOOK_CHALLENGE = "//iframe[contains(@title, 'hCaptcha challenge')]"
 
     critical_threshold = 3
 
@@ -71,6 +73,26 @@ class Radagon(Skeleton):
             self._alias2url.update({alias: url})
             self._alias2locator.update({alias: sample})
 
+    def download_images(self):
+        prefix = ""
+        if self._label:
+            prefix = f"{time.time()}_{self._label_alias.get(self._label, self._label)}"
+        runtime_dir = self.challenge_dir.joinpath(prefix)
+        runtime_dir.mkdir(mode=777, parents=True, exist_ok=True)
+
+        # Initialize the data container
+        start = time.time()
+        with httpx.Client() as client:
+            for alias_, url_ in self._alias2url.items():
+                challenge_img_path = runtime_dir.joinpath(f"{alias_}.png")
+                self._alias2path.update({alias_: challenge_img_path})
+                challenge_img_path.write_bytes(client.get(url_).content)
+        logger.debug(
+            "Download challenge images",
+            timeit=f"{round(time.time() - start, 2)}s",
+            label=self._label,
+        )
+
     def challenge(self, frame_challenge: FrameLocator, model, *args, **kwargs):
         ta = []
         # {{< IMAGE CLASSIFICATION >}}
@@ -95,14 +117,14 @@ class Radagon(Skeleton):
             logger.debug("Submit challenge", result=f"{self._label}: {round(sum(ta), 2)}s")
 
     def is_success(
-            self,
-            page: Page,
-            frame_challenge: FrameLocator = None,
-            window=None,
-            init=True,
-            hook_url=None,
-            *args,
-            **kwargs,
+        self,
+        page: Page,
+        frame_challenge: FrameLocator = None,
+        window=None,
+        init=True,
+        hook_url=None,
+        *args,
+        **kwargs,
     ) -> Tuple[str, str]:
         """
         判断挑战是否成功的复杂逻辑
@@ -198,8 +220,11 @@ class Radagon(Skeleton):
         try:
             # [👻] 人机挑战！
             for i in range(2):
+                page.wait_for_timeout(2000)
                 # [👻] 获取挑战标签
                 self.get_label(frame_challenge)
+                if "please click on the" in self._label.lower():
+                    logger.warning("Pass challenge", label=self._label, case="NotBinaryChallenge")
                 # [👻] 編排定位器索引
                 self.mark_samples(frame_challenge)
                 # [👻] 拉取挑戰圖片
@@ -231,8 +256,9 @@ class Radagon(Skeleton):
                     page.wait_for_timeout(2000)
         # from::mark_samples url = re.split(r'[(")]', image_style)[2]
         except IndexError:
-            page.evaluate("hcaptcha.getResponse()")
             return self.anti_hcaptcha(page, window, recur_url)
+        except Exception as err:
+            logger.exception(err)
 
 
 def is_fall_in_captcha(page: Page) -> str | None:
