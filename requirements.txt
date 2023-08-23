@@ -1,15 +1,10 @@
 # [install_requires]
-fire
-loguru
-pyyaml
 bs4>=0.0.1
 beautifulsoup4>=4.10.0
 lxml>=4.9.3
-httpx
-playwright
 
 # [extra_requires.solver]
-hcaptcha-challenger>=0.6.3-post1
+hcaptcha-challenger[playwright]>=0.6.3-post4
 
 # [extra_requires.notify]
 apprise==1.1.0

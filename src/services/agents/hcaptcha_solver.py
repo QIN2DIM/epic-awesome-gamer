@@ -24,14 +24,14 @@ class Radagon(PlaywrightAgent):
     """人机对抗模组"""
 
     def is_success(
-            self,
-            page: Page,
-            frame_challenge: FrameLocator = None,
-            window=None,
-            init=True,
-            hook_url=None,
-            *args,
-            **kwargs,
+        self,
+        page: Page,
+        frame_challenge: FrameLocator = None,
+        window=None,
+        init=True,
+        hook_url=None,
+        *args,
+        **kwargs,
     ) -> Tuple[str, str]:
         """
         判断挑战是否成功的复杂逻辑
@@ -110,7 +110,9 @@ class Radagon(PlaywrightAgent):
                             _unknown.report(error_text)
                             raise _unknown
 
-    def anti_hcaptcha(self, page: Page, window: str = "login", recur_url=None, *args, **kwargs) -> bool | str:
+    def anti_hcaptcha(
+        self, page: Page, window: str = "login", recur_url=None, *args, **kwargs
+    ) -> bool | str:
         """
         Handle hcaptcha challenge
         :param recur_url:

@@ -33,11 +33,11 @@ class MessagePusher:
     _copyright_text = ["Author: QIN2DIM", "GitHub: QIN2DIM/epic-awesome-gamer"]
 
     def __init__(
-            self,
-            servers,
-            player: str,
-            inline_docker: typing.List[MessageBody],
-            key_images: typing.List[str] = None,
+        self,
+        servers,
+        player: str,
+        inline_docker: typing.List[MessageBody],
+        key_images: typing.List[str] = None,
     ):
         """
 
@@ -87,9 +87,9 @@ class MessagePusher:
         if self.key_images:
             cdn_image_url = random.choice(self.key_images)
             if (
-                    isinstance(cdn_image_url, str)
-                    and cdn_image_url.startswith("https://")
-                    and "cdn" in cdn_image_url
+                isinstance(cdn_image_url, str)
+                and cdn_image_url.startswith("https://")
+                and "cdn" in cdn_image_url
             ):
                 _preview = [f"[​]({cdn_image_url})"]
         # 创建粗体标题
@@ -101,7 +101,7 @@ class MessagePusher:
         return context_textbox, "", server
 
     def for_general(
-            self, inline_docker: typing.List[MessageBody], _copyright: typing.List[str] = None
+        self, inline_docker: typing.List[MessageBody], _copyright: typing.List[str] = None
     ):
         _inline_textbox = self._copyright_text if _copyright is None else _copyright
         _inline_textbox += ["<周免游戏>".center(self._dividing_width, self._dividing_char)]

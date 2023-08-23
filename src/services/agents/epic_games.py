@@ -85,10 +85,10 @@ class EpicGames:
         return self._promotions
 
     def _login(self, page: Page) -> str | None:
-        page.goto(URL_CLAIM)
+        page.goto(URL_CLAIM, wait_until="domcontentloaded")
         while page.locator('a[role="button"]:has-text("Sign In")').count() > 0:
-            logger.info("login", mode="game")
             page.goto(URL_LOGIN, wait_until="domcontentloaded")
+            logger.info("login", url=page.url)
             page.click("#login-with-epic")
             page.fill("#email", self.player.email)
             page.type("#password", self.player.password)
@@ -101,7 +101,7 @@ class EpicGames:
         return self._radagon.status.AUTH_SUCCESS
 
     def authorize(self, context: BrowserContext) -> bool | None:
-        page = context.new_page()
+        page = context.pages[0]
 
         beta = -1
         while beta < 8:
@@ -235,14 +235,14 @@ def get_promotions() -> List[Game]:
 
 
 def get_order_history(
-        cookies: Dict[str, str], page: str | None = None, last_create_at: str | None = None
+    cookies: Dict[str, str], page: str | None = None, last_create_at: str | None = None
 ) -> List[CompletedOrder]:
     """获取最近的订单纪录"""
 
     def request_history() -> str | None:
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-                          " Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203"
+            " Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203"
         }
         params = {"locale": "zh-CN", "page": page or "0", "latCreateAt": last_create_at or ""}
         resp = httpx.get(URL_ORDER_HISTORY, headers=headers, cookies=cookies, params=params)
