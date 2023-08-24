@@ -72,6 +72,7 @@ def claim_epic_games(context: BrowserContext):
     epic.claim_weekly_games(context, promotions)
 
 
+@logger.catch
 def run():
     prelude()
 
