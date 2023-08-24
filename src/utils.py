@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# Time       : 2022/1/16 0:27
+# Time       : 2023/8/24 18:31
 # Author     : QIN2DIM
-# Github     : https://github.com/QIN2DIM
+# GitHub     : https://github.com/QIN2DIM
 # Description:
 from __future__ import annotations
 

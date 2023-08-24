@@ -20,7 +20,7 @@ from playwright.sync_api import Page
 
 from services.agents.hcaptcha_solver import is_fall_in_captcha, Radagon
 from services.models import EpicPlayer
-from utils.toolbox import from_dict_to_model
+from utils import from_dict_to_model
 
 # fmt:off
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"

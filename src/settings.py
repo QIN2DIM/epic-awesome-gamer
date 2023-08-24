@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
 
-from utils.toolbox import init_log
+from utils import init_log
 
 
 @dataclass

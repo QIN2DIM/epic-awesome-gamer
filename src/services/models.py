@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import abc
 import json
+import os
 import time
 from abc import ABC
 from contextlib import suppress
@@ -95,7 +96,10 @@ class Player(ABC):
     """
 
     def __post_init__(self):
-        namespace = f"{self.mode}@{self.email.split('@')[0]}"
+        if not os.getenv("GITHUB_REPOSITORY"):
+            namespace = f"{self.mode}@{self.email.split('@')[0]}"
+        else:
+            namespace = f"{self.mode}"
         self.user_data_dir = self.user_data_dir.joinpath(namespace)
         for ck in ["browser_context", "record"]:
             ckp = self.user_data_dir.joinpath(ck)
