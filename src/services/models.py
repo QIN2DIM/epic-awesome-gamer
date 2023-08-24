@@ -96,10 +96,10 @@ class Player(ABC):
     """
 
     def __post_init__(self):
-        if not os.getenv("GITHUB_REPOSITORY"):
-            namespace = f"{self.mode}@{self.email.split('@')[0]}"
-        else:
+        if "GITHUB_WORKSPACE" in os.environ:
             namespace = f"{self.mode}"
+        else:
+            namespace = f"{self.mode}@{self.email.split('@')[0]}"
         self.user_data_dir = self.user_data_dir.joinpath(namespace)
         for ck in ["browser_context", "record"]:
             ckp = self.user_data_dir.joinpath(ck)
