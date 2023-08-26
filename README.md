@@ -6,7 +6,7 @@
     <a href="https://hub.docker.com/r/ech0sec/awesome-epic"><img src="https://img.shields.io/docker/pulls/ech0sec/awesome-epic?color=green&style=for-the-badge"></a>
 	<a href=""><img src="https://img.shields.io/github/actions/workflow/status/QIN2DIM/epic-awesome-gamer/ci_docker_fish.yaml?style=for-the-badge"></a>
 	<br>
-    	<img alt="Discord" src="https://img.shields.io/discord/978108215499816980?style=social&logo=discord&label=echosec&link=https%3A%2F%2Fdiscord.gg%2FtZYBMNmChc">
+    	<a href="https://discord.gg/tZYBMNmChc"><img alt="Discord" src="https://img.shields.io/discord/978108215499816980?style=social&logo=discord&label=echosec"></a>
 	<a href="https://t.me/+Wdtxnn1yxU5jMmY5"><img src="https://img.shields.io/static/v1?style=social&logo=telegram&label=chat&message=studio" ></a>
 	<br>
 	<br>
