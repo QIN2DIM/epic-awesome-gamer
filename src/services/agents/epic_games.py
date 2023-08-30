@@ -110,12 +110,13 @@ class EpicGames:
                         return
                 fall_in_challenge = True
                 result = self._solver(window="login", recur_url=URL_CLAIM)
-                if result == self._solver.status.CHALLENGE_BACKCALL:
+                if result in [
+                    self._solver.status.CHALLENGE_BACKCALL,
+                    self._solver.status.CHALLENGE_RETRY,
+                ]:
                     page.click("//a[@class='talon_close_button']")
                     page.wait_for_timeout(1000)
                     page.click("#sign-in", delay=200)
-                    continue
-                if result == self._solver.status.CHALLENGE_RETRY:
                     continue
                 if result == self._solver.status.CHALLENGE_SUCCESS:
                     page.wait_for_url(URL_CLAIM)
@@ -140,6 +141,7 @@ class EpicGames:
         )
         context.storage_state(path=self.player.ctx_cookie_path)
         self.player.ctx_cookies.reload(self.player.ctx_cookie_path)
+        logger.success("flush_token", path=self.player.ctx_cookie_path)
 
     def claim_weekly_games(self, page: Page, promotions: List[Game]):
         """
@@ -180,21 +182,36 @@ class EpicGames:
         # --> Move to webPurchaseContainer iframe
         logger.info("claim_weekly_games", action="move to webPurchaseContainer iframe")
         wpc = page.frame_locator("//iframe[@class='']")
-        locator = wpc.locator("//div[@class='payment-order-confirm']")
+        payment_btn = wpc.locator("//div[@class='payment-order-confirm']")
         with suppress(Exception):
-            expect(locator).to_be_attached()
+            expect(payment_btn).to_be_attached()
         page.wait_for_timeout(2000)
+        payment_btn.click()
+        logger.info("claim_weekly_games", action="click payment button")
 
         # <-- Insert challenge
+
+        fall_in_challenge = False
+
         for _ in range(8):
-            locator.click()
-            logger.info("claim_weekly_games", action="click payment button")
+            if not fall_in_challenge:
+                with suppress(TimeoutError):
+                    page.wait_for_url(URL_CART_SUCCESS, timeout=10000)
+                    break
+            fall_in_challenge = True
             result = self._solver(window="free", recur_url=URL_CART_SUCCESS)
-            if result in [self._solver.status.CHALLENGE_BACKCALL]:
-                page.click("//a[@class='talon_close_button']")
+            logger.debug("claim_weekly_games", action="challenge", result=result)
+            if result in [
+                self._solver.status.CHALLENGE_BACKCALL,
+                self._solver.status.CHALLENGE_RETRY,
+            ]:
+                wpc.locator("//a[@class='talon_close_button']").click()
                 page.wait_for_timeout(1000)
+                payment_btn.click(delay=200)
                 continue
-            break
+            if result == self._solver.status.CHALLENGE_SUCCESS:
+                page.wait_for_url(URL_CART_SUCCESS)
+                break
 
         # --> Wait for success
         page.wait_for_url(URL_CART_SUCCESS)
