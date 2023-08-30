@@ -12,10 +12,12 @@ from playwright.sync_api import BrowserContext
 from services.agents.epic_games import EpicPlayer, EpicGames
 from services.agents.epic_games import get_promotions, get_order_history
 
-solver.install(upgrade=True)
+solver.install(upgrade=True, flush_yolo=True)
+
 player = EpicPlayer.from_account()
 
 promotions = []
+
 ctx_cookies_is_available = None
 
 
