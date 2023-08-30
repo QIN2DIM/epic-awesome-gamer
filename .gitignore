@@ -134,7 +134,7 @@ tests/
 .github/workflows/sync_repo.yaml
 docker-compose.yaml
 archivist/
-src/config.json
+src/*.json
 user_data_dir/
 logs/
 database/

@@ -14,7 +14,6 @@ from services.agents.epic_games import get_promotions, get_order_history
 
 solver.install(upgrade=True)
 player = EpicPlayer.from_account()
-epic = EpicGames.from_player(player)
 
 promotions = []
 ctx_cookies_is_available = None
@@ -47,10 +46,13 @@ def prelude():
 def claim_epic_games(context: BrowserContext):
     global promotions
 
+    page = context.pages[0]
+    epic = EpicGames.from_player(player, page=page)
+
     # Authorize
     if not ctx_cookies_is_available:
         logger.info("claim_epic_games", action="Try to flush cookie")
-        if epic.authorize(context):
+        if epic.authorize(page):
             epic.flush_token(context)
         else:
             logger.error(
@@ -69,7 +71,7 @@ def claim_epic_games(context: BrowserContext):
         return
 
     # Execute
-    epic.claim_weekly_games(context, promotions)
+    epic.claim_weekly_games(page, promotions)
 
 
 @logger.catch
@@ -78,7 +80,7 @@ def run():
 
     # Cookie is unavailable or need to process promotions
     agent = player.build_agent()
-    agent.execute(sequence=[claim_epic_games], headless=True)
+    agent.execute(sequence=[claim_epic_games], headless=False)
 
 
 if __name__ == "__main__":

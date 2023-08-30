@@ -9,16 +9,15 @@ import json
 from contextlib import suppress
 from dataclasses import dataclass, field
 from json import JSONDecodeError
+from pathlib import Path
 from typing import List, Dict
 
 import httpx
-from hcaptcha_challenger.agents.exceptions import ChallengePassed
-from hcaptcha_challenger.agents.skeleton import Status
+from hcaptcha_challenger.agents.playwright.control import AgentT
 from loguru import logger
 from playwright.sync_api import BrowserContext, expect, TimeoutError
 from playwright.sync_api import Page
 
-from services.agents.hcaptcha_solver import is_fall_in_captcha, Radagon
 from services.models import EpicPlayer
 from utils import from_dict_to_model
 
@@ -64,7 +63,7 @@ class EpicGames:
     Agent control
     """
 
-    _radagon: Radagon = None
+    _solver: AgentT = None
     """
     Module for anti-captcha
     """
@@ -76,8 +75,13 @@ class EpicGames:
     """
 
     @classmethod
-    def from_player(cls, player: EpicPlayer):
-        return cls(player=player, _radagon=Radagon.from_modelhub())
+    def from_player(
+        cls, player: EpicPlayer, *, page: Page, tmp_dir: Path | None = None, **solver_opt
+    ):
+        """尽可能早地实例化，用于部署 captcha 事件监听器"""
+        return cls(
+            player=player, _solver=AgentT.from_page(page=page, tmp_dir=tmp_dir, **solver_opt)
+        )
 
     @property
     def promotions(self) -> List[Game]:
@@ -93,47 +97,38 @@ class EpicGames:
             logger.info("login-with-epic", url=page.url)
             page.fill("#email", self.player.email)
             page.type("#password", self.player.password)
+            page.click("#sign-in")
 
-            for _ in range(8):
-                page.click("#sign-in")
-                try:
-                    result = self._radagon.anti_hcaptcha(page, window="login", recur_url=URL_CLAIM)
-                    if result in [self._radagon.status.CHALLENGE_BACKCALL]:
-                        page.click("//a[@class='talon_close_button']")
-                        page.wait_for_timeout(1000)
-                        continue
+            fall_in_challenge = False
+
+            for _ in range(15):
+                if not fall_in_challenge:
+                    with suppress(TimeoutError):
+                        page.wait_for_url(URL_CLAIM, timeout=10000)
+                        break
+                    if not self._solver.qr:
+                        return
+                fall_in_challenge = True
+                result = self._solver(window="login", recur_url=URL_CLAIM)
+                if result == self._solver.status.CHALLENGE_BACKCALL:
+                    page.click("//a[@class='talon_close_button']")
+                    page.wait_for_timeout(1000)
+                    page.click("#sign-in", delay=200)
+                    continue
+                if result == self._solver.status.CHALLENGE_RETRY:
+                    continue
+                if result == self._solver.status.CHALLENGE_SUCCESS:
+                    page.wait_for_url(URL_CLAIM)
                     break
-                except ChallengePassed:
-                    pass
 
-            page.wait_for_url(URL_CLAIM)
+        return self._solver.status.AUTH_SUCCESS
 
-        return self._radagon.status.AUTH_SUCCESS
-
-    def authorize(self, context: BrowserContext) -> bool | None:
-        page = context.pages[0]
-
-        beta = -1
-        while beta < 8:
-            beta += 1
+    def authorize(self, page: Page):
+        for _ in range(3):
             result = self._login(page)
-            # Assert if you are fall in the hcaptcha challenge
-            if result not in [self._radagon.status.AUTH_SUCCESS]:
-                result = is_fall_in_captcha(page)
-            # Pass Challenge
-            if result == self._radagon.status.AUTH_SUCCESS:
-                return True
-            # Exciting moment :>
-            if result == self._radagon.status.AUTH_CHALLENGE:
-                resp = self._radagon.anti_hcaptcha(page, window="login")
-                if resp == Status.CHALLENGE_SUCCESS:
-                    return True
-                if resp == Status.CHALLENGE_REFRESH:
-                    beta -= 0.5
-                elif resp == Status.CHALLENGE_BACKCALL:
-                    beta -= 0.75
-                elif resp == Status.CHALLENGE_CRASH:
-                    beta += 0.5
+            if result not in [self._solver.status.CHALLENGE_SUCCESS]:
+                continue
+            return True
         logger.critical("Failed to flush token", agent=self.__class__.__name__)
 
     def flush_token(self, context: BrowserContext):
@@ -146,15 +141,13 @@ class EpicGames:
         context.storage_state(path=self.player.ctx_cookie_path)
         self.player.ctx_cookies.reload(self.player.ctx_cookie_path)
 
-    def claim_weekly_games(self, context: BrowserContext, promotions: List[Game]):
+    def claim_weekly_games(self, page: Page, promotions: List[Game]):
         """
 
-        :param context:
+        :param page:
         :param promotions: 未在库的 promotions
         :return:
         """
-        page = context.new_page()
-
         # --> Add promotions to Cart
         for promotion in promotions:
             logger.info("claim_weekly_games", action="go to store", url=promotion.url)
@@ -196,17 +189,12 @@ class EpicGames:
         for _ in range(8):
             locator.click()
             logger.info("claim_weekly_games", action="click payment button")
-            try:
-                result = self._radagon.anti_hcaptcha(
-                    page, window="free", recur_url=URL_CART_SUCCESS
-                )
-                if result in [self._radagon.status.CHALLENGE_BACKCALL]:
-                    page.click("//a[@class='talon_close_button']")
-                    page.wait_for_timeout(1000)
-                    continue
-                break
-            except ChallengePassed:
-                pass
+            result = self._solver(window="free", recur_url=URL_CART_SUCCESS)
+            if result in [self._solver.status.CHALLENGE_BACKCALL]:
+                page.click("//a[@class='talon_close_button']")
+                page.wait_for_timeout(1000)
+                continue
+            break
 
         # --> Wait for success
         page.wait_for_url(URL_CART_SUCCESS)
@@ -284,22 +272,3 @@ def get_order_history(
         logger.warning(err)
 
     return completed_orders
-
-
-@dataclass
-class EpicGamesAgent:
-    player: EpicPlayer
-    methods: EpicGames
-
-    @classmethod
-    def build(cls):
-        player = EpicPlayer.from_account()
-        epic = EpicGames.from_player(player)
-        return cls(player=player, methods=epic)
-
-    def claim_weekly_games(self, context: BrowserContext):
-        orders = get_order_history(self.player.cookies)
-        namespaces = {order.namespace for order in orders}
-        promotions = [p for p in get_promotions() if p.namespace not in namespaces]
-        if promotions:
-            self.methods.claim_weekly_games(context, promotions)
