@@ -198,6 +198,7 @@ class EpicGames:
                 with suppress(TimeoutError):
                     page.wait_for_url(URL_CART_SUCCESS, timeout=10000)
                     break
+                logger.debug("claim_weekly_games", action="handle challenge")
             fall_in_challenge = True
             result = self._solver(window="free", recur_url=URL_CART_SUCCESS)
             logger.debug("claim_weekly_games", action="challenge", result=result)
