@@ -4,7 +4,7 @@ beautifulsoup4>=4.10.0
 lxml>=4.9.3
 
 # [extra_requires.solver]
-hcaptcha-challenger[playwright]==0.7.0
+hcaptcha-challenger[playwright]==0.7.2
 
 # [extra_requires.notify]
 apprise==1.1.0

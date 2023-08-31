@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Literal, Dict
 
 import httpx
-from hcaptcha_challenger.agents.playwright import Tarnished
+from hcaptcha_challenger.agents.playwright.tarnished import Malenia
 
 from settings import config, project
 
@@ -127,7 +127,7 @@ class Player(ABC):
         return self.user_data_dir.joinpath("ctx_cookie.json")
 
     def build_agent(self):
-        return Tarnished(
+        return Malenia(
             user_data_dir=self.browser_context_dir,
             record_dir=self.record_dir,
             record_har_path=self.record_har_path,
