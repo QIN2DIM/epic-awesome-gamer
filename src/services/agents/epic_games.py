@@ -126,6 +126,7 @@ class EpicGames:
                             break
                         return
 
+        logger.success("login", result="token has not expired")
         return self._solver.status.CHALLENGE_SUCCESS
 
     async def authorize(self, page: Page):
@@ -137,7 +138,7 @@ class EpicGames:
                     continue
         logger.critical("Failed to flush token", agent=self.__class__.__name__)
 
-    async def flush_token(self, context: BrowserContext):
+    async def flush_token(self, context: BrowserContext) -> Dict[str, str] | None:
         page = context.pages[0]
         await page.goto("https://www.epicgames.com/account/personal", wait_until="networkidle")
         await page.goto(
@@ -145,8 +146,9 @@ class EpicGames:
             wait_until="networkidle",
         )
         await context.storage_state(path=self.player.ctx_cookie_path)
-        self.player.ctx_cookies.reload(self.player.ctx_cookie_path)
+        cookies = self.player.ctx_cookies.reload(self.player.ctx_cookie_path)
         logger.success("flush_token", path=self.player.ctx_cookie_path)
+        return cookies
 
     async def claim_weekly_games(self, page: Page, promotions: List[Game]):
         """

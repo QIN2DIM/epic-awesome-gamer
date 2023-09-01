@@ -56,10 +56,11 @@ class EpicCookie:
             resp = httpx.get(self.URL_VERIFY_COOKIES, headers=headers, cookies=self.cookies)
             return resp.status_code == 200
 
-    def reload(self, fp: Path):
+    def reload(self, fp: Path) -> Dict[str, str] | None:
         try:
             data = json.loads(fp.read_text())["cookies"]
             self.cookies = {ck["name"]: ck["value"] for ck in data}
+            return self.cookies
         except (FileNotFoundError, KeyError):
             pass
 

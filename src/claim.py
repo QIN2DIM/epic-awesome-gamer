@@ -13,13 +13,9 @@ from playwright.async_api import BrowserContext
 from services.agents.epic_games import EpicPlayer, EpicGames
 from services.agents.epic_games import get_promotions, get_order_history
 
-solver.install(flush_yolo=True)
-
-player = EpicPlayer.from_account()
-
 promotions = []
-
 ctx_cookies_is_available = None
+player = EpicPlayer.from_account()
 
 
 @logger.catch
@@ -60,7 +56,9 @@ async def claim_epic_games(context: BrowserContext):
     if not ctx_cookies_is_available:
         logger.info("claim_epic_games", action="Try to flush cookie")
         if await epic.authorize(page):
-            await epic.flush_token(context)
+            cookies = await epic.flush_token(context)
+            if cookies:
+                player.cookies = cookies
         else:
             logger.error(
                 "claim_epic_games", action="Exit test case", reason="Failed to flush token"
@@ -81,10 +79,13 @@ async def claim_epic_games(context: BrowserContext):
     await epic.claim_weekly_games(page, promotions)
 
 
+@logger.catch
 async def run():
     prelude()
 
-    # Cookie is unavailable or need to process promotions
+    solver.install(upgrade=True)
+
+    # Cookie is unavailable or need to handle promotions
     agent = player.build_agent()
     await agent.execute(sequence=[claim_epic_games], headless=True)
 
