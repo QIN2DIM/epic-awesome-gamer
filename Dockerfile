@@ -1,6 +1,6 @@
 FROM python:3.10 as builder
 
-WORKDIR /home/epic/src
+WORKDIR /home/epic
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

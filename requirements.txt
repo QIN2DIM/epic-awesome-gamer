@@ -1,11 +1,2 @@
-# [install_requires]
-bs4>=0.0.1
-beautifulsoup4>=4.10.0
-lxml>=4.9.3
-
-# [extra_requires.solver]
-hcaptcha-challenger[playwright]==0.7.5
-
-# [extra_requires.notify]
+hcaptcha-challenger[playwright]==0.7.6
 apprise==1.1.0
-
