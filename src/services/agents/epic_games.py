@@ -15,7 +15,7 @@ from typing import List, Dict
 import httpx
 from hcaptcha_challenger.agents.playwright.control import AgentT
 from loguru import logger
-from playwright.async_api import BrowserContext, expect, TimeoutError, Page, Frame
+from playwright.async_api import BrowserContext, expect, TimeoutError, Page
 
 from services.models import EpicPlayer
 from utils import from_dict_to_model
@@ -87,22 +87,6 @@ class EpicGames:
         self._promotions = self._promotions or get_promotions()
         return self._promotions
 
-    async def _challenge(self, frame: Frame):
-        if not frame.url.startswith("https://newassets.hcaptcha.com/captcha/v1"):
-            return
-
-        page = frame.parent_frame
-        for _ in range(15):
-            await page.wait_for_timeout(600)
-            match await self._solver(window="login", recur_url=URL_CLAIM):
-                case self._solver.status.CHALLENGE_BACKCALL | self._solver.status.CHALLENGE_RETRY:
-                    await page.click("//a[@class='talon_close_button']")
-                    await page.wait_for_timeout(1000)
-                    await page.click("#sign-in", delay=200)
-                case self._solver.status.CHALLENGE_SUCCESS:
-                    await page.wait_for_url(URL_CLAIM)
-                    return
-
     async def _login(self, page: Page) -> str | None:
         await page.goto(URL_CLAIM, wait_until="domcontentloaded")
         while await page.locator('a[role="button"]:has-text("Sign In")').count() > 0:
@@ -112,22 +96,45 @@ class EpicGames:
             logger.info("login-with-epic", url=page.url)
             await page.fill("#email", self.player.email)
             await page.type("#password", self.player.password)
-
-            page.on("framenavigated", self._challenge)
-            logger.info("handle challenge", state="working")
-
             await page.click("#sign-in")
 
-            await page.wait_for_url(URL_CLAIM, timeout=1000 * 60)
+            fall_in_challenge = False
 
-        return self._solver.status.AUTH_SUCCESS
+            for _ in range(15):
+                if not fall_in_challenge:
+                    with suppress(TimeoutError):
+                        await page.wait_for_url(URL_CART_SUCCESS, timeout=3000)
+                        break
+                    logger.debug("claim_weekly_games", action="handle challenge")
+                fall_in_challenge = True
+                result = await self._solver(window="login", recur_url=URL_CLAIM)
+                logger.debug("handle challenge", result=result)
+                match result:
+                    case self._solver.status.CHALLENGE_BACKCALL:
+                        await page.click("//a[@class='talon_close_button']")
+                        await page.wait_for_timeout(1000)
+                        await page.click("#sign-in", delay=200)
+                    case self._solver.status.CHALLENGE_RETRY:
+                        continue
+                        # await page.reload()
+                        # await page.fill("#email", self.player.email)
+                        # await page.type("#password", self.player.password)
+                        # await page.click("#sign-in")
+                    case self._solver.status.CHALLENGE_SUCCESS:
+                        with suppress(TimeoutError):
+                            await page.wait_for_url(URL_CLAIM)
+                            break
+                        return
+
+        return self._solver.status.CHALLENGE_SUCCESS
 
     async def authorize(self, page: Page):
         for _ in range(3):
-            result = await self._login(page)
-            if result not in [self._solver.status.CHALLENGE_SUCCESS]:
-                continue
-            return True
+            match await self._login(page):
+                case self._solver.status.CHALLENGE_SUCCESS:
+                    return True
+                case _:
+                    continue
         logger.critical("Failed to flush token", agent=self.__class__.__name__)
 
     async def flush_token(self, context: BrowserContext):
@@ -189,15 +196,8 @@ class EpicGames:
 
         # <-- Insert challenge
 
-        fall_in_challenge = False
-
         for _ in range(15):
-            if not fall_in_challenge:
-                with suppress(TimeoutError):
-                    await page.wait_for_url(URL_CART_SUCCESS, timeout=10000)
-                    break
-                logger.debug("claim_weekly_games", action="handle challenge")
-            fall_in_challenge = True
+            # {{< if fall in challenge >}}
             match await self._solver(window="free", recur_url=URL_CART_SUCCESS):
                 case self._solver.status.CHALLENGE_BACKCALL | self._solver.status.CHALLENGE_RETRY:
                     await wpc.locator("//a[@class='talon_close_button']").click()

@@ -3,6 +3,7 @@
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
 # Description:
+import asyncio
 import sys
 
 import hcaptcha_challenger as solver
@@ -11,9 +12,8 @@ from playwright.async_api import BrowserContext
 
 from services.agents.epic_games import EpicPlayer, EpicGames
 from services.agents.epic_games import get_promotions, get_order_history
-import asyncio
 
-solver.install(upgrade=True, flush_yolo=True)
+solver.install(flush_yolo=True)
 
 player = EpicPlayer.from_account()
 
@@ -36,7 +36,10 @@ def prelude():
     # Create tasks
     orders = get_order_history(player.cookies)
     namespaces = [order.namespace for order in orders]
-    promotions = [p for p in get_promotions() if p.namespace not in namespaces]
+    pros = get_promotions()
+    for pro in pros:
+        logger.debug("prelude", action="check", title=pro.title, url=pro.url)
+    promotions = [p for p in pros if p.namespace not in namespaces]
 
     if not promotions:
         logger.success(
@@ -83,7 +86,7 @@ async def run():
 
     # Cookie is unavailable or need to process promotions
     agent = player.build_agent()
-    await agent.execute(sequence=[claim_epic_games], headless=False)
+    await agent.execute(sequence=[claim_epic_games], headless=True)
 
 
 if __name__ == "__main__":
