@@ -13,7 +13,7 @@ from playwright.async_api import BrowserContext
 from services.agents.epic_games import EpicPlayer, EpicGames
 from services.agents.epic_games import get_promotions, get_order_history
 
-solver.install(flush_yolo=True)
+solver.install(upgrade=True)
 
 player = EpicPlayer.from_account()
 
