@@ -159,7 +159,7 @@ class Player(ABC):
         self.user_data_dir = self.user_data_dir.joinpath(namespace)
         for ck in ["browser_context", "record"]:
             ckp = self.user_data_dir.joinpath(ck)
-            ckp.mkdir(777, parents=True, exist_ok=True)
+            ckp.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     @abc.abstractmethod
