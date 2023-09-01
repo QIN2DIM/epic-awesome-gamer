@@ -13,13 +13,9 @@ from playwright.async_api import BrowserContext
 from services.agents.epic_games import EpicPlayer, EpicGames
 from services.agents.epic_games import get_promotions, get_order_history
 
-solver.install(upgrade=True)
-
-player = EpicPlayer.from_account()
-
 promotions = []
-
 ctx_cookies_is_available = None
+player = EpicPlayer.from_account()
 
 
 @logger.catch
@@ -84,7 +80,9 @@ async def claim_epic_games(context: BrowserContext):
 async def run():
     prelude()
 
-    # Cookie is unavailable or need to process promotions
+    solver.install(upgrade=True)
+
+    # Cookie is unavailable or need to handle promotions
     agent = player.build_agent()
     await agent.execute(sequence=[claim_epic_games], headless=True)
 
