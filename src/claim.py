@@ -56,7 +56,9 @@ async def claim_epic_games(context: BrowserContext):
     if not ctx_cookies_is_available:
         logger.info("claim_epic_games", action="Try to flush cookie")
         if await epic.authorize(page):
-            await epic.flush_token(context)
+            cookies = await epic.flush_token(context)
+            if cookies:
+                player.cookies = cookies
         else:
             logger.error(
                 "claim_epic_games", action="Exit test case", reason="Failed to flush token"
@@ -65,7 +67,7 @@ async def claim_epic_games(context: BrowserContext):
 
     # Create tasks
     if not promotions:
-        orders = get_order_history(epic.player.cookies)
+        orders = get_order_history(player.cookies)
         namespaces = [order.namespace for order in orders]
         promotions = [p for p in get_promotions() if p.namespace not in namespaces]
 
