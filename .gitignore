@@ -129,9 +129,6 @@ dmypy.json
 .pyre/
 .idea
 tests/
-.github/workflows/automated.yaml
-.github/workflows/automated_claim.yaml
-.github/workflows/sync_repo.yaml
 docker-compose.yaml
 archivist/
 src/*.json

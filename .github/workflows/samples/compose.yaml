@@ -1,4 +1,3 @@
-# /home/epic/docker-compose.yaml
 version: "3.7"
 services:
 
@@ -7,8 +6,8 @@ services:
     init: true
     command: "python3 claim.py"
     volumes:
-      - "/home/epic/user_data_dir/:/home/epic/user_data_dir/"
-      - "/home/epic/logs/:/home/epic/logs/"
+      - "/home/epic/user_data_dir:/home/epic/user_data_dir"
+      - "/home/epic/logs:/home/epic/logs"
     environment:
       EPIC_EMAIL:
       EPIC_PASSWORD:
