@@ -77,6 +77,7 @@ async def claim_epic_games(context: BrowserContext):
     await epic.claim_weekly_games(page, promotions)
 
 
+@logger.catch
 async def run():
     prelude()
 
