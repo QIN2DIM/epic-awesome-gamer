@@ -6,17 +6,22 @@
 from __future__ import annotations
 
 import abc
+import inspect
 import json
 import os
 import time
 from abc import ABC
 from contextlib import suppress
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Literal, Dict
+from typing import Callable, Awaitable, List, Any, Dict
+from typing import Literal
 
 import httpx
-from hcaptcha_challenger.agents.playwright import Tarnished
+from hcaptcha_challenger.agents.playwright.tarnished import Malenia
+from loguru import logger
+from playwright.async_api import async_playwright
 
 from settings import config, project
 
@@ -58,6 +63,57 @@ class EpicCookie:
             self.cookies = {ck["name"]: ck["value"] for ck in data}
         except (FileNotFoundError, KeyError):
             pass
+
+
+class Ring(Malenia):
+    @staticmethod
+    async def patch_cookies(context):
+        five_days_ago = datetime.now() - timedelta(days=5)
+        cookie = {
+            "name": "OptanonAlertBoxClosed",
+            "value": five_days_ago.isoformat(),
+            "domain": ".epicgames.com",
+            "path": "/",
+        }
+        await context.add_cookies([cookie])
+
+    async def execute(
+        self,
+        sequence: Callable[..., Awaitable[...]] | List,
+        *,
+        parameters: Dict[str, Any] = None,
+        headless: bool = False,
+        locale: str = "en-US",
+        **kwargs,
+    ):
+        async with async_playwright() as p:
+            context = await p.firefox.launch_persistent_context(
+                user_data_dir=self._user_data_dir,
+                headless=headless,
+                locale=locale,
+                record_video_dir=self._record_dir,
+                record_har_path=self._record_har_path,
+                args=["--hide-crash-restore-bubble"],
+                **kwargs,
+            )
+            await self.apply_stealth(context)
+            await self.patch_cookies(context)
+
+            if not isinstance(sequence, list):
+                sequence = [sequence]
+            for container in sequence:
+                logger.info("execute task", name=container.__name__)
+                kws = {}
+                params = inspect.signature(container).parameters
+                if parameters and isinstance(parameters, dict):
+                    for name in params:
+                        if name != "context" and name in parameters:
+                            kws[name] = parameters[name]
+                if not kws:
+                    await container(context)
+                else:
+                    await container(context, **kws)
+            await context.close()
 
 
 @dataclass
@@ -127,7 +183,7 @@ class Player(ABC):
         return self.user_data_dir.joinpath("ctx_cookie.json")
 
     def build_agent(self):
-        return Tarnished(
+        return Ring(
             user_data_dir=self.browser_context_dir,
             record_dir=self.record_dir,
             record_har_path=self.record_har_path,
