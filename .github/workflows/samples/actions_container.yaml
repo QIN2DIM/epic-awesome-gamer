@@ -29,9 +29,6 @@ jobs:
 
     - name: Caching token
       run: |
-        if [ -d "epic/user_data_dir" ];then cp -rfp epic/user_data_dir . ; fi
-        if [ -d "epic/logs" ];then cp -rfp epic/logs . ; fi
-        rm -rf epic
         echo "${{ env.FAKE_HASH }}" > _token
         git add .
         git commit -m "${{ env.FAKE_HASH }}"
