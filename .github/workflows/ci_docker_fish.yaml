@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - update-challenge
+#      - update-challenge
       - main
     paths-ignore:
       - ".github/**"

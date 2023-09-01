@@ -65,7 +65,7 @@ async def claim_epic_games(context: BrowserContext):
 
     # Create tasks
     if not promotions:
-        orders = get_order_history(player.cookies)
+        orders = get_order_history(epic.player.cookies)
         namespaces = [order.namespace for order in orders]
         promotions = [p for p in get_promotions() if p.namespace not in namespaces]
 
