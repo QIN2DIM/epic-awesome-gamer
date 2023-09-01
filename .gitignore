@@ -129,7 +129,6 @@ dmypy.json
 .pyre/
 .idea
 tests/
-docker-compose.yaml
 archivist/
 src/*.json
 user_data_dir/
