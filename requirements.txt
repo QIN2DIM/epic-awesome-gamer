@@ -1,2 +1,1 @@
-hcaptcha-challenger[playwright]==0.7.6.post1
-apprise==1.1.0
+hcaptcha-challenger[playwright]==0.7.11
