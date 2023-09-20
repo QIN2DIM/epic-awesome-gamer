@@ -87,7 +87,8 @@ class ISurrender:
         if not self.ctx_cookies_is_available:
             logger.info("Try to flush cookie", task="claim_epic_games")
             if await epic.authorize(page):
-                await self.flush_cookies(context)
+                cookies = await epic.flush_token(context)
+                self.player.cookies = cookies
             else:
                 logger.error("Exit task", reason="Failed to flush token")
                 return
