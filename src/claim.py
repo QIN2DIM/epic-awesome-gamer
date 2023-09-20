@@ -4,90 +4,126 @@
 # GitHub     : https://github.com/QIN2DIM
 # Description:
 import asyncio
+import os
 import sys
+from dataclasses import dataclass, field
+from typing import List
 
 import hcaptcha_challenger as solver
 from loguru import logger
-from playwright.async_api import BrowserContext
+from playwright.async_api import BrowserContext, async_playwright
 
-from services.agents.epic_games import EpicPlayer, EpicGames
+from services.agents.epic_games import EpicPlayer, EpicGames, Game
 from services.agents.epic_games import get_promotions, get_order_history
 
-promotions = []
-ctx_cookies_is_available = None
-player = EpicPlayer.from_account()
 
+@dataclass
+class ISurrender:
+    player: EpicPlayer
 
-@logger.catch
-def prelude():
-    global promotions, ctx_cookies_is_available
+    promotions: List[Game] = field(default_factory=list)
+    ctx_cookies_is_available: bool = None
+    headless: bool = True
+    locale: str = "en-US"
 
-    logger.info("prelude", action="Checking the operating environment")
+    def __post_init__(self):
+        if "linux" in sys.platform and "DISPLAY" not in os.environ:
+            self.headless = True
 
-    # Prelude context
-    if not player.ctx_cookies.is_available():
-        return
-    ctx_cookies_is_available = True
+    @classmethod
+    def from_epic(cls):
+        logger.info("run", stage="Initialization EpicPlayer")
+        return cls(player=EpicPlayer.from_account())
 
-    # Create tasks
-    orders = get_order_history(player.cookies)
-    namespaces = [order.namespace for order in orders]
-    pros = get_promotions()
-    for pro in pros:
-        logger.debug("prelude", action="check", title=pro.title, url=pro.url)
-    promotions = [p for p in pros if p.namespace not in namespaces]
+    @property
+    def cookies(self):
+        return self.player.cookies
 
-    if not promotions:
-        logger.success(
-            "prelude",
-            action="Pass claim task",
-            reason="All free games of the week are in my library",
-        )
-        sys.exit()
+    def create_tasks(self):
+        orders = get_order_history(self.cookies)
+        namespaces = [order.namespace for order in orders]
+        pros = get_promotions()
+        for pro in pros:
+            logger.debug("Put task", title=pro.title, url=pro.url)
+        self.promotions = [p for p in pros if p.namespace not in namespaces]
 
+    def prelude(self):
+        if not self.player.ctx_cookies.is_available():
+            return
+        self.ctx_cookies_is_available = True
+        self.create_tasks()
+        if not self.promotions:
+            logger.success(
+                "Pass claim task", reason="All free games are in my library", stage="prelude"
+            )
+            sys.exit()
 
-async def claim_epic_games(context: BrowserContext):
-    global promotions
+    async def flush_cookies(self, context):
+        await context.storage_state(path=self.player.ctx_cookie_path)
+        cookies = self.player.ctx_cookies.reload(self.player.ctx_cookie_path)
+        self.player.cookies = cookies
 
-    page = context.pages[0]
-    epic = EpicGames.from_player(player, page=page)
+    async def prelude_with_context(self, context: BrowserContext) -> bool | None:
+        url = "https://www.epicgames.com/account/personal"
+        res = await context.request.get(url, max_redirects=0)
+        if res.status != 200:
+            return
 
-    # Authorize
-    if not ctx_cookies_is_available:
-        logger.info("claim_epic_games", action="Try to flush cookie")
-        if await epic.authorize(page):
-            cookies = await epic.flush_token(context)
-            if cookies:
-                player.cookies = cookies
-        else:
-            logger.error(
-                "claim_epic_games", action="Exit test case", reason="Failed to flush token"
+        self.ctx_cookies_is_available = True
+        await self.flush_cookies(context)
+        self.create_tasks()
+        if not self.promotions:
+            logger.success(
+                "Pass claim task",
+                reason="All free games are in my library",
+                stage="context-prelude",
+            )
+            return True
+
+    async def claim_epic_games(self, context: BrowserContext):
+        page = context.pages[0]
+        epic = EpicGames.from_player(self.player, page=page)
+
+        if not self.ctx_cookies_is_available:
+            logger.info("Try to flush cookie", task="claim_epic_games")
+            if await epic.authorize(page):
+                cookies = await epic.flush_token(context)
+                self.player.cookies = cookies
+            else:
+                logger.error("Exit task", reason="Failed to flush token")
+                return
+
+        if not self.promotions:
+            self.create_tasks()
+        if not self.promotions:
+            logger.success(
+                "Pass claim task", reason="All free games are in my library", stage="claim-games"
             )
             return
 
-    # Create tasks
-    if not promotions:
-        orders = get_order_history(player.cookies)
-        namespaces = [order.namespace for order in orders]
-        promotions = [p for p in get_promotions() if p.namespace not in namespaces]
+        await epic.claim_weekly_games(page, self.promotions)
 
-    if not promotions:
-        logger.success("Pass claim task", reason="All free games of the week are in my library")
-        return
+    @logger.catch
+    async def stash(self):
+        self.prelude()
 
-    # Execute
-    await epic.claim_weekly_games(page, promotions)
+        async with async_playwright() as p:
+            context = await p.firefox.launch_persistent_context(
+                user_data_dir=self.player.browser_context_dir,
+                record_video_dir=self.player.record_dir,
+                record_har_path=self.player.record_har_path,
+                headless=self.headless,
+                locale=self.locale,
+                args=["--hide-crash-restore-bubble"],
+            )
+            if not await self.prelude_with_context(context):
+                solver.install(upgrade=True)
+                await self.claim_epic_games(context)
 
 
-@logger.catch
 async def run():
-    prelude()
-
-    solver.install(upgrade=True)
-
-    # Cookie is unavailable or need to handle promotions
-    agent = player.build_agent()
-    await agent.execute(sequence=[claim_epic_games], headless=True)
+    agent = ISurrender.from_epic()
+    await agent.stash()
 
 
 if __name__ == "__main__":
