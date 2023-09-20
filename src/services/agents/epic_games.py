@@ -157,6 +157,8 @@ class EpicGames:
         :param promotions: 未在库的 promotions
         :return:
         """
+        in_cart_nums = 0
+
         # --> Add promotions to Cart
         for promotion in promotions:
             logger.info("claim_weekly_games", action="go to store", url=promotion.url)
@@ -171,10 +173,16 @@ class EpicGames:
             with suppress(TimeoutError):
                 text = await cta_btn.text_content(timeout=10000)
                 if text == "View In Cart":
+                    in_cart_nums += 1
                     continue
                 if text == "Add To Cart":
                     await cta_btn.click()
                     await expect(cta_btn).to_have_text("View In Cart")
+                    in_cart_nums += 1
+
+        if in_cart_nums == 0:
+            logger.success("Pass claim task", reason="Free games not added to shopping cart")
+            return
 
         # --> Goto cart page
         await page.goto(URL_CART, wait_until="domcontentloaded")
