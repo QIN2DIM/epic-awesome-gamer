@@ -37,10 +37,10 @@
 
 | Demand               | Support |
 | :------------------- | :------ |
-| hCaptcha Solver      | ✔       |
-| Docker development | ✔       |
-| Persistent context @multi-user |   ✔      |
+| hCaptcha Solver      | ✅       |
+| Docker development | ✅       |
+| Persistent context @multi-user |   ✅      |
 | Notification | 🚧 |
 | Rolling Upgrade      | 🚧   |
 | Epicgames DLC | 🚧 |
-| 2FA OTP support | ❌ |
+| 2FA OTP support | 🚧 |
