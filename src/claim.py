@@ -13,7 +13,7 @@ import hcaptcha_challenger as solver
 from loguru import logger
 from playwright.async_api import BrowserContext, async_playwright
 
-from services.agents.epic_games import EpicPlayer, EpicGames, Game
+from services.agents.epic_games import EpicPlayer, EpicGames, Game, CompletedOrder
 from services.agents.epic_games import get_promotions, get_order_history
 
 
@@ -26,9 +26,14 @@ class ISurrender:
     headless: bool = True
     locale: str = "en-US"
 
+    _orders = None
+    _namespaces = None
+    _pros = None
+
     def __post_init__(self):
-        if "linux" in sys.platform and "DISPLAY" not in os.environ:
-            self.headless = True
+        self._orders: List[CompletedOrder] = []
+        self._namespaces: List[str] = []
+        self._pros: List[Game] = []
 
     @classmethod
     def from_epic(cls):
@@ -40,38 +45,31 @@ class ISurrender:
         return self.player.cookies
 
     def create_tasks(self):
-        orders = get_order_history(self.cookies)
-        namespaces = [order.namespace for order in orders]
-        pros = get_promotions()
-        for pro in pros:
-            logger.debug("Put task", title=pro.title, url=pro.url)
-        self.promotions = [p for p in pros if p.namespace not in namespaces]
+        if not self._orders:
+            self._orders = get_order_history(self.cookies)
+        if not self._namespaces:
+            self._namespaces = [order.namespace for order in self._orders]
+        if not self._pros:
+            self._pros = get_promotions()
+            for pro in self._pros:
+                logger.debug("Put task", title=pro.title, url=pro.url)
 
-    def prelude(self):
-        if not self.player.ctx_cookies.is_available():
+        self.promotions = [p for p in self._pros if p.namespace not in self._namespaces]
+
+    async def prelude_with_context(self, context: BrowserContext) -> bool | None:
+        url = "https://www.epicgames.com/account/creator-programs"
+        page = context.pages[0]
+        await page.goto(url, wait_until="networkidle")
+        if not page.url.startswith(url):
             return
-        self.ctx_cookies_is_available = True
-        self.create_tasks()
-        if not self.promotions:
-            logger.success(
-                "Pass claim task", reason="All free games are in my library", stage="prelude"
-            )
-            sys.exit()
 
-    async def flush_cookies(self, context):
+        self.ctx_cookies_is_available = True
         await context.storage_state(path=self.player.ctx_cookie_path)
         cookies = self.player.ctx_cookies.reload(self.player.ctx_cookie_path)
         self.player.cookies = cookies
 
-    async def prelude_with_context(self, context: BrowserContext) -> bool | None:
-        url = "https://www.epicgames.com/account/personal"
-        res = await context.request.get(url, max_redirects=0)
-        if res.status != 200:
-            return
-
-        self.ctx_cookies_is_available = True
-        await self.flush_cookies(context)
         self.create_tasks()
+
         if not self.promotions:
             logger.success(
                 "Pass claim task",
@@ -105,7 +103,8 @@ class ISurrender:
 
     @logger.catch
     async def stash(self):
-        self.prelude()
+        if "linux" in sys.platform and "DISPLAY" not in os.environ:
+            self.headless = True
 
         async with async_playwright() as p:
             context = await p.firefox.launch_persistent_context(
@@ -119,6 +118,7 @@ class ISurrender:
             if not await self.prelude_with_context(context):
                 solver.install(upgrade=True)
                 await self.claim_epic_games(context)
+            await context.close()
 
 
 async def run():
