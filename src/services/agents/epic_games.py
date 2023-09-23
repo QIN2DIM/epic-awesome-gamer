@@ -205,8 +205,15 @@ class EpicGames:
         await payment_btn.click()
         logger.info("claim_weekly_games", action="click payment button")
 
-        # <-- Insert challenge
+        # <-- Handle UK confirm-order
+        with suppress(TimeoutError):
+            accept = wpc.locator(
+                "//button[contains(@class, 'payment-confirm__btn payment-btn--primary')]"
+            )
+            if await accept.is_enabled():
+                await accept.click()
 
+        # <-- Insert challenge
         for _ in range(15):
             # {{< if fall in challenge >}}
             match await self._solver(window="free", recur_url=URL_CART_SUCCESS):
