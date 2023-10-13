@@ -15,7 +15,7 @@ from typing import List, Dict
 import httpx
 from hcaptcha_challenger.agents.playwright.control import AgentT
 from loguru import logger
-from playwright.async_api import BrowserContext, expect, TimeoutError, Page
+from playwright.async_api import BrowserContext, expect, TimeoutError, Page, FrameLocator, Locator
 
 from services.models import EpicPlayer
 from utils import from_dict_to_model
@@ -53,7 +53,62 @@ class Game:
     namespace: str
     title: str
     thumbnail: str
+    id: str
     in_library = None
+
+
+class CommonHandler:
+    @staticmethod
+    async def any_license(page: Page):
+        with suppress(TimeoutError):
+            await page.click("//label[@for='agree']", timeout=2000)
+            accept = page.locator("//button//span[text()='Accept']")
+            if await accept.is_enabled():
+                await accept.click()
+
+    @staticmethod
+    async def move_to_purchase_container(page: Page):
+        wpc = page.frame_locator("//iframe[@class='']")
+        payment_btn = wpc.locator("//div[@class='payment-order-confirm']")
+        with suppress(Exception):
+            await expect(payment_btn).to_be_attached()
+        await page.wait_for_timeout(2000)
+        await payment_btn.click()
+
+        return wpc, payment_btn
+
+    @staticmethod
+    async def uk_confirm_order(wpc: FrameLocator):
+        # <-- Handle UK confirm-order
+        with suppress(TimeoutError):
+            accept = wpc.locator(
+                "//button[contains(@class, 'payment-confirm__btn payment-btn--primary')]"
+            )
+            if await accept.is_enabled(timeout=5000):
+                await accept.click()
+                return True
+
+    @staticmethod
+    async def insert_challenge(
+        solver: AgentT,
+        page: Page,
+        wpc: FrameLocator,
+        payment_btn: Locator,
+        recur_url: str,
+        is_uk: bool,
+    ):
+        for _ in range(15):
+            # {{< if fall in challenge >}}
+            match await solver(window="free", recur_url=recur_url):
+                case solver.status.CHALLENGE_BACKCALL | solver.status.CHALLENGE_RETRY:
+                    await wpc.locator("//a[@class='talon_close_button']").click()
+                    await page.wait_for_timeout(1000)
+                    if is_uk:
+                        await CommonHandler.uk_confirm_order(wpc)
+                    await payment_btn.click(delay=200)
+                case solver.status.CHALLENGE_SUCCESS:
+                    await page.wait_for_url(recur_url)
+                    break
 
 
 @dataclass
@@ -82,6 +137,10 @@ class EpicGames:
         return cls(
             player=player, _solver=AgentT.from_page(page=page, tmp_dir=tmp_dir, **solver_opt)
         )
+
+    @property
+    def handle(self):
+        return CommonHandler
 
     @property
     def promotions(self) -> List[Game]:
@@ -117,10 +176,6 @@ class EpicGames:
                         await page.click("#sign-in", delay=200)
                     case self._solver.status.CHALLENGE_RETRY:
                         continue
-                        # await page.reload()
-                        # await page.fill("#email", self.player.email)
-                        # await page.type("#password", self.player.password)
-                        # await page.click("#sign-in")
                     case self._solver.status.CHALLENGE_SUCCESS:
                         with suppress(TimeoutError):
                             await page.wait_for_url(URL_CLAIM)
@@ -152,12 +207,6 @@ class EpicGames:
         return cookies
 
     async def claim_weekly_games(self, page: Page, promotions: List[Game]):
-        """
-
-        :param page:
-        :param promotions: 未在库的 promotions
-        :return:
-        """
         in_cart_nums = 0
 
         # --> Add promotions to Cart
@@ -190,45 +239,63 @@ class EpicGames:
         await page.click("//button//span[text()='Check Out']")
 
         # <-- Handle Any LICENSE
-        with suppress(TimeoutError):
-            await page.click("//label[@for='agree']", timeout=2000)
-            accept = page.locator("//button//span[text()='Accept']")
-            if await accept.is_enabled():
-                await accept.click()
+        await self.handle.any_license(page)
 
         # --> Move to webPurchaseContainer iframe
         logger.info("claim_weekly_games", action="move to webPurchaseContainer iframe")
-        wpc = page.frame_locator("//iframe[@class='']")
-        payment_btn = wpc.locator("//div[@class='payment-order-confirm']")
-        with suppress(Exception):
-            await expect(payment_btn).to_be_attached()
-        await page.wait_for_timeout(2000)
-        await payment_btn.click()
+        wpc, payment_btn = await self.handle.move_to_purchase_container(page)
         logger.info("claim_weekly_games", action="click payment button")
 
         # <-- Handle UK confirm-order
-        with suppress(TimeoutError):
-            accept = wpc.locator(
-                "//button[contains(@class, 'payment-confirm__btn payment-btn--primary')]"
-            )
-            if await accept.is_enabled():
-                await accept.click()
+        is_uk = await self.handle.uk_confirm_order(wpc)
 
         # <-- Insert challenge
-        for _ in range(15):
-            # {{< if fall in challenge >}}
-            match await self._solver(window="free", recur_url=URL_CART_SUCCESS):
-                case self._solver.status.CHALLENGE_BACKCALL | self._solver.status.CHALLENGE_RETRY:
-                    await wpc.locator("//a[@class='talon_close_button']").click()
-                    await page.wait_for_timeout(1000)
-                    await payment_btn.click(delay=200)
-                case self._solver.status.CHALLENGE_SUCCESS:
-                    await page.wait_for_url(URL_CART_SUCCESS)
-                    break
+        recur_url = URL_CART_SUCCESS
+        await self.handle.insert_challenge(self._solver, page, wpc, payment_btn, recur_url, is_uk)
 
         # --> Wait for success
-        await page.wait_for_url(URL_CART_SUCCESS)
+        await page.wait_for_url(recur_url)
         logger.success("claim_weekly_games", action="success", url=page.url)
+
+    async def claim_bundle_games(self, page: Page, promotions: List[Game]):
+        for promotion in promotions:
+            logger.info("claim_bundle_games", action="go to store", url=promotion.url)
+            await page.goto(promotion.url, wait_until="load")
+
+            # <-- Handle pre-page
+            with suppress(TimeoutError):
+                await page.click("//button//span[text()='Continue']", timeout=3000)
+
+            # --> Make sure promotion is not in the library before executing
+            purchase_btn = page.locator("//button[@data-testid='purchase-cta-button']").first
+            with suppress(TimeoutError):
+                text = await purchase_btn.text_content(timeout=10000)
+                if text == "Get":
+                    await purchase_btn.click()
+                    await page.wait_for_timeout(2000)
+                else:
+                    continue
+
+            # <-- Handle Any LICENSE
+            await self.handle.any_license(page)
+
+            # --> Move to webPurchaseContainer iframe
+            logger.info("claim_bundle_games", action="move to webPurchaseContainer iframe")
+            wpc, payment_btn = await self.handle.move_to_purchase_container(page)
+            logger.info("claim_bundle_games", action="click payment button")
+
+            # <-- Handle UK confirm-order
+            is_uk = await self.handle.uk_confirm_order(wpc)
+
+            # <-- Insert challenge
+            recur_url = f"https://store.epicgames.com/en-US/download?ns={promotion.namespace}&id={promotion.id}"
+            await self.handle.insert_challenge(
+                self._solver, page, wpc, payment_btn, recur_url, is_uk
+            )
+
+            # --> Wait for success
+            await page.wait_for_url(recur_url)
+            logger.success("claim_bundle_games", action="success", url=page.url)
 
 
 def get_promotions() -> List[Game]:

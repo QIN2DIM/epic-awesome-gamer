@@ -37,7 +37,6 @@ class ISurrender:
 
     @classmethod
     def from_epic(cls):
-        logger.info("run", stage="Initialization EpicPlayer")
         return cls(player=EpicPlayer.from_account())
 
     @property
@@ -99,13 +98,25 @@ class ISurrender:
             )
             return
 
-        await epic.claim_weekly_games(page, self.promotions)
+        single_promotions = []
+        bundle_promotions = []
+        for p in self.promotions:
+            if "bundles" in p.url:
+                bundle_promotions.append(p)
+            else:
+                single_promotions.append(p)
+
+        if single_promotions:
+            await epic.claim_weekly_games(page, single_promotions)
+        if bundle_promotions:
+            await epic.claim_bundle_games(page, bundle_promotions)
 
     @logger.catch
     async def stash(self):
         if "linux" in sys.platform and "DISPLAY" not in os.environ:
             self.headless = True
 
+        logger.info("run", role="EpicPlayer", headless=self.headless)
         async with async_playwright() as p:
             context = await p.firefox.launch_persistent_context(
                 user_data_dir=self.player.browser_context_dir,
@@ -123,6 +134,7 @@ class ISurrender:
 
 async def run():
     agent = ISurrender.from_epic()
+    agent.headless = False
     await agent.stash()
 
 
