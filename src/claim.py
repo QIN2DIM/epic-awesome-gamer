@@ -99,7 +99,18 @@ class ISurrender:
             )
             return
 
-        await epic.claim_weekly_games(page, self.promotions)
+        single_promotions = []
+        bundle_promotions = []
+        for p in self.promotions:
+            if "bundles" in p.url:
+                bundle_promotions.append(p)
+            else:
+                single_promotions.append(p)
+
+        if single_promotions:
+            await epic.claim_weekly_games(page, single_promotions)
+        if bundle_promotions:
+            await epic.claim_bundle_games(page, bundle_promotions)
 
     @logger.catch
     async def stash(self):
@@ -123,6 +134,7 @@ class ISurrender:
 
 async def run():
     agent = ISurrender.from_epic()
+    agent.headless = False
     await agent.stash()
 
 
