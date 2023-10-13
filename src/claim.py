@@ -37,7 +37,6 @@ class ISurrender:
 
     @classmethod
     def from_epic(cls):
-        logger.info("run", stage="Initialization EpicPlayer")
         return cls(player=EpicPlayer.from_account())
 
     @property
@@ -117,6 +116,7 @@ class ISurrender:
         if "linux" in sys.platform and "DISPLAY" not in os.environ:
             self.headless = True
 
+        logger.info("run", role="EpicPlayer", headless=self.headless)
         async with async_playwright() as p:
             context = await p.firefox.launch_persistent_context(
                 user_data_dir=self.player.browser_context_dir,
