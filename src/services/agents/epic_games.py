@@ -53,6 +53,7 @@ class Game:
     namespace: str
     title: str
     thumbnail: str
+    id: str
     in_library = None
 
 
@@ -85,10 +86,16 @@ class CommonHandler:
             )
             if await accept.is_enabled(timeout=5000):
                 await accept.click()
+                return True
 
     @staticmethod
     async def insert_challenge(
-        solver: AgentT, page: Page, wpc: FrameLocator, payment_btn: Locator, recur_url: str
+        solver: AgentT,
+        page: Page,
+        wpc: FrameLocator,
+        payment_btn: Locator,
+        recur_url: str,
+        is_uk: bool,
     ):
         for _ in range(15):
             # {{< if fall in challenge >}}
@@ -96,6 +103,8 @@ class CommonHandler:
                 case solver.status.CHALLENGE_BACKCALL | solver.status.CHALLENGE_RETRY:
                     await wpc.locator("//a[@class='talon_close_button']").click()
                     await page.wait_for_timeout(1000)
+                    if is_uk:
+                        await CommonHandler.uk_confirm_order(wpc)
                     await payment_btn.click(delay=200)
                 case solver.status.CHALLENGE_SUCCESS:
                     await page.wait_for_url(recur_url)
@@ -238,11 +247,11 @@ class EpicGames:
         logger.info("claim_weekly_games", action="click payment button")
 
         # <-- Handle UK confirm-order
-        await self.handle.uk_confirm_order(wpc)
+        is_uk = await self.handle.uk_confirm_order(wpc)
 
         # <-- Insert challenge
         recur_url = URL_CART_SUCCESS
-        await self.handle.insert_challenge(self._solver, page, wpc, payment_btn, recur_url)
+        await self.handle.insert_challenge(self._solver, page, wpc, payment_btn, recur_url, is_uk)
 
         # --> Wait for success
         await page.wait_for_url(recur_url)
@@ -276,11 +285,13 @@ class EpicGames:
             logger.info("claim_bundle_games", action="click payment button")
 
             # <-- Handle UK confirm-order
-            await self.handle.uk_confirm_order(wpc)
+            is_uk = await self.handle.uk_confirm_order(wpc)
 
             # <-- Insert challenge
-            recur_url = "https://store.epicgames.com/en-US/download"
-            await self.handle.insert_challenge(self._solver, page, wpc, payment_btn, recur_url)
+            recur_url = f"https://store.epicgames.com/en-US/download?ns={promotion.namespace}&id={promotion.id}"
+            await self.handle.insert_challenge(
+                self._solver, page, wpc, payment_btn, recur_url, is_uk
+            )
 
             # --> Wait for success
             await page.wait_for_url(recur_url)
