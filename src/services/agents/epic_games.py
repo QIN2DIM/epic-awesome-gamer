@@ -25,6 +25,7 @@ URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
 URL_LOGIN = f"https://www.epicgames.com/id/login?lang=en-US&noHostRedirect=true&redirectUrl={URL_CLAIM}"
 URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions"
 URL_PRODUCT_PAGE = "https://store.epicgames.com/en-US/p/"
+URL_PRODUCT_BUNDLES = "https://store.epicgames.com/en-US/bundles/"
 URL_ORDER_HISTORY = "https://www.epicgames.com/account/v2/payment/ajaxGetOrderHistory"
 URL_CART = "https://store.epicgames.com/en-US/cart"
 URL_CART_SUCCESS = "https://store.epicgames.com/en-US/cart/success"
@@ -260,6 +261,8 @@ def get_promotions() -> List[Game]:
                 try:
                     query = promotion["catalogNs"]["mappings"][0]["pageSlug"]
                     promotion["url"] = f"{URL_PRODUCT_PAGE}{query}"
+                except TypeError:
+                    promotion["url"] = f"{URL_PRODUCT_BUNDLES}{promotion['productSlug']}"
                 except IndexError:
                     promotion["url"] = f"{URL_PRODUCT_PAGE}{promotion['productSlug']}"
 
