@@ -1,1 +1,1 @@
-hcaptcha-challenger[playwright]==0.8.5-post4
+hcaptcha-challenger[playwright]==0.8.6
