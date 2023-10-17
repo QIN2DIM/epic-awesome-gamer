@@ -13,8 +13,14 @@ import hcaptcha_challenger as solver
 from loguru import logger
 from playwright.async_api import BrowserContext, async_playwright
 
-from services.agents.epic_games import EpicPlayer, EpicGames, Game, CompletedOrder
-from services.agents.epic_games import get_promotions, get_order_history
+from epic_games import (
+    EpicPlayer,
+    EpicGames,
+    Game,
+    CompletedOrder,
+    get_promotions,
+    get_order_history,
+)
 
 
 @dataclass

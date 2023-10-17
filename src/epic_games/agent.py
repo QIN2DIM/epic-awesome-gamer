@@ -16,9 +16,8 @@ import httpx
 from loguru import logger
 from playwright.async_api import BrowserContext, expect, TimeoutError, Page, FrameLocator, Locator
 
-from services.models import EpicPlayer
-from services.solver import AgentG
-from utils import from_dict_to_model
+from epic_games.player import EpicPlayer
+from utils import from_dict_to_model, AgentG
 
 # fmt:off
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
@@ -166,7 +165,7 @@ class EpicGames:
                         logger.debug("Attack challenge", stage=stage)
                 fall_in_challenge = True
                 result = await self._solver.execute(window=stage)
-                logger.debug("handle challenge", stage=stage, result=result)
+                logger.debug("Parse result", stage=stage, result=result)
                 match result:
                     case self._solver.status.CHALLENGE_BACKCALL:
                         await page.click("//a[@class='talon_close_button']")
@@ -186,17 +185,22 @@ class EpicGames:
         while await page.locator('a[role="button"]:has-text("Sign In")').count() > 0:
             await page.goto(URL_LOGIN, wait_until="domcontentloaded")
             logger.info("login-with-email", url=page.url)
+
+            # {{< SIGN IN PAGE >}}
             await page.fill("#email", self.player.email)
             await page.click("//button[@aria-label='Continue']")
 
+            # {{< INSERT CHALLENGE - email_exists_prod >}}
             await insert_challenge(stage="email_exists_prod")
 
+            # {{< NESTED PAGE >}}
             await page.type("#password", self.player.password)
             await page.click("#sign-in")
 
+            # {{< INSERT CHALLENGE - login_prod >}}
             await insert_challenge(stage="login_prod")
 
-        logger.success("login", result="token has not expired")
+        logger.success("login", result="Successfully refreshed tokens")
         return self._solver.status.CHALLENGE_SUCCESS
 
     async def authorize(self, page: Page):

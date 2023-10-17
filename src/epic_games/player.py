@@ -30,7 +30,7 @@ class EpicCookie:
     URL_VERIFY_COOKIES = "https://www.epicgames.com/account/personal"
 
     @classmethod
-    def from_state(cls, fp: Path) -> EpicCookie:
+    def from_state(cls, fp: Path):
         """Jsonify cookie from Playwright"""
         cookies = {}
         try:
