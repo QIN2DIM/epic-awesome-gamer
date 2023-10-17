@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List, Dict
 
 import httpx
-from hcaptcha_challenger.agents.playwright.control import AgentT
+from services.solver import AgentG
 from loguru import logger
 from playwright.async_api import BrowserContext, expect, TimeoutError, Page, FrameLocator, Locator
 
@@ -90,7 +90,7 @@ class CommonHandler:
 
     @staticmethod
     async def insert_challenge(
-        solver: AgentT,
+        solver: AgentG,
         page: Page,
         wpc: FrameLocator,
         payment_btn: Locator,
@@ -118,7 +118,7 @@ class EpicGames:
     Agent control
     """
 
-    _solver: AgentT = None
+    _solver: AgentG = None
     """
     Module for anti-captcha
     """
@@ -135,7 +135,7 @@ class EpicGames:
     ):
         """尽可能早地实例化，用于部署 captcha 事件监听器"""
         return cls(
-            player=player, _solver=AgentT.from_page(page=page, tmp_dir=tmp_dir, **solver_opt)
+            player=player, _solver=AgentG.from_page(page=page, tmp_dir=tmp_dir, **solver_opt)
         )
 
     @property
@@ -151,10 +151,9 @@ class EpicGames:
         await page.goto(URL_CLAIM, wait_until="domcontentloaded")
         while await page.locator('a[role="button"]:has-text("Sign In")').count() > 0:
             await page.goto(URL_LOGIN, wait_until="domcontentloaded")
-            logger.info("login", url=page.url)
-            await page.click("#login-with-epic")
-            logger.info("login-with-epic", url=page.url)
+            logger.info("login-with-email", url=page.url)
             await page.fill("#email", self.player.email)
+            await page.click("//button[@aria-label='Continue']")
             await page.type("#password", self.player.password)
             await page.click("#sign-in")
 
@@ -167,7 +166,7 @@ class EpicGames:
                         break
                     logger.debug("claim_weekly_games", action="handle challenge")
                 fall_in_challenge = True
-                result = await self._solver(window="login", recur_url=URL_CLAIM)
+                result = await self._solver.execute(window="login", recur_url=URL_CLAIM)
                 logger.debug("handle challenge", result=result)
                 match result:
                     case self._solver.status.CHALLENGE_BACKCALL:
@@ -177,6 +176,8 @@ class EpicGames:
                     case self._solver.status.CHALLENGE_RETRY:
                         continue
                     case self._solver.status.CHALLENGE_SUCCESS:
+                        if not self._solver.qr_queue.empty():
+                            continue
                         with suppress(TimeoutError):
                             await page.wait_for_url(URL_CLAIM)
                             break
