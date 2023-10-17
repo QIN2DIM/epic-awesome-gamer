@@ -10,14 +10,14 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from json import JSONDecodeError
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Literal
 
 import httpx
-from services.solver import AgentG
 from loguru import logger
 from playwright.async_api import BrowserContext, expect, TimeoutError, Page, FrameLocator, Locator
 
 from services.models import EpicPlayer
+from services.solver import AgentG
 from utils import from_dict_to_model
 
 # fmt:off
@@ -148,26 +148,25 @@ class EpicGames:
         return self._promotions
 
     async def _login(self, page: Page) -> str | None:
-        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
-        while await page.locator('a[role="button"]:has-text("Sign In")').count() > 0:
-            await page.goto(URL_LOGIN, wait_until="domcontentloaded")
-            logger.info("login-with-email", url=page.url)
-            await page.fill("#email", self.player.email)
-            await page.click("//button[@aria-label='Continue']")
-            await page.type("#password", self.player.password)
-            await page.click("#sign-in")
-
+        async def insert_challenge(stage: Literal["email_exists_prod", "login_prod"]):
             fall_in_challenge = False
 
             for _ in range(15):
-                if not fall_in_challenge:
-                    with suppress(TimeoutError):
-                        await page.wait_for_url(URL_CART_SUCCESS, timeout=3000)
-                        break
-                    logger.debug("claim_weekly_games", action="handle challenge")
+                if stage == "login_prod":
+                    if not fall_in_challenge:
+                        with suppress(TimeoutError):
+                            await page.wait_for_url(URL_CART_SUCCESS, timeout=3000)
+                            break
+                        logger.debug("Attack challenge", stage=stage)
+                elif stage == "email_exists_prod":
+                    if not fall_in_challenge:
+                        with suppress(TimeoutError):
+                            await page.type("#password", "", timeout=3000)
+                            break
+                        logger.debug("Attack challenge", stage=stage)
                 fall_in_challenge = True
-                result = await self._solver.execute(window="login", recur_url=URL_CLAIM)
-                logger.debug("handle challenge", result=result)
+                result = await self._solver.execute(window=stage)
+                logger.debug("handle challenge", stage=stage, result=result)
                 match result:
                     case self._solver.status.CHALLENGE_BACKCALL:
                         await page.click("//a[@class='talon_close_button']")
@@ -176,12 +175,26 @@ class EpicGames:
                     case self._solver.status.CHALLENGE_RETRY:
                         continue
                     case self._solver.status.CHALLENGE_SUCCESS:
-                        if not self._solver.qr_queue.empty():
+                        if stage == "signin" and not self._solver.qr_queue.empty():
                             continue
                         with suppress(TimeoutError):
                             await page.wait_for_url(URL_CLAIM)
                             break
                         return
+
+        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
+        while await page.locator('a[role="button"]:has-text("Sign In")').count() > 0:
+            await page.goto(URL_LOGIN, wait_until="domcontentloaded")
+            logger.info("login-with-email", url=page.url)
+            await page.fill("#email", self.player.email)
+            await page.click("//button[@aria-label='Continue']")
+
+            await insert_challenge(stage="email_exists_prod")
+
+            await page.type("#password", self.player.password)
+            await page.click("#sign-in")
+
+            await insert_challenge(stage="login_prod")
 
         logger.success("login", result="token has not expired")
         return self._solver.status.CHALLENGE_SUCCESS

@@ -16,11 +16,14 @@ class AgentG(AgentT):
     HOOK_CHALLENGE = "//iframe[contains(@title, 'hCaptcha challenge')]"
 
     def _switch_to_challenge_frame(self, page: Page, window: str = "login", **kwargs):
-        if window == "login":
-            hook_login_challenge = (
+        if window == "login_prod":
+            frame_challenge = page.frame_locator(
                 f"//div[@id='h_captcha_challenge_login_prod']{self.HOOK_CHALLENGE}"
             )
-            frame_challenge = page.frame_locator(hook_login_challenge)
+        elif window == "email_exists_prod":
+            frame_challenge = page.frame_locator(
+                f"//div[@id='h_captcha_challenge_email_exists_prod']{self.HOOK_CHALLENGE}"
+            )
         else:
             frame_purchase = page.frame_locator(self.HOOK_PURCHASE)
             frame_challenge = frame_purchase.frame_locator(self.HOOK_CHALLENGE)
