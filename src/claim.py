@@ -3,6 +3,8 @@
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
 # Description:
+from __future__ import annotations
+
 import asyncio
 import os
 import sys
@@ -21,6 +23,8 @@ from epic_games import (
     get_promotions,
     get_order_history,
 )
+
+self_supervised = True
 
 
 @dataclass
@@ -85,7 +89,7 @@ class ISurrender:
 
     async def claim_epic_games(self, context: BrowserContext):
         page = context.pages[0]
-        epic = EpicGames.from_player(self.player, page=page)
+        epic = EpicGames.from_player(self.player, page=page, self_supervised=self_supervised)
 
         if not self.ctx_cookies_is_available:
             logger.info("Try to flush cookie", task="claim_epic_games")
@@ -122,7 +126,14 @@ class ISurrender:
         if "linux" in sys.platform and "DISPLAY" not in os.environ:
             self.headless = True
 
-        logger.info("run", role="EpicPlayer", headless=self.headless)
+        logger.info(
+            "run",
+            image="20231026",
+            role="EpicPlayer",
+            headless=self.headless,
+            self_supervised=self_supervised,
+        )
+
         async with async_playwright() as p:
             context = await p.firefox.launch_persistent_context(
                 user_data_dir=self.player.browser_context_dir,
@@ -133,7 +144,7 @@ class ISurrender:
                 args=["--hide-crash-restore-bubble"],
             )
             if not await self.prelude_with_context(context):
-                solver.install(upgrade=True)
+                solver.install(upgrade=True, clip=self_supervised)
                 await self.claim_epic_games(context)
             await context.close()
 
