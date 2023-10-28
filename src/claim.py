@@ -13,7 +13,7 @@ from typing import List
 
 import hcaptcha_challenger as solver
 from loguru import logger
-from playwright.async_api import BrowserContext, async_playwright
+from playwright.async_api import BrowserContext, async_playwright, TimeoutError
 
 from epic_games import (
     EpicPlayer,
@@ -117,9 +117,19 @@ class ISurrender:
                 single_promotions.append(p)
 
         if single_promotions:
-            await epic.claim_weekly_games(page, single_promotions)
+            for _ in range(3):
+                try:
+                    if await epic.claim_weekly_games(page, single_promotions):
+                        break
+                except TimeoutError:
+                    continue
         if bundle_promotions:
-            await epic.claim_bundle_games(page, bundle_promotions)
+            for _ in range(3):
+                try:
+                    if await epic.claim_bundle_games(page, bundle_promotions):
+                        break
+                except TimeoutError:
+                    continue
 
     @logger.catch
     async def stash(self):
