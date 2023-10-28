@@ -71,7 +71,7 @@ class CommonHandler:
         with suppress(Exception):
             await expect(payment_btn).to_be_attached()
         await page.wait_for_timeout(2000)
-        await payment_btn.click()
+        await payment_btn.click(timeout=6000)
 
         return wpc, payment_btn
 
@@ -180,8 +180,8 @@ class EpicGames:
                             break
                         return
 
-        while (await page.locator('button#send[aria-label="Continue"]').count() > 0 or
-               await page.locator('button#sign-in[aria-label="Sign In"]').count() > 0):
+        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
+        if "false" == await page.locator("//egs-navigation").get_attribute("isloggedin"):
             await page.goto(URL_LOGIN, wait_until="domcontentloaded")
             logger.info("login-with-email", url=page.url)
 
@@ -204,13 +204,18 @@ class EpicGames:
         return self._solver.status.CHALLENGE_SUCCESS
 
     async def authorize(self, page: Page):
-        for _ in range(3):
-            match await self._login(page):
-                case self._solver.status.CHALLENGE_SUCCESS:
-                    return True
-                case _:
-                    continue
-        logger.critical("Failed to flush token", agent=self.__class__.__name__)
+        for i in range(3):
+            try:
+                match await self._login(page):
+                    case self._solver.status.CHALLENGE_SUCCESS:
+                        return True
+                    case _:
+                        continue
+            except TimeoutError:
+                logger.warning("执行超时", task="authorize", retry=i)
+                continue
+
+        raise RuntimeError(f"Failed to flush token - agent={self.__class__.__name__}")
 
     async def flush_token(self, context: BrowserContext) -> Dict[str, str] | None:
         page = context.pages[0]
@@ -275,6 +280,8 @@ class EpicGames:
         await page.wait_for_url(recur_url)
         logger.success("claim_weekly_games", action="success", url=page.url)
 
+        return True
+
     async def claim_bundle_games(self, page: Page, promotions: List[Game]):
         for promotion in promotions:
             logger.info("claim_bundle_games", action="go to store", url=promotion.url)
@@ -314,6 +321,8 @@ class EpicGames:
             # --> Wait for success
             await page.wait_for_url(recur_url)
             logger.success("claim_bundle_games", action="success", url=page.url)
+
+            return True
 
 
 def get_promotions() -> List[Game]:
