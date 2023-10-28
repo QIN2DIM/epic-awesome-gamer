@@ -36,7 +36,6 @@ URL_STORE_EXPLORER_GRAPHQL = (
     '&extensions={"persistedQuery":{"version":1,"sha256Hash":"13a2b6787f1a20d05c75c54c78b1b8ac7c8bf4efc394edf7a5998fdf35d1adb0"}}'
 )
 
-
 # fmt:on
 
 
@@ -181,8 +180,8 @@ class EpicGames:
                             break
                         return
 
-        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
-        while await page.locator('a[role="button"]:has-text("Sign In")').count() > 0:
+        while (await page.locator('button#send[aria-label="Continue"]').count() > 0 or
+               await page.locator('button#sign-in[aria-label="Sign In"]').count() > 0):
             await page.goto(URL_LOGIN, wait_until="domcontentloaded")
             logger.info("login-with-email", url=page.url)
 
@@ -201,6 +200,7 @@ class EpicGames:
             await insert_challenge(stage="login_prod")
 
         logger.success("login", result="Successfully refreshed tokens")
+        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
         return self._solver.status.CHALLENGE_SUCCESS
 
     async def authorize(self, page: Page):
