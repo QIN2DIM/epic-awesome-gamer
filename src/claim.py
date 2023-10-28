@@ -23,6 +23,7 @@ from epic_games import (
     get_promotions,
     get_order_history,
 )
+import importlib_metadata
 
 self_supervised = True
 
@@ -138,7 +139,8 @@ class ISurrender:
 
         logger.info(
             "run",
-            image="20231026",
+            image="20231029",
+            version=importlib_metadata.version("hcaptcha-challenger"),
             role="EpicPlayer",
             headless=self.headless,
             self_supervised=self_supervised,
