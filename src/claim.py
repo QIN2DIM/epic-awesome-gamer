@@ -139,7 +139,7 @@ class ISurrender:
 
         logger.info(
             "run",
-            image="20231029",
+            image="20231105",
             version=importlib_metadata.version("hcaptcha-challenger"),
             role="EpicPlayer",
             headless=self.headless,
