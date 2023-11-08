@@ -1,6 +1,6 @@
 <div align="center">
     <h1> EPIC 免费人</h1>
-    <p>🍷 Gracefully claim weekly free games and monthly content from Epic Store.</p>
+    <p>🍷 Gracefully claim weekly free games from Epic Store.</p>
     <img src="https://img.shields.io/static/v1?message=reference&color=blue&style=for-the-badge&logo=micropython&label=python">
     <img src="https://img.shields.io/github/license/QIN2DIM/epic-awesome-gamer?style=for-the-badge">
     <a href="https://hub.docker.com/r/ech0sec/awesome-epic"><img src="https://img.shields.io/docker/pulls/ech0sec/awesome-epic?color=green&style=for-the-badge"></a>
@@ -19,9 +19,15 @@
 
 [Epic 免费人](https://github.com/QIN2DIM/epic-awesome-gamer) 帮助玩家优雅地领取免费游戏。内置 [hcaptcha-challenger](https://github.com/QIN2DIM/hcaptcha-challenger) AI 模块，直面人机挑战。
 
+## Guides
+
+[ [`简体中文`](https://echosec.notion.site/Epic-7c74f1e29117420dbac5551e4b031f82?pvs=4) ] [ [`English`](https://echosec.notion.site/Epic-Awesome-Gamer-ba870cdf64c149e69f417448b1eb83c5?pvs=4) ]
+
+[![EpicAwesomeGamer guides](https://img.youtube.com/vi/lsBQFU9ddgA/0.jpg)](https://www.youtube.com/watch?v=lsBQFU9ddgA "EpicAwesomeGamer guides")
+
 ## Features
 
-[中文](https://echosec.notion.site/Epic-7c74f1e29117420dbac5551e4b031f82?pvs=4) || [English](https://echosec.notion.site/Epic-Awesome-Gamer-ba870cdf64c149e69f417448b1eb83c5?pvs=4)
+
 
 ### Task
 
@@ -40,7 +46,6 @@
 | hCaptcha Solver      | ✅       |
 | Docker development | ✅       |
 | Persistent context @multi-user |   ✅      |
-| Notification | 🚧 |
 | Rolling Upgrade      | 🚧   |
 | Epicgames DLC | 🚧 |
 | 2FA OTP support | 🚧 |
