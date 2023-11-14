@@ -108,15 +108,7 @@ class ISurrender:
                 "Pass claim task", reason="All free games are in my library", stage="claim-games"
             )
             return
-            
-        logger.info("Try to empty cart", task="claim_epic_games")
-        for _ in range(3):
-            try:
-                if await epic.empty_cart(page):
-                    break
-            except TimeoutError:
-                continue
-        
+
         single_promotions = []
         bundle_promotions = []
         for p in self.promotions:
