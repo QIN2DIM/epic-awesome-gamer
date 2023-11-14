@@ -108,6 +108,49 @@ class CommonHandler:
                     await page.wait_for_url(recur_url)
                     break
 
+    @staticmethod
+    async def empty_cart(page: Page, wait_rerender: int = 30) -> bool | None:
+        """
+        URL_CART = "https://store.epicgames.com/en-US/cart"
+        URL_WISHLIST = "https://store.epicgames.com/en-US/wishlist"
+        //span[text()='Your Cart is empty.']
+
+        Args:
+            wait_rerender:
+            page:
+
+        Returns:
+
+        """
+        has_paid_free = False
+
+        try:
+            # Check all items in the shopping cart
+            cards = await page.query_selector_all("//div[@data-testid='offer-card-layout-wrapper']")
+
+            # Move paid games to wishlist games
+            for card in cards:
+                is_free = await card.query_selector("//span[text()='Free']")
+                if not is_free:
+                    has_paid_free = True
+                    wishlist_btn = await card.query_selector(
+                        "//button//span[text()='Move to wishlist']"
+                    )
+                    await wishlist_btn.click()
+
+            # Wait up to 60 seconds for the page to re-render.
+            # Usually it takes 1~3s for the web page to be re-rendered
+            # - Set threshold for overflow in case of poor Epic network
+            # - It can also prevent extreme situations, such as: the user’s shopping cart has nearly a hundred products
+            if has_paid_free and wait_rerender:
+                wait_rerender -= 1
+                await page.wait_for_timeout(2000)
+                return await CommonHandler.empty_cart(page, wait_rerender)
+            return True
+        except TimeoutError as err:
+            logger.warning("Failed to empty shopping cart", err=err)
+            return False
+
 
 @dataclass
 class EpicGames:
@@ -259,6 +302,7 @@ class EpicGames:
 
         # --> Goto cart page
         await page.goto(URL_CART, wait_until="domcontentloaded")
+        await self.handle.empty_cart(page)
         await page.click("//button//span[text()='Check Out']")
 
         # <-- Handle Any LICENSE
