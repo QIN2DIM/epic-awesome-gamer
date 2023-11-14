@@ -228,6 +228,22 @@ class EpicGames:
         cookies = self.player.ctx_cookies.reload(self.player.ctx_cookie_path)
         logger.success("flush_token", path=self.player.ctx_cookie_path)
         return cookies
+        
+    async def empty_cart(self, page: Page) -> bool:
+        try:
+            # goto cart
+            await page.goto(URL_CART, wait_until="domcontentloaded")
+            # remove all items
+            remove_btns = await page.locator(
+                "xpath=//button//span[text()='Remove']"
+            ).all()
+            for btn in remove_btns:
+                await btn.click()
+            # wait 5s
+            await page.wait_for_timeout(5000)
+            return True
+        except TimeoutError:
+            return False
 
     async def claim_weekly_games(self, page: Page, promotions: List[Game]):
         in_cart_nums = 0
