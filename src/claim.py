@@ -11,9 +11,11 @@ import sys
 from dataclasses import dataclass, field
 from typing import List
 
-import hcaptcha_challenger as solver
+import importlib_metadata
+from hcaptcha_challenger import install
+from hcaptcha_challenger.agents import Malenia
 from loguru import logger
-from playwright.async_api import BrowserContext, async_playwright, TimeoutError
+from playwright.async_api import BrowserContext, async_playwright
 
 from epic_games import (
     EpicPlayer,
@@ -23,7 +25,6 @@ from epic_games import (
     get_promotions,
     get_order_history,
 )
-import importlib_metadata
 
 self_supervised = True
 
@@ -118,19 +119,9 @@ class ISurrender:
                 single_promotions.append(p)
 
         if single_promotions:
-            for _ in range(3):
-                try:
-                    if await epic.claim_weekly_games(page, single_promotions):
-                        break
-                except TimeoutError:
-                    continue
+            await epic.claim_weekly_games(page, single_promotions)
         if bundle_promotions:
-            for _ in range(3):
-                try:
-                    if await epic.claim_bundle_games(page, bundle_promotions):
-                        break
-                except TimeoutError:
-                    continue
+            await epic.claim_bundle_games(page, bundle_promotions)
 
     @logger.catch
     async def stash(self):
@@ -139,11 +130,10 @@ class ISurrender:
 
         logger.info(
             "run",
-            image="20231105",
+            image="20231121",
             version=importlib_metadata.version("hcaptcha-challenger"),
             role="EpicPlayer",
             headless=self.headless,
-            self_supervised=self_supervised,
         )
 
         async with async_playwright() as p:
@@ -155,8 +145,9 @@ class ISurrender:
                 locale=self.locale,
                 args=["--hide-crash-restore-bubble"],
             )
+            await Malenia.apply_stealth(context)
             if not await self.prelude_with_context(context):
-                solver.install(upgrade=True, clip=self_supervised)
+                install(upgrade=True, clip=True)
                 await self.claim_epic_games(context)
             await context.close()
 
