@@ -15,6 +15,7 @@ from typing import List, Dict, Literal
 import httpx
 from loguru import logger
 from playwright.async_api import BrowserContext, expect, TimeoutError, Page, FrameLocator, Locator
+from tenacity import *
 
 from epic_games.player import EpicPlayer
 from utils import from_dict_to_model, AgentG
@@ -87,6 +88,12 @@ class CommonHandler:
                 return True
 
     @staticmethod
+    @retry(
+        retry=retry_if_exception_type(TimeoutError),
+        wait=wait_fixed(0.5),
+        stop=stop_after_attempt(15),
+        reraise=True,
+    )
     async def insert_challenge(
         solver: AgentG,
         page: Page,
@@ -95,18 +102,19 @@ class CommonHandler:
         recur_url: str,
         is_uk: bool,
     ):
-        for _ in range(15):
-            # {{< if fall in challenge >}}
-            match await solver(window="free", recur_url=recur_url):
-                case solver.status.CHALLENGE_BACKCALL | solver.status.CHALLENGE_RETRY:
-                    await wpc.locator("//a[@class='talon_close_button']").click()
-                    await page.wait_for_timeout(1000)
-                    if is_uk:
-                        await CommonHandler.uk_confirm_order(wpc)
-                    await payment_btn.click(delay=200)
-                case solver.status.CHALLENGE_SUCCESS:
-                    await page.wait_for_url(recur_url)
-                    break
+        response = await solver.execute(window="free")
+        logger.debug("task done", sattus=f"{solver.status.CHALLENGE_SUCCESS}")
+
+        match response:
+            case solver.status.CHALLENGE_BACKCALL | solver.status.CHALLENGE_RETRY:
+                await wpc.locator("//a[@class='talon_close_button']").click()
+                await page.wait_for_timeout(1000)
+                if is_uk:
+                    await CommonHandler.uk_confirm_order(wpc)
+                await payment_btn.click(delay=200)
+            case solver.status.CHALLENGE_SUCCESS:
+                await page.wait_for_url(recur_url)
+                return
 
     @staticmethod
     async def empty_cart(page: Page, wait_rerender: int = 30) -> bool | None:
@@ -272,6 +280,12 @@ class EpicGames:
         logger.success("flush_token", path=self.player.ctx_cookie_path)
         return cookies
 
+    @retry(
+        retry=retry_if_exception_type(TimeoutError),
+        wait=wait_fixed(0.5),
+        stop=(stop_after_delay(360) | stop_after_attempt(3)),
+        reraise=True,
+    )
     async def claim_weekly_games(self, page: Page, promotions: List[Game]):
         in_cart_nums = 0
 
@@ -326,6 +340,12 @@ class EpicGames:
 
         return True
 
+    @retry(
+        retry=retry_if_exception_type(TimeoutError),
+        wait=wait_fixed(0.5),
+        stop=(stop_after_delay(360) | stop_after_attempt(3)),
+        reraise=True,
+    )
     async def claim_bundle_games(self, page: Page, promotions: List[Game]):
         for promotion in promotions:
             logger.info("claim_bundle_games", action="go to store", url=promotion.url)
