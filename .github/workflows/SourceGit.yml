@@ -30,7 +30,7 @@ jobs:
         playwright install-deps firefox
     - name: 启动项目
       continue-on-error: true
-      timeout-minutes: 10
+      timeout-minutes: 30
       run: |
         if [ -d "user_data_dir" ];then cp -rfp user_data_dir epic/; fi
         echo "{}" > epic/src/config.json
