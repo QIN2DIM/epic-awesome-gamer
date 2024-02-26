@@ -1,0 +1,48 @@
+name: Claim EpicGames from SourceGit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "12 22 * * *"
+
+jobs:
+  setup:
+    env:
+      EPIC_EMAIL: ${{ secrets.EPIC_EMAIL }}
+      EPIC_PASSWORD: ${{ secrets.EPIC_PASSWORD }}
+      FAKE_HASH: "Automated deployment @ $(date '+%Y-%m-%d %H:%M:%S') Asia/Shanghai"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: 初始化环境 & 拉取项目
+      run: |
+        sudo timedatectl set-timezone "Asia/Shanghai"
+        git clone https://github.com/QIN2DIM/epic-awesome-gamer.git epic
+        cp epic/requirements.txt .
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        cache: 'pip' # caching pip dependencies
+    - name: 安装依赖
+      run: |
+        pip install -r epic/requirements.txt
+        playwright install firefox
+        playwright install-deps firefox
+    - name: 启动项目
+      continue-on-error: true
+      timeout-minutes: 10
+      run: |
+        if [ -d "user_data_dir" ];then cp -rfp user_data_dir epic/; fi
+        echo "{}" > epic/src/config.json
+        cd epic/src/ && python3 claim.py
+    - name: Setup GIT user
+      uses: fregante/setup-git-user@v1
+    - name: 缓存身份令牌
+      run: |
+        if [ -d "epic/user_data_dir" ];then cp -rfp epic/user_data_dir . ; fi
+        if [ -d "epic/logs" ];then cp -rfp epic/logs . ; fi
+        echo "${{ env.FAKE_HASH }}" > _token
+        rm -rf epic
+        git add .
+        git commit -m "${{ env.FAKE_HASH }}" 
+        git push -f
