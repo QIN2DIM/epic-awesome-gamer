@@ -27,6 +27,7 @@ jobs:
     - name: 安装依赖
       run: |
         pip install -r epic/requirements.txt
+        pip install requests
         playwright install firefox
         playwright install-deps firefox
     - name: 启动项目
