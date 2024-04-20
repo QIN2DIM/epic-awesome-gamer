@@ -389,6 +389,12 @@ class EpicGames:
             return True
 
 
+@retry(
+    retry=retry_if_exception_type(httpx.RequestError),
+    wait=wait_random_exponential(),
+    stop=(stop_after_delay(30) | stop_after_attempt(3)),
+    reraise=True,
+)
 def get_promotions() -> List[Game]:
     """
     获取周免游戏数据
@@ -407,8 +413,15 @@ def get_promotions() -> List[Game]:
 
     _promotions: List[Game] = []
 
-    params = {"local": "zh-CN"}
-    resp = httpx.get(URL_PROMOTIONS, params=params)
+    headers = {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+        " Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203"
+    }
+    params = {"local": "en-US"}
+
+    client = httpx.Client(params=params, headers=headers, http2=True)
+    resp = client.get(URL_PROMOTIONS)
+
     try:
         data = resp.json()
     except JSONDecodeError as err:
@@ -441,16 +454,24 @@ def get_order_history(
 ) -> List[CompletedOrder]:
     """获取最近的订单纪录"""
 
+    @retry(
+        retry=retry_if_exception_type(httpx.RequestError),
+        wait=wait_random_exponential(),
+        stop=(stop_after_delay(30) | stop_after_attempt(3)),
+        reraise=True,
+    )
     def request_history() -> str | None:
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-            " Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203"
-        }
-        params = {"locale": "zh-CN", "page": page or "0", "latCreateAt": last_create_at or ""}
-        resp = httpx.get(URL_ORDER_HISTORY, headers=headers, cookies=cookies, params=params)
+        resp = client.get(URL_ORDER_HISTORY)
         if not resp.is_success:
             raise httpx.RequestError("Failed to get order history, cookie may have expired")
         return resp.text
+
+    headers = {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+        " Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203"
+    }
+    params = {"locale": "zh-CN", "page": page or "0", "latCreateAt": last_create_at or ""}
+    client = httpx.Client(headers=headers, cookies=cookies, params=params, http2=True)
 
     completed_orders: List[CompletedOrder] = []
 

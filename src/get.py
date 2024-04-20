@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Time       : 2023/8/16 5:14
+# Time       : 2023/11/21 21:23
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
 # Description:
@@ -15,8 +15,10 @@ import importlib_metadata
 from hcaptcha_challenger import install
 from hcaptcha_challenger.agents import Malenia
 from loguru import logger
-from playwright.async_api import BrowserContext, async_playwright
+from playwright.async_api import BrowserContext, async_playwright, Response, Page
+from tenacity import *
 
+from middleware.epic_search_store_query import SearchStoreQuery
 from epic_games import (
     EpicPlayer,
     EpicGames,
@@ -25,12 +27,13 @@ from epic_games import (
     get_promotions,
     get_order_history,
 )
+import urllib.parse
 
 self_supervised = True
 
 
 @dataclass
-class ISurrender:
+class RuYuan:
     player: EpicPlayer
 
     promotions: List[Game] = field(default_factory=list)
@@ -42,10 +45,35 @@ class ISurrender:
     _namespaces = None
     _pros = None
 
+    task_queue: asyncio.Queue = None
+    task = None
+
     def __post_init__(self):
         self._orders: List[CompletedOrder] = []
         self._namespaces: List[str] = []
         self._pros: List[Game] = []
+
+        self.task_queue = asyncio.Queue(1)
+
+    async def handler(self, response: Response):
+        if response.url.startswith("https://store.epicgames.com/graphql"):
+            try:
+                data = await response.json()
+                print(data)
+                self.task_queue.put_nowait(data)
+            except asyncio.QueueFull as err:
+                logger.warning("ignore task", err=err)
+            except Exception as err:
+                logger.exception(err)
+
+    @retry(
+        retry=retry_if_exception_type(asyncio.QueueEmpty),
+        wait=wait_fixed(0.5),
+        stop=(stop_after_delay(30) | stop_after_attempt(60)),
+        reraise=True,
+    )
+    async def _reset_state(self):
+        self.task = self.task_queue.get_nowait()
 
     @classmethod
     def from_epic(cls):
@@ -79,7 +107,11 @@ class ISurrender:
         cookies = self.player.ctx_cookies.reload(self.player.ctx_cookie_path)
         self.player.cookies = cookies
 
-        self.create_tasks()
+        page.on("response", self.handler)
+        ssq = SearchStoreQuery()
+        full_url = ssq.query_all_promotions()
+        await page.goto(full_url)
+        await self._reset_state()
 
         if not self.promotions:
             logger.success(
@@ -129,7 +161,7 @@ class ISurrender:
             self.headless = True
 
         logger.info(
-            "claim",
+            "get",
             image="20231121",
             version=importlib_metadata.version("hcaptcha-challenger"),
             role="EpicPlayer",
@@ -147,15 +179,20 @@ class ISurrender:
             )
             await Malenia.apply_stealth(context)
 
-            if not await self.prelude_with_context(context):
-                install(upgrade=True, clip=True)
-                await self.claim_epic_games(context)
+            page = context.pages[0]
+            ssq = SearchStoreQuery()
+            full_url = ssq.query_all_promotions()
+            print(full_url)
+
+            await page.goto(full_url)
+
+            await page.pause()
 
             await context.close()
 
 
 async def run():
-    agent = ISurrender.from_epic()
+    agent = RuYuan.from_epic()
     agent.headless = False
     await agent.stash()
 
