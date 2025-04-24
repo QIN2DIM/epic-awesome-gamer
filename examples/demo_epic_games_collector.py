@@ -1,9 +1,20 @@
 import asyncio
 from pathlib import Path
 
-from playwright.async_api import async_playwright, ViewportSize
+from playwright.async_api import async_playwright, ViewportSize, BrowserContext
 
-from epic_awesome_gamer.collector import startup_epic_awesome_gamer
+from epic_awesome_gamer.collector import EpicAgent
+
+
+async def startup_epic_awesome_gamer(context: BrowserContext):
+    if context.pages:
+        page = context.pages[0]
+    else:
+        page = await context.new_page()
+
+    agent = EpicAgent(page)
+
+    await agent.collect_epic_games()
 
 
 async def main():

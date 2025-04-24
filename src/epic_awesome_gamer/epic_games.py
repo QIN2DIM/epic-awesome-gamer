@@ -158,7 +158,7 @@ class EpicGames:
             agent = AgentV(page=page, agent_config=agent_config)
 
             # {{< SIGN IN PAGE >}}
-            await page.fill("#email", self.settings.EPIC_EMAIL)
+            await page.type("#email", self.settings.EPIC_EMAIL)
             await page.type("#password", self.settings.EPIC_PASSWORD.get_secret_value())
             await page.click("#sign-in")
 
@@ -169,8 +169,8 @@ class EpicGames:
                 cr: CaptchaResponse = agent.cr_list[-1]
                 print(json.dumps(cr.model_dump(by_alias=True), indent=2, ensure_ascii=False))
 
-        logger.success("login", result="Successfully refreshed tokens")
-        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
+        logger.success("Login")
+        await page.goto(URL_CART, wait_until="domcontentloaded")
 
         return True
 

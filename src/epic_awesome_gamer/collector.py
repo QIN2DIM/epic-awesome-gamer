@@ -29,6 +29,7 @@ class EpicAgent:
 
     async def _check_orders(self):
         # 获取玩家历史交易订单
+        # 运行该操作之前必须确保账号信息有效
         if not self._orders:
             storage_state = await self.page.context.storage_state()
             _cookies = {ck["name"]: ck["value"] for ck in storage_state["cookies"]}
@@ -44,24 +45,29 @@ class EpicAgent:
     async def _should_ignore_task(self) -> bool:
         self._ctx_cookies_is_available = False
 
+        # 判断浏览器是否已缓存账号令牌信息
         await self.page.goto(URL_CLAIM, wait_until="domcontentloaded")
 
+        # == 令牌过期 == #
         status = await self.page.locator("//egs-navigation").get_attribute("isloggedin")
-
         if status == "false":
             logger.debug("The token has expired and needs to be logged in again")
             return False
 
+        # == 令牌有效 == #
+
         # 浏览器的身份信息仍然有效
         self._ctx_cookies_is_available = True
 
+        # 加载正交的优惠商品数据
         await self._check_orders()
 
-        # 促销列表为空，说明免费游戏都已收集
+        # 促销列表为空，说明免费游戏都已收集，任务结束
         if not self._promotions:
             logger.success("✅ All free games are in my library")
             return True
 
+        # 账号信息有效，但还存在没有领完的游戏
         return False
 
     async def collect_epic_games(self):
@@ -71,18 +77,18 @@ class EpicAgent:
         epic_settings = EpicSettings()
         epic = EpicGames(self.page, settings=epic_settings)
 
-        authorize_page = await self.page.context.new_page()
-        worker_page = await self.page.context.new_page()
-
         _cookies = None
+
+        # 刷新浏览器身份信息
         if not self._ctx_cookies_is_available:
             logger.info("Try to flush cookie")
-            if await epic.authorize(authorize_page):
+            if await epic.authorize(self.page):
                 _cookies = await epic.flush_token(self.page.context, path="ctx_cookies.json")
             else:
                 logger.error("❌ Failed to flush token")
                 return
 
+        # 加载正交的优惠商品数据
         if not self._promotions:
             await self._check_orders()
 
@@ -99,27 +105,18 @@ class EpicAgent:
             else:
                 single_promotions.append(p)
 
-        # 优惠游戏
+        worker_page = await self.page.context.new_page()
+
+        # 收集优惠游戏
         if single_promotions:
             try:
                 await epic.collect_weekly_games(worker_page, single_promotions)
             except Exception as e:
                 logger.exception(e)
 
-        # 游戏捆绑内容
+        # 收集游戏捆绑内容
         if bundle_promotions:
             try:
                 await epic.collect_bundle_games(worker_page, bundle_promotions)
             except Exception as e:
                 logger.exception(e)
-
-
-async def startup_epic_awesome_gamer(context: BrowserContext):
-    if context.pages:
-        page = context.pages[0]
-    else:
-        page = await context.new_page()
-
-    agent = EpicAgent(page)
-
-    await agent.collect_epic_games()

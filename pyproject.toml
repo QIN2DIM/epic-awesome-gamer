@@ -2,8 +2,9 @@
 name = "epic-awesome-gamer"
 version = "0.4.0"
 dependencies = [
-    "hcaptcha-challenger>=0.15.3",
+    "hcaptcha-challenger>=0.16.0",
     "pydantic-settings>=2.8.1",
+    "undetected-playwright-patch>=1.40.0.post1700587210000",
 ]
 requires-python = ">=3.12"
 authors = [
