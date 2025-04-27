@@ -3,9 +3,9 @@ name: ci
 on:
   workflow_dispatch:
   push:
-    branches:
-#      - update-challenge
-      - main
+    # branches:
+      # - update-challenge
+      # - main
     paths-ignore:
       - ".github/**"
       - "README.md"

@@ -83,7 +83,6 @@ class EpicAgent:
         # == 令牌过期 == #
         status = await self.page.locator("//egs-navigation").get_attribute("isloggedin")
         if status == "false":
-            logger.debug("The token has expired and needs to be logged in again")
             return False
 
         # == 令牌有效 == #
