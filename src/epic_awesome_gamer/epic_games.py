@@ -245,7 +245,7 @@ class EpicGames:
         # --> Make sure promotion is not in the library before executing
         urls = [p.url for p in promotions]
         if not await self.add_promotion_to_cart(self.page, urls):
-            logger.success("✅ All free games are in my library")
+            logger.success("✅ All week-free games are already in the library")
             return
 
         await self._purchase_free_game()
