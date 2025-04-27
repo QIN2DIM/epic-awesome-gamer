@@ -134,3 +134,4 @@ database/
 
 tests/.env.example
 tmp/
+docker/volumes

@@ -28,9 +28,6 @@
 			"configureZshAsDefaultShell": "true",
 			"installOhMyZsh": "false",
 			"installOhMyZshConfig": "false",
-			"username": "vscode",
-			"userUid": "1000",
-			"userGid": "1000",
 			"upgradePackages": "true"
 		},
 
