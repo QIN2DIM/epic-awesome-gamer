@@ -200,7 +200,7 @@ class EpicGames:
             await page.reload()
             return await self._authorize(page, retry_times=retry_times - 1)
 
-        await page.wait_for_url("**/personal/**")
+        await page.wait_for_url(point_url)
         return True
 
     async def _purchase_free_game(self):
