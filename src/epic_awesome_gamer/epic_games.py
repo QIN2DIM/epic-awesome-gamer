@@ -82,6 +82,57 @@ class EpicGames:
                 await accept.click()
                 return True
 
+    @staticmethod
+    async def add_promotion_to_cart(page: Page, urls: List[str]) -> bool:
+        has_pending_free_promotion = False
+
+        # --> Add promotions to Cart
+        for url in urls:
+            await page.goto(url, wait_until="load")
+
+            # <-- Handle pre-page
+            # with suppress(TimeoutError):
+            #     await page.click("//button//span[text()='Continue']", timeout=3000)
+
+            # 检查游戏是否已在库
+            btn_list = page.locator("//aside//button")
+            aside_btn_count = await btn_list.count()
+            texts = ""
+            for i in range(aside_btn_count):
+                btn = btn_list.nth(i)
+                btn_text_content = await btn.text_content()
+                texts += btn_text_content
+
+            if "In Library" in texts:
+                logger.success(f"✅ Already in the library - {url=}")
+                continue
+
+            # 检查是否为免费游戏
+            purchase_btn = page.locator("//aside//button[@data-testid='purchase-cta-button']")
+            purchase_status = await purchase_btn.text_content()
+            if "Buy Now" in purchase_status or "Get" not in purchase_status:
+                logger.debug(f"❌ Not available for purchase - {url=}")
+                continue
+
+            # 将免费游戏添加至购物车
+            add_to_cart_btn = page.locator("//aside//button[@data-testid='add-to-cart-cta-button']")
+            try:
+                text = await add_to_cart_btn.text_content()
+                if text == "View In Cart":
+                    logger.debug(f"🙌 Already in the shopping cart - {url=}")
+                    has_pending_free_promotion = True
+                elif text == "Add To Cart":
+                    await add_to_cart_btn.click()
+                    logger.debug(f"🙌 Add to the shopping cart - {url=}")
+                    await expect(add_to_cart_btn).to_have_text("View In Cart")
+                    has_pending_free_promotion = True
+
+            except Exception as err:
+                logger.warning(f"Failed to add promotion to cart - {err}")
+                continue
+
+        return has_pending_free_promotion
+
     async def _empty_cart(self, page: Page, wait_rerender: int = 30) -> bool | None:
         """
         URL_CART = "https://store.epicgames.com/en-US/cart"
@@ -152,53 +203,6 @@ class EpicGames:
         await page.wait_for_url("**/personal/**")
         return True
 
-    @staticmethod
-    async def _add_promotion_to_cart(page: Page, promotions: List[PromotionGame]) -> int:
-        in_cart_nums = 0
-
-        # --> Add promotions to Cart
-        for promotion in promotions:
-            await page.goto(promotion.url, wait_until="load")
-
-            # <-- Handle pre-page
-            # with suppress(TimeoutError):
-            #     await page.click("//button//span[text()='Continue']", timeout=3000)
-
-            # --> Make sure promotion is not in the library before executing
-            btn_list = page.locator("//aside//button")
-            aside_btn_count = await btn_list.count()
-            texts = ""
-            for i in range(aside_btn_count):
-                btn = btn_list.nth(i)
-                btn_text_content = await btn.text_content()
-                texts += btn_text_content
-
-            if "In Library" in texts:
-                logger.success(f"✅ Already in the library 《{promotion.title}》 {promotion.url}")
-                continue
-
-            cta_btn = page.locator("//aside//button[@data-testid='add-to-cart-cta-button']")
-            try:
-                text = await cta_btn.text_content()
-                if text == "View In Cart":
-                    logger.debug(
-                        f"🙌 Already in the shopping cart 《{promotion.title}》 {promotion.url}"
-                    )
-                    in_cart_nums += 1
-                elif text == "Add To Cart":
-                    await cta_btn.click()
-                    logger.debug(
-                        f"🙌 Add to the shopping cart 《{promotion.title}》 {promotion.url}"
-                    )
-                    await expect(cta_btn).to_have_text("View In Cart")
-                    in_cart_nums += 1
-
-            except Exception as err:
-                logger.warning(f"Failed to add promotion to cart - {err}")
-                continue
-
-        return in_cart_nums
-
     async def _purchase_free_game(self):
         # == Cart Page == #
         await self.page.goto(URL_CART, wait_until="domcontentloaded")
@@ -243,7 +247,9 @@ class EpicGames:
         reraise=True,
     )
     async def collect_weekly_games(self, promotions: List[PromotionGame]):
-        if not await self._add_promotion_to_cart(self.page, promotions):
+        # --> Make sure promotion is not in the library before executing
+        urls = [p.url for p in promotions]
+        if not await self.add_promotion_to_cart(self.page, urls):
             logger.success("✅ All free games are in my library")
             return
 

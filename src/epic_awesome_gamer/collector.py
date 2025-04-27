@@ -129,9 +129,10 @@ class EpicAgent:
 
         # 收集游戏捆绑内容
         if bundle_promotions:
-            try:
-                await self.epic_games.collect_games_bundle(bundle_promotions)
-            except Exception as e:
-                logger.exception(e)
+            logger.debug("Skip the game bundled content")
+            # try:
+            #     await self.epic_games.collect_games_bundle(bundle_promotions)
+            # except Exception as e:
+            #     logger.exception(e)
 
         logger.debug("✅ Workflow ends")
