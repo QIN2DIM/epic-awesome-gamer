@@ -4,6 +4,6 @@
 # GitHub     : https://github.com/QIN2DIM
 # Description:
 from .epic_games import EpicGames, EpicSettings
-from .helper.get_orders import get_promotions, get_order_history
+from .helper.get_promotions import get_promotions
 
-__all__ = ['get_promotions', 'get_order_history', 'EpicGames', 'EpicSettings']
+__all__ = ['get_promotions', 'EpicGames', 'EpicSettings']

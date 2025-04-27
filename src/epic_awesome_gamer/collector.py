@@ -3,40 +3,62 @@
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
 # Description:
-import asyncio
-from pathlib import Path
+import json
 from typing import List
 
 from loguru import logger
-from playwright.async_api import BrowserContext, async_playwright, ViewportSize, Page
+from playwright.async_api import Page
 
-from epic_awesome_gamer import get_order_history, get_promotions, EpicGames, EpicSettings
+from epic_awesome_gamer import get_promotions, EpicGames, EpicSettings
 from epic_awesome_gamer.epic_games import URL_CLAIM
-from epic_awesome_gamer.types import PromotionGame, CompletedOrder
+from epic_awesome_gamer.types import PromotionGame, OrderItem, Order
 
 
 class EpicAgent:
 
-    def __init__(self, page: Page):
+    def __init__(self, page: Page, epic_settings: EpicSettings | None = None):
         self.page = page
+
+        self.epic_settings = epic_settings or EpicSettings()
+        self.epic_games = EpicGames(self.page, settings=self.epic_settings)
 
         self._promotions: List[PromotionGame] = []
         self._ctx_cookies_is_available: bool = False
-        self._orders: List[CompletedOrder] = []
+        self._orders: List[OrderItem] = []
         self._namespaces: List[str] = []
 
         self._cookies = None
 
+    async def _sync_order_history(self):
+        """获取最近的订单纪录"""
+        if self._orders:
+            return
+
+        completed_orders: List[OrderItem] = []
+
+        try:
+            await self.page.goto("https://www.epicgames.com/account/v2/payment/ajaxGetOrderHistory")
+            text_content = await self.page.text_content("//pre")
+            data = json.loads(text_content)
+            for _order in data["orders"]:
+                order = Order(**_order)
+                if order.orderType != "PURCHASE":
+                    continue
+                for item in order.items:
+                    if not item.namespace or len(item.namespace) != 32:
+                        continue
+                    completed_orders.append(item)
+        except Exception as err:
+            logger.warning(err)
+
+        self._orders = completed_orders
+
     async def _check_orders(self):
         # 获取玩家历史交易订单
         # 运行该操作之前必须确保账号信息有效
-        if not self._orders:
-            storage_state = await self.page.context.storage_state()
-            _cookies = {ck["name"]: ck["value"] for ck in storage_state["cookies"]}
-            self._orders = get_order_history(_cookies)
+        await self._sync_order_history()
 
-        if not self._namespaces:
-            self._namespaces = [order.namespace for order in self._orders]
+        self._namespaces = self._namespaces or [order.namespace for order in self._orders]
 
         # 获取本周促销数据
         # 正交数据，得到还未收集的优惠商品
@@ -64,7 +86,7 @@ class EpicAgent:
 
         # 促销列表为空，说明免费游戏都已收集，任务结束
         if not self._promotions:
-            logger.success("✅ All free games are in my library")
+            logger.success("✅ All week-free games are already in the library")
             return True
 
         # 账号信息有效，但还存在没有领完的游戏
@@ -74,17 +96,10 @@ class EpicAgent:
         if await self._should_ignore_task():
             return
 
-        epic_settings = EpicSettings()
-        epic = EpicGames(self.page, settings=epic_settings)
-
-        _cookies = None
-
         # 刷新浏览器身份信息
         if not self._ctx_cookies_is_available:
             logger.info("Try to flush cookie")
-            if await epic.authorize(self.page):
-                _cookies = await epic.flush_token(self.page.context, path="ctx_cookies.json")
-            else:
+            if not await self.epic_games.authorize(self.page):
                 logger.error("❌ Failed to flush token")
                 return
 
@@ -93,30 +108,30 @@ class EpicAgent:
             await self._check_orders()
 
         if not self._promotions:
-            logger.success("✅ All free games are in my library")
+            logger.success("✅ All week-free games are already in the library")
             return
 
         single_promotions = []
         bundle_promotions = []
         for p in self._promotions:
-            logger.debug(f"Add Productions - title={p.title} url={p.url}")
+            logger.debug(f"✅ Discover promotion《{p.title}》 url={p.url}")
             if "bundles" in p.url:
                 bundle_promotions.append(p)
             else:
                 single_promotions.append(p)
 
-        worker_page = await self.page.context.new_page()
-
         # 收集优惠游戏
         if single_promotions:
             try:
-                await epic.collect_weekly_games(worker_page, single_promotions)
+                await self.epic_games.collect_weekly_games(single_promotions)
             except Exception as e:
                 logger.exception(e)
 
         # 收集游戏捆绑内容
         if bundle_promotions:
             try:
-                await epic.collect_bundle_games(worker_page, bundle_promotions)
+                await self.epic_games.collect_games_bundle(bundle_promotions)
             except Exception as e:
                 logger.exception(e)
+
+        logger.debug("✅ Workflow ends")

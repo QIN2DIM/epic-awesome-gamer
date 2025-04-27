@@ -6,32 +6,22 @@ import inspect
 import re
 import textwrap
 from pathlib import Path
-from typing import Type, Optional, get_type_hints, Literal, get_origin, get_args
+from typing import Type, Optional, get_type_hints, Literal, get_origin, get_args, List, Tuple
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings
 
 
-def generate_env_example(
-    config_class: Type[BaseSettings], output_dir: Optional[Path] = None
-) -> Path:
+def generate_env_example(config_class: Type[BaseSettings]) -> List[str]:
     """
     Generate a .env.example file based on a pydantic BaseSettings class.
 
     Args:
         config_class: A pydantic BaseSettings class (like AgentConfig)
-        output_dir: Optional directory to save the .env.example file (default: current directory)
 
     Returns:
         Path to the generated .env.example file
     """
-    if output_dir is None:
-        output_dir = Path.cwd()
-    else:
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-    output_file = output_dir / ".env.example"
 
     # Get model schema to extract field metadata
     model_schema = config_class.model_json_schema()
@@ -139,9 +129,27 @@ def generate_env_example(
     if env_lines and env_lines[-1] == "":
         env_lines.pop()
 
-    # Write to file
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(env_lines))
+    env_lines[-1] = f"{env_lines[-1]}\n"
+    return env_lines
 
-    print(f"Generated .env.example file at {output_file}")
-    return output_file
+
+def generate_env_example_merged(
+    config_classes: List[Type[BaseSettings]], output_dir: Optional[Path] = None
+) -> Tuple[str, Path]:
+    env_lines_merged = []
+
+    for c in config_classes:
+        env_lines = generate_env_example(c)
+        env_lines_merged.extend(env_lines)
+
+    if output_dir:
+        output_file = output_dir / ".env.example"
+    else:
+        output_file = Path(".env.example")
+
+    env_text = "\n".join(env_lines_merged)
+
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_file.write_text(env_text, encoding='utf8')
+
+    return env_text, output_file

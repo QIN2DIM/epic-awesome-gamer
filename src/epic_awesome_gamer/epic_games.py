@@ -3,16 +3,14 @@
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
 # Description:
-import json
 import os
 from contextlib import suppress
 from pathlib import Path
-from typing import List, Dict
+from typing import List
 
 from hcaptcha_challenger.agent import AgentConfig, AgentV
-from hcaptcha_challenger.models import RequestType, CaptchaResponse
 from loguru import logger
-from playwright.async_api import BrowserContext, expect, TimeoutError, Page, FrameLocator, Locator
+from playwright.async_api import expect, TimeoutError, Page, FrameLocator
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from tenacity import *
@@ -40,9 +38,9 @@ class EpicSettings(BaseSettings):
         default_factory=lambda: os.getenv("EPIC_PASSWORD"),
         description=" Epic 游戏密码，需要关闭多步验证",
     )
-    APPRISE_SERVERS: str | None = Field(
-        default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"
-    )
+    # APPRISE_SERVERS: str | None = Field(
+    #     default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"
+    # )
 
 
 class EpicGames:
@@ -50,18 +48,20 @@ class EpicGames:
     def __init__(self, page: Page, settings: EpicSettings):
         self.page = page
         self.settings = settings
+        self.agent_config = AgentConfig(DISABLE_BEZIER_TRAJECTORY=True)
+
         self._promotions: List[PromotionGame] = []
 
     @staticmethod
-    async def _any_license(page: Page):
+    async def _agree_license(page: Page):
         with suppress(TimeoutError):
-            await page.click("//label[@for='agree']", timeout=2000)
+            await page.click("//label[@for='agree']", timeout=4000)
             accept = page.locator("//button//span[text()='Accept']")
             if await accept.is_enabled():
                 await accept.click()
 
     @staticmethod
-    async def _move_to_purchase_container(page: Page):
+    async def _active_purchase_container(page: Page):
         wpc = page.frame_locator("//iframe[@class='']")
         payment_btn = wpc.locator("//div[@class='payment-order-confirm']")
         with suppress(Exception):
@@ -82,30 +82,6 @@ class EpicGames:
                 await accept.click()
                 return True
 
-    @staticmethod
-    @retry(
-        retry=retry_if_exception_type(TimeoutError),
-        wait=wait_fixed(0.5),
-        stop=stop_after_attempt(15),
-        reraise=True,
-    )
-    async def _insert_challenge(
-        self, page: Page, wpc: FrameLocator, payment_btn: Locator, recur_url: str, is_uk: bool
-    ):
-        response = await solver.execute(window="free")
-        logger.debug("task done", sattus=f"{solver.status.CHALLENGE_SUCCESS}")
-
-        match response:
-            case solver.status.CHALLENGE_BACKCALL | solver.status.CHALLENGE_RETRY:
-                await wpc.locator("//a[@class='talon_close_button']").click()
-                await page.wait_for_timeout(1000)
-                if is_uk:
-                    await self._uk_confirm_order(wpc)
-                await payment_btn.click(delay=200)
-            case solver.status.CHALLENGE_SUCCESS:
-                await page.wait_for_url(recur_url)
-                return
-
     async def _empty_cart(self, page: Page, wait_rerender: int = 30) -> bool | None:
         """
         URL_CART = "https://store.epicgames.com/en-US/cart"
@@ -125,7 +101,7 @@ class EpicGames:
             # Check all items in the shopping cart
             cards = await page.query_selector_all("//div[@data-testid='offer-card-layout-wrapper']")
 
-            # Move paid games to wishlist games
+            # Move paid games to the wishlist
             for card in cards:
                 is_free = await card.query_selector("//span[text()='Free']")
                 if not is_free:
@@ -148,104 +124,117 @@ class EpicGames:
             logger.warning("Failed to empty shopping cart", err=err)
             return False
 
-    async def authorize(self, page: Page):
-        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
-        if "false" == await page.locator("//egs-navigation").get_attribute("isloggedin"):
-            await page.goto(URL_LOGIN, wait_until="domcontentloaded")
-            logger.debug(f"Login with Email - {page.url}")
+    async def _authorize(self, page: Page, retry_times: int = 3):
+        if not retry_times:
+            return
 
-            agent_config = AgentConfig(ignore_request_types=[RequestType.IMAGE_DRAG_DROP])
-            agent = AgentV(page=page, agent_config=agent_config)
+        point_url = "https://www.epicgames.com/account/personal?lang=en-US&productName=egs&sessionInvalidated=true"
+        await page.goto(point_url, wait_until="networkidle")
+        logger.debug(f"Login with Email - {page.url}")
 
-            # {{< SIGN IN PAGE >}}
-            await page.type("#email", self.settings.EPIC_EMAIL)
-            await page.type("#password", self.settings.EPIC_PASSWORD.get_secret_value())
+        agent = AgentV(page=page, agent_config=self.agent_config)
+
+        # {{< SIGN IN PAGE >}}
+        await page.type("#email", self.settings.EPIC_EMAIL, delay=30)
+        await page.type("#password", self.settings.EPIC_PASSWORD.get_secret_value(), delay=30)
+
+        try:
+            # Active hCaptcha checkbox
             await page.click("#sign-in")
-
-            # await page.click("//a[@class='talon_close_button']")
+            # Active hCaptcha challenge
             await agent.wait_for_challenge()
+            # Wait for the page to redirect
+        except Exception as err:
+            logger.warning(f"Failed to solve captcha - {err}")
+            await page.reload()
+            return await self._authorize(page, retry_times=retry_times - 1)
 
-            if agent.cr_list:
-                cr: CaptchaResponse = agent.cr_list[-1]
-                print(json.dumps(cr.model_dump(by_alias=True), indent=2, ensure_ascii=False))
-
-        logger.success("Login")
-        await page.goto(URL_CART, wait_until="domcontentloaded")
-
+        await page.wait_for_url("**/personal/**")
         return True
 
     @staticmethod
-    async def flush_token(
-        context: BrowserContext, *, path: Path | str = None
-    ) -> Dict[str, str] | None:
-        page = context.pages[0]
-        await page.goto("https://www.epicgames.com/account/personal", wait_until="networkidle")
-        await page.goto(
-            "https://store.epicgames.com/zh-CN/p/orwell-keeping-an-eye-on-you",
-            wait_until="networkidle",
-        )
-        storage_state = await context.storage_state(path=path)
-        return {ck["name"]: ck["value"] for ck in storage_state["cookies"]}
-
-    @retry(
-        retry=retry_if_exception_type(TimeoutError),
-        wait=wait_fixed(0.5),
-        stop=(stop_after_delay(360) | stop_after_attempt(3)),
-        reraise=True,
-    )
-    async def collect_weekly_games(self, page: Page, promotions: List[PromotionGame]):
+    async def _add_promotion_to_cart(page: Page, promotions: List[PromotionGame]) -> int:
         in_cart_nums = 0
 
         # --> Add promotions to Cart
         for promotion in promotions:
-            logger.info("claim_weekly_games", action="go to store", url=promotion.url)
             await page.goto(promotion.url, wait_until="load")
 
             # <-- Handle pre-page
-            with suppress(TimeoutError):
-                await page.click("//button//span[text()='Continue']", timeout=3000)
+            # with suppress(TimeoutError):
+            #     await page.click("//button//span[text()='Continue']", timeout=3000)
 
             # --> Make sure promotion is not in the library before executing
+            btn_list = page.locator("//aside//button")
+            aside_btn_count = await btn_list.count()
+            texts = ""
+            for i in range(aside_btn_count):
+                btn = btn_list.nth(i)
+                btn_text_content = await btn.text_content()
+                texts += btn_text_content
+
+            if "In Library" in texts:
+                logger.success(f"✅ Already in the library 《{promotion.title}》 {promotion.url}")
+                continue
+
             cta_btn = page.locator("//aside//button[@data-testid='add-to-cart-cta-button']")
-            with suppress(TimeoutError):
-                text = await cta_btn.text_content(timeout=10000)
+            try:
+                text = await cta_btn.text_content()
                 if text == "View In Cart":
+                    logger.debug(
+                        f"🙌 Already in the shopping cart 《{promotion.title}》 {promotion.url}"
+                    )
                     in_cart_nums += 1
-                    continue
-                if text == "Add To Cart":
+                elif text == "Add To Cart":
                     await cta_btn.click()
+                    logger.debug(
+                        f"🙌 Add to the shopping cart 《{promotion.title}》 {promotion.url}"
+                    )
                     await expect(cta_btn).to_have_text("View In Cart")
                     in_cart_nums += 1
 
-        if in_cart_nums == 0:
-            logger.success("Pass claim task", reason="Free games not added to shopping cart")
-            return
+            except Exception as err:
+                logger.warning(f"Failed to add promotion to cart - {err}")
+                continue
 
-        # --> Goto cart page
-        await page.goto(URL_CART, wait_until="domcontentloaded")
-        await self._empty_cart(page)
-        await page.click("//button//span[text()='Check Out']")
+        return in_cart_nums
+
+    async def _purchase_free_game(self):
+        # == Cart Page == #
+        await self.page.goto(URL_CART, wait_until="domcontentloaded")
+
+        logger.debug("Move ALL paid games from the shopping cart out")
+        await self._empty_cart(self.page)
+
+        # {{< Insert hCaptcha Challenger >}}
+        agent = AgentV(page=self.page, agent_config=self.agent_config)
+
+        # --> Check out cart
+        await self.page.click("//button//span[text()='Check Out']")
 
         # <-- Handle Any LICENSE
-        await self._any_license(page)
+        await self._agree_license(self.page)
 
-        # --> Move to webPurchaseContainer iframe
-        logger.info("claim_weekly_games", action="move to webPurchaseContainer iframe")
-        wpc, payment_btn = await self._move_to_purchase_container(page)
-        logger.info("claim_weekly_games", action="click payment button")
+        try:
+            # --> Move to webPurchaseContainer iframe
+            logger.debug("Move to webPurchaseContainer iframe")
+            wpc, payment_btn = await self._active_purchase_container(self.page)
+            logger.debug("Click payment button")
+            # <-- Handle UK confirm-order
+            await self._uk_confirm_order(wpc)
 
-        # <-- Handle UK confirm-order
-        is_uk = await self._uk_confirm_order(wpc)
+            # {{< Active >}}
+            await agent.wait_for_challenge()
+        except Exception as err:
+            logger.warning(f"Failed to solve captcha - {err}")
+            await self.page.reload()
+            return await self._purchase_free_game()
 
-        # <-- Insert challenge
-        recur_url = URL_CART_SUCCESS
-        await self._insert_challenge(self._solver, page, wpc, payment_btn, recur_url, is_uk)
-
-        # --> Wait for success
-        await page.wait_for_url(recur_url)
-        logger.success("claim_weekly_games", action="success", url=page.url)
-
-        return True
+    async def authorize(self, page: Page):
+        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
+        if "true" == await page.locator("//egs-navigation").get_attribute("isloggedin"):
+            return True
+        return await self._authorize(page)
 
     @retry(
         retry=retry_if_exception_type(TimeoutError),
@@ -253,31 +242,47 @@ class EpicGames:
         stop=(stop_after_delay(360) | stop_after_attempt(3)),
         reraise=True,
     )
-    async def collect_bundle_games(self, page: Page, promotions: List[PromotionGame]):
+    async def collect_weekly_games(self, promotions: List[PromotionGame]):
+        if not await self._add_promotion_to_cart(self.page, promotions):
+            logger.success("✅ All free games are in my library")
+            return
+
+        await self._purchase_free_game()
+
+        await self.page.wait_for_url(URL_CART_SUCCESS)
+        logger.success("🎉 Successfully collected all weekly games")
+
+    @retry(
+        retry=retry_if_exception_type(TimeoutError),
+        wait=wait_fixed(0.5),
+        stop=(stop_after_delay(360) | stop_after_attempt(3)),
+        reraise=True,
+    )
+    async def collect_games_bundle(self, promotions: List[PromotionGame]):
         for promotion in promotions:
             logger.info("claim_bundle_games", action="go to store", url=promotion.url)
-            await page.goto(promotion.url, wait_until="load")
+            await self.page.goto(promotion.url, wait_until="load")
 
             # <-- Handle pre-page
             with suppress(TimeoutError):
-                await page.click("//button//span[text()='Continue']", timeout=3000)
+                await self.page.click("//button//span[text()='Continue']", timeout=3000)
 
             # --> Make sure promotion is not in the library before executing
-            purchase_btn = page.locator("//button[@data-testid='purchase-cta-button']").first
+            purchase_btn = self.page.locator("//button[@data-testid='purchase-cta-button']").first
             with suppress(TimeoutError):
                 text = await purchase_btn.text_content(timeout=10000)
                 if text == "Get":
                     await purchase_btn.click()
-                    await page.wait_for_timeout(2000)
+                    await self.page.wait_for_timeout(2000)
                 else:
                     continue
 
             # <-- Handle Any LICENSE
-            await self._any_license(page)
+            await self._agree_license(self.page)
 
             # --> Move to webPurchaseContainer iframe
             logger.info("claim_bundle_games", action="move to webPurchaseContainer iframe")
-            wpc, payment_btn = await self._move_to_purchase_container(page)
+            wpc, payment_btn = await self._active_purchase_container(self.page)
             logger.info("claim_bundle_games", action="click payment button")
 
             # <-- Handle UK confirm-order
@@ -285,10 +290,8 @@ class EpicGames:
 
             # <-- Insert challenge
             recur_url = f"https://store.epicgames.com/en-US/download?ns={promotion.namespace}&id={promotion.id}"
-            await self._insert_challenge(self._solver, page, wpc, payment_btn, recur_url, is_uk)
+            # await self._insert_challenge(self._solver, page, wpc, payment_btn, recur_url, is_uk)
 
             # --> Wait for success
-            await page.wait_for_url(recur_url)
-            logger.success("claim_bundle_games", action="success", url=page.url)
-
-            return True
+            await self.page.wait_for_url(recur_url)
+            logger.success("🎉 Successfully collected all games' bundle")
