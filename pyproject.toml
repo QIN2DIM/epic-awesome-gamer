@@ -9,7 +9,7 @@ requires-python = ">=3.12"
 authors = [
     { name = "QIN2DIM", email = "yaoqinse@gmail.com" }
 ]
-description = "🍷 Gracefully claim weekly free games and monthly content from Epic Store."
+description = "🍷 Gracefully claim weekly free games from Epic Store."
 readme = "README.md"
 license = "GPL-3.0-or-later"
 keywords = ["epic", "epic-awesome-gamer", "epic-games-store"]
