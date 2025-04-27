@@ -1,1 +1,0 @@
-hcaptcha-challenger[playwright]
