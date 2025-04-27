@@ -96,6 +96,9 @@ def collect(
     user_data_dir: Optional[Path] = typer.Option(
         Path("tmp/.cache/user_data"), "--user-data-dir", help="Directory to store browser user data"
     ),
+    all_games: bool = typer.Option(
+        False, "--all-games", help="Collect all free games, but may miss weekly free games"
+    ),
 ):
     """
     Collect free games from Epic Games Store.
@@ -107,6 +110,10 @@ def collect(
 
     from epic_awesome_gamer import EpicSettings
     from epic_awesome_gamer.collector import EpicAgent
+
+    if all_games:
+        typer.echo("🙌 Not implemented yet.")
+        return
 
     async def startup_epic_awesome_gamer(page: Page):
         epic_settings = EpicSettings()
