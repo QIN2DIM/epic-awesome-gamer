@@ -1,26 +1,80 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-	"name": "Python 3",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
+	// For quick reference: https://containers.dev/implementors/json_reference/
+	"name": "Python Docker",
+	"image": "mcr.microsoft.com/playwright:v1.52.0-noble",
+		//"build": {
+	//	"context": "..",
+	//	"dockerfile": "Dockerfile"
+	//},
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+	// 1. Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": []
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	// 2. Use 'mounts' to make a list of local directories available inside the container. More info: https://code.visualstudio.com/remote/advancedcontainers/add-local-file-mount
+	// "mounts": [],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+	// 3. Use 'runArgs' to pass arguments to the container. 
+	// run the container with all GPUs
+	//"runArgs": [
+	//	"--gpus",
+	//	"all"
+	//],
 
-	// Configure tool-specific properties.
+	// 4. Features to add to the Dev Container. More info: https://containers.dev/implementors/features.
+	"features": {
+		// ZSH without OMZ
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"installZsh": "true",
+			"configureZshAsDefaultShell": "true",
+			"installOhMyZsh": "false",
+			"installOhMyZshConfig": "false",
+			"username": "vscode",
+			"userUid": "1000",
+			"userGid": "1000",
+			"upgradePackages": "true"
+		},
+
+		// Python with uv, Ruff, Mypy, MonkeyType and Bandit, installed using pipx
+		"ghcr.io/devcontainers/features/python:1": {
+			"installTools": "true",
+			"toolsToInstall": "uv,ruff,mypy,MonkeyType,bandit"
+		},
+		// git
+		"ghcr.io/devcontainers/features/git:1": {
+			"version": "os-provided",
+			"ppa": "false"
+		},
+		"ghcr.io/devcontainers/features/docker-in-docker": {}
+	},
+
+	// 5. Configure tool-specific properties.
+
   "customizations" : {
     "jetbrains" : {
-      "backend" : "PyCharm"
+      "backend" : "IntelliJ"
     }
   },
 
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	// 6. Set `remoteUser` to `root` to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "root"
+
+	// the following commands are related to container lifecylce. More info: https://containers.dev/implementors/json_reference/#lifecycle-scripts
+	
+	// 7. Use 'initializeCommand' to run commands ON THE HOST before container is created or started.
+	// "initializeCommand": "",
+
+	// 8. Use 'onCreateCommand' to run commands INSIDE THE CONTAINER after it started for the first time.
+	// "onCreateCommand": "",
+	
+	// 9. Use 'updateContentCommand' to run commands if the root filetree have any changes, during container creation.
+	// "updateContentCommand": "",
+
+	// 10. Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+
+	// 11. Use 'postStartCommand' to run a command each time the container starts successfully.
+	// "postStartCommand": "",
+	
+	// 12. Use 'postAttachCommand' to run a command each time a tool attaches to the container successfully. 
+	// "postAttachCommand": "",
 }
