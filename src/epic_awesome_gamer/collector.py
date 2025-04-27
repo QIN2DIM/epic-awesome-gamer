@@ -111,28 +111,24 @@ class EpicAgent:
             logger.success("✅ All week-free games are already in the library")
             return
 
-        single_promotions = []
+        game_promotions = []
         bundle_promotions = []
         for p in self._promotions:
             logger.debug(f"✅ Discover promotion《{p.title}》 url={p.url}")
-            if "bundles" in p.url:
+            if "/bundles/" in p.url:
                 bundle_promotions.append(p)
             else:
-                single_promotions.append(p)
+                game_promotions.append(p)
 
         # 收集优惠游戏
-        if single_promotions:
+        if game_promotions:
             try:
-                await self.epic_games.collect_weekly_games(single_promotions)
+                await self.epic_games.collect_weekly_games(game_promotions)
             except Exception as e:
                 logger.exception(e)
 
         # 收集游戏捆绑内容
         if bundle_promotions:
             logger.debug("Skip the game bundled content")
-            # try:
-            #     await self.epic_games.collect_games_bundle(bundle_promotions)
-            # except Exception as e:
-            #     logger.exception(e)
 
         logger.debug("✅ Workflow ends")

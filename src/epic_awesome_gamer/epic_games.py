@@ -240,12 +240,7 @@ class EpicGames:
             return True
         return await self._authorize(page)
 
-    @retry(
-        retry=retry_if_exception_type(TimeoutError),
-        wait=wait_fixed(0.5),
-        stop=(stop_after_delay(360) | stop_after_attempt(3)),
-        reraise=True,
-    )
+    @retry(retry=retry_if_exception_type(TimeoutError), stop=stop_after_attempt(2), reraise=True)
     async def collect_weekly_games(self, promotions: List[PromotionGame]):
         # --> Make sure promotion is not in the library before executing
         urls = [p.url for p in promotions]
@@ -255,49 +250,8 @@ class EpicGames:
 
         await self._purchase_free_game()
 
-        await self.page.wait_for_url(URL_CART_SUCCESS)
-        logger.success("🎉 Successfully collected all weekly games")
-
-    @retry(
-        retry=retry_if_exception_type(TimeoutError),
-        wait=wait_fixed(0.5),
-        stop=(stop_after_delay(360) | stop_after_attempt(3)),
-        reraise=True,
-    )
-    async def collect_games_bundle(self, promotions: List[PromotionGame]):
-        for promotion in promotions:
-            logger.info("claim_bundle_games", action="go to store", url=promotion.url)
-            await self.page.goto(promotion.url, wait_until="load")
-
-            # <-- Handle pre-page
-            with suppress(TimeoutError):
-                await self.page.click("//button//span[text()='Continue']", timeout=3000)
-
-            # --> Make sure promotion is not in the library before executing
-            purchase_btn = self.page.locator("//button[@data-testid='purchase-cta-button']").first
-            with suppress(TimeoutError):
-                text = await purchase_btn.text_content(timeout=10000)
-                if text == "Get":
-                    await purchase_btn.click()
-                    await self.page.wait_for_timeout(2000)
-                else:
-                    continue
-
-            # <-- Handle Any LICENSE
-            await self._agree_license(self.page)
-
-            # --> Move to webPurchaseContainer iframe
-            logger.info("claim_bundle_games", action="move to webPurchaseContainer iframe")
-            wpc, payment_btn = await self._active_purchase_container(self.page)
-            logger.info("claim_bundle_games", action="click payment button")
-
-            # <-- Handle UK confirm-order
-            is_uk = await self._uk_confirm_order(wpc)
-
-            # <-- Insert challenge
-            recur_url = f"https://store.epicgames.com/en-US/download?ns={promotion.namespace}&id={promotion.id}"
-            # await self._insert_challenge(self._solver, page, wpc, payment_btn, recur_url, is_uk)
-
-            # --> Wait for success
-            await self.page.wait_for_url(recur_url)
-            logger.success("🎉 Successfully collected all games' bundle")
+        try:
+            await self.page.wait_for_url(URL_CART_SUCCESS)
+            logger.success("🎉 Successfully collected all weekly games")
+        except TimeoutError:
+            logger.warning("Failed to collect all weekly games")
