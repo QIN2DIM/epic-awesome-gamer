@@ -1,13 +1,20 @@
-FROM python:3.10 as builder
+FROM mcr.microsoft.com/playwright:v1.52.0-noble as builder
 
-WORKDIR /home/epic/src
+WORKDIR /app
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies
+RUN apt-get update \
+    && apt install -y curl libgl1-mesa-glx libglib2.0-0 wget xvfb tini \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt update -y \
-    && apt install -y wget xvfb tini \
-    && playwright install firefox \
-    && playwright install-deps firefox
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-COPY src ./
+# Set PATH to include uv
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Install Python dependencies using uv
+RUN uv pip install -U epic-awesome-gamer
+
+# Fetch data using camoufox
+RUN uv run camoufox fetch

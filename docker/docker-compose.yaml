@@ -1,0 +1,8 @@
+services:
+  app:
+    image: ech0sec/awesome-epic:llm
+    env_file:
+      - .env
+    volumes:
+      - ./volumes/tmp/:/app/tmp
+    command: uv run epic collect
