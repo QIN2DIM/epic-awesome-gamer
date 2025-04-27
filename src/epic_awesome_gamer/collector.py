@@ -12,15 +12,25 @@ from playwright.async_api import Page
 from epic_awesome_gamer import get_promotions, EpicGames, EpicSettings
 from epic_awesome_gamer.epic_games import URL_CLAIM
 from epic_awesome_gamer.types import PromotionGame, OrderItem, Order
+from hcaptcha_challenger.agent import AgentConfig
 
 
 class EpicAgent:
 
-    def __init__(self, page: Page, epic_settings: EpicSettings | None = None):
+    def __init__(
+        self,
+        page: Page,
+        epic_settings: EpicSettings | None = None,
+        solver_config: AgentConfig | None = None,
+    ):
         self.page = page
 
         self.epic_settings = epic_settings or EpicSettings()
-        self.epic_games = EpicGames(self.page, settings=self.epic_settings)
+        solver_config = solver_config or AgentConfig(DISABLE_BEZIER_TRAJECTORY=True)
+
+        self.epic_games = EpicGames(
+            self.page, epic_settings=self.epic_settings, solver_config=solver_config
+        )
 
         self._promotions: List[PromotionGame] = []
         self._ctx_cookies_is_available: bool = False

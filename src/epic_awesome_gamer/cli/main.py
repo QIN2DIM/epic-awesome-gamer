@@ -1,6 +1,13 @@
+import os
 import sys
+import asyncio
+from pathlib import Path
 
 import typer
+from typing import Optional
+
+from pydantic import SecretStr
+from hcaptcha_challenger.models import SCoTModelType
 
 # Create top-level application
 app = typer.Typer(
@@ -73,6 +80,60 @@ def help_command(
     # Print help for the found command
     print(current_ctx.get_help())
     raise typer.Exit()
+
+
+@app.command(name="collect", help="Collect free epic games.")
+def collect(
+    epic_email: Optional[str] = typer.Option(
+        None, "--email", envvar="EPIC_EMAIL", help="Epic Games account email"
+    ),
+    epic_password: Optional[str] = typer.Option(
+        None, "--password", envvar="EPIC_PASSWORD", help="Epic Games account password"
+    ),
+    gemini_api_key: Optional[str] = typer.Option(
+        None, "--gemini-api-key", envvar="GEMINI_API_KEY", help="Gemini API key"
+    ),
+    user_data_dir: Optional[Path] = typer.Option(
+        Path("tmp/.cache/user_data"), "--user-data-dir", help="Directory to store browser user data"
+    ),
+):
+    """
+    Collect free games from Epic Games Store.
+    """
+    from browserforge.fingerprints import Screen
+    from camoufox.async_api import AsyncCamoufox
+    from playwright.async_api import Page
+    from hcaptcha_challenger.agent import AgentConfig
+
+    from epic_awesome_gamer import EpicSettings
+    from epic_awesome_gamer.collector import EpicAgent
+
+    async def startup_epic_awesome_gamer(page: Page):
+        epic_settings = EpicSettings()
+        solver_config = AgentConfig(DISABLE_BEZIER_TRAJECTORY=True)
+
+        # 如果提供了命令行参数，覆盖环境变量设置
+        if epic_email:
+            epic_settings.EPIC_EMAIL = epic_email
+        if epic_password:
+            epic_settings.EPIC_PASSWORD = SecretStr(epic_password)
+        if gemini_api_key:
+            solver_config.GEMINI_API_KEY = SecretStr(gemini_api_key)
+
+        agent = EpicAgent(page, epic_settings, solver_config)
+        await agent.collect_epic_games()
+
+    async def run_collector():
+        async with AsyncCamoufox(
+            persistent_context=True,
+            user_data_dir=str(user_data_dir.resolve()),
+            screen=Screen(max_width=1920, max_height=1080),
+            humanize=0.5,
+        ) as browser:
+            page = browser.pages[-1] if browser.pages else await browser.new_page()
+            await startup_epic_awesome_gamer(page)
+
+    asyncio.run(run_collector())
 
 
 def main():

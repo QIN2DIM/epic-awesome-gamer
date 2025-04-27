@@ -45,10 +45,10 @@ class EpicSettings(BaseSettings):
 
 class EpicGames:
 
-    def __init__(self, page: Page, settings: EpicSettings):
+    def __init__(self, page: Page, epic_settings: EpicSettings, solver_config: AgentConfig):
         self.page = page
-        self.settings = settings
-        self.agent_config = AgentConfig(DISABLE_BEZIER_TRAJECTORY=True)
+        self.settings = epic_settings
+        self.solver_config = solver_config
 
         self._promotions: List[PromotionGame] = []
 
@@ -183,7 +183,7 @@ class EpicGames:
         await page.goto(point_url, wait_until="networkidle")
         logger.debug(f"Login with Email - {page.url}")
 
-        agent = AgentV(page=page, agent_config=self.agent_config)
+        agent = AgentV(page=page, agent_config=self.solver_config)
 
         # {{< SIGN IN PAGE >}}
         await page.type("#email", self.settings.EPIC_EMAIL, delay=30)
@@ -211,7 +211,7 @@ class EpicGames:
         await self._empty_cart(self.page)
 
         # {{< Insert hCaptcha Challenger >}}
-        agent = AgentV(page=self.page, agent_config=self.agent_config)
+        agent = AgentV(page=self.page, agent_config=self.solver_config)
 
         # --> Check out cart
         await self.page.click("//button//span[text()='Check Out']")
