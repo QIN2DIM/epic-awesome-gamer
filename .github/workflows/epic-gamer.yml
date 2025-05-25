@@ -1,0 +1,31 @@
+name: Epic Awesome Gamer
+
+on:
+  schedule:
+    - cron: '0 12 * * 4' # Запуск каждый четверг в 12:00 UTC (день раздачи игр в Epic Games)
+  workflow_dispatch: # Возможность запускать вручную
+
+jobs:
+  claim-games:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9' # Укажите версию Python, совместимую со скриптом
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run script
+        env:
+          EPIC_EMAIL: ${{ secrets.EPIC_EMAIL }}
+          EPIC_PASSWORD: ${{ secrets.EPIC_PASSWORD }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
