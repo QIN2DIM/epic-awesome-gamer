@@ -11,8 +11,8 @@ from loguru import logger
 from playwright.async_api import expect, TimeoutError, Page, FrameLocator
 from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
-from epic_awesome_gamer.models import PromotionGame
-from epic_awesome_gamer.settings import EpicSettings
+from models import PromotionGame
+from settings import EpicSettings
 
 # fmt:off
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"

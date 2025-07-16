@@ -2,6 +2,7 @@
 name = "epic-awesome-gamer"
 version = "0.4.1"
 dependencies = [
+    "apscheduler>=3.11.0",
     "hcaptcha-challenger[camoufox]>=0.18.9",
     "pydantic-settings>=2.8.1",
 ]
@@ -36,7 +37,7 @@ Issues = "https://github.com/QIN2DIM/epic-awesome-gamer/issues"
 Changelog = "https://github.com/QIN2DIM/epic-awesome-gamer/blob/master/CHANGELOG.md"
 
 [project.scripts]
-epic = "epic_awesome_gamer.cli.main:main"
+epic = "cli.main:main"
 
 
 # https://packaging.python.org/en/latest/key_projects/#hatch

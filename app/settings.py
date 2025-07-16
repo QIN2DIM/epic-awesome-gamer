@@ -13,12 +13,13 @@ from pydantic import Field, SecretStr
 from pydantic_settings import SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).parent
+LOG_DIR = PROJECT_ROOT.joinpath("logs")
+DATA_DIR = PROJECT_ROOT.joinpath("data")
+CACHE_DIR = PROJECT_ROOT.joinpath(".cache")
 
 
 class EpicSettings(AgentConfig):
     model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore")
-
-    cache_dir: Path = PROJECT_ROOT.joinpath(".cache")
 
     EPIC_EMAIL: str = Field(
         default_factory=lambda: os.getenv("EPIC_EMAIL"),

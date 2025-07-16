@@ -4,8 +4,8 @@ from browserforge.fingerprints import Screen
 from camoufox.async_api import AsyncCamoufox
 from playwright.async_api import Page
 
-from epic_awesome_gamer import EpicSettings
-from epic_awesome_gamer.epic_agent import EpicAgent
+from app import EpicSettings
+from epic_agent import EpicAgent
 
 
 async def startup_epic_awesome_gamer(page: Page):

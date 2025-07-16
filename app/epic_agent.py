@@ -9,9 +9,9 @@ from typing import List
 from loguru import logger
 from playwright.async_api import Page
 
-from epic_awesome_gamer import get_promotions, EpicGames, EpicSettings
-from epic_awesome_gamer.epic_games import URL_CLAIM
-from epic_awesome_gamer.models import PromotionGame, OrderItem, Order
+from app import get_promotions, EpicGames, EpicSettings
+from epic_games import URL_CLAIM
+from models import PromotionGame, OrderItem, Order
 
 
 class EpicAgent:
