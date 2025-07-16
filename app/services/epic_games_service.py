@@ -2,58 +2,213 @@
 # Time       : 2022/1/16 0:25
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
-# Description:
-import os
+# Description: 游戏商城控制句柄
+
+import json
 from contextlib import suppress
-from pathlib import Path
+from json import JSONDecodeError
 from typing import List
 
-from hcaptcha_challenger.agent import AgentConfig, AgentV
+import httpx
+from hcaptcha_challenger.agent import AgentV
 from loguru import logger
-from playwright.async_api import expect, TimeoutError, Page, FrameLocator
-from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from tenacity import *
+from playwright.async_api import Page
+from playwright.async_api import expect, TimeoutError, FrameLocator
+from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
-from epic_awesome_gamer.types import PromotionGame
+from models import OrderItem, Order
+from models import PromotionGame
+from settings import EpicSettings
 
-# fmt:off
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
-URL_LOGIN = f"https://www.epicgames.com/id/login?lang=en-US&noHostRedirect=true&redirectUrl={URL_CLAIM}"
+URL_LOGIN = (
+    f"https://www.epicgames.com/id/login?lang=en-US&noHostRedirect=true&redirectUrl={URL_CLAIM}"
+)
 URL_CART = "https://store.epicgames.com/en-US/cart"
 URL_CART_SUCCESS = "https://store.epicgames.com/en-US/cart/success"
-# fmt:on
 
 
-class EpicSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore")
+URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions"
+URL_PRODUCT_PAGE = "https://store.epicgames.com/en-US/p/"
+URL_PRODUCT_BUNDLES = "https://store.epicgames.com/en-US/bundles/"
 
-    cache_dir: Path = Path("tmp/.cache")
 
-    EPIC_EMAIL: str = Field(
-        default_factory=lambda: os.getenv("EPIC_EMAIL"),
-        description="Epic 游戏账号，需要关闭多步验证",
-    )
-    EPIC_PASSWORD: SecretStr = Field(
-        default_factory=lambda: os.getenv("EPIC_PASSWORD"),
-        description=" Epic 游戏密码，需要关闭多步验证",
-    )
-    # APPRISE_SERVERS: str | None = Field(
-    #     default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"
-    # )
+def get_promotions() -> List[PromotionGame]:
+    """
+    获取周免游戏数据
+
+    <即将推出> promotion["promotions"]["upcomingPromotionalOffers"]
+    <本周免费> promotion["promotions"]["promotionalOffers"]
+    :return: {"pageLink1": "pageTitle1", "pageLink2": "pageTitle2", ...}
+    """
+
+    def is_discount_game(prot: dict) -> bool | None:
+        with suppress(KeyError, IndexError, TypeError):
+            offers = prot["promotions"]["promotionalOffers"][0]["promotionalOffers"]
+            for i, offer in enumerate(offers):
+                if offer["discountSetting"]["discountPercentage"] == 0:
+                    return True
+
+    promotions: List[PromotionGame] = []
+
+    resp = httpx.get(URL_PROMOTIONS, params={"local": "zh-CN"})
+
+    try:
+        data = resp.json()
+    except JSONDecodeError as err:
+        logger.error("Failed to get promotions", err=err)
+        return []
+
+    # Get store promotion data and <this week free> games
+    for e in data["data"]["Catalog"]["searchStore"]["elements"]:
+
+        # Remove items that are discounted but not free.
+        if not is_discount_game(e):
+            continue
+
+        # package free games
+        try:
+            query = e["catalogNs"]["mappings"][0]["pageSlug"]
+            e["url"] = f"{URL_PRODUCT_PAGE}{query}"
+        except TypeError:
+            e["url"] = f"{URL_PRODUCT_BUNDLES}{e['productSlug']}"
+        except IndexError:
+            e["url"] = f"{URL_PRODUCT_PAGE}{e['productSlug']}"
+
+        promotions.append(PromotionGame(**e))
+
+    return promotions
+
+
+class EpicAgent:
+
+    def __init__(self, page: Page, epic_settings: EpicSettings | None = None):
+        self.page = page
+
+        self.epic_settings = epic_settings or EpicSettings()
+
+        self.epic_games = EpicGames(self.page, epic_settings=self.epic_settings)
+
+        self._promotions: List[PromotionGame] = []
+        self._ctx_cookies_is_available: bool = False
+        self._orders: List[OrderItem] = []
+        self._namespaces: List[str] = []
+
+        self._cookies = None
+
+    async def _sync_order_history(self):
+        """获取最近的订单纪录"""
+        if self._orders:
+            return
+
+        completed_orders: List[OrderItem] = []
+
+        try:
+            await self.page.goto("https://www.epicgames.com/account/v2/payment/ajaxGetOrderHistory")
+            text_content = await self.page.text_content("//pre")
+            data = json.loads(text_content)
+            for _order in data["orders"]:
+                order = Order(**_order)
+                if order.orderType != "PURCHASE":
+                    continue
+                for item in order.items:
+                    if not item.namespace or len(item.namespace) != 32:
+                        continue
+                    completed_orders.append(item)
+        except Exception as err:
+            logger.warning(err)
+
+        self._orders = completed_orders
+
+    async def _check_orders(self):
+        # 获取玩家历史交易订单
+        # 运行该操作之前必须确保账号信息有效
+        await self._sync_order_history()
+
+        self._namespaces = self._namespaces or [order.namespace for order in self._orders]
+
+        # 获取本周促销数据
+        # 正交数据，得到还未收集的优惠商品
+        self._promotions = [p for p in get_promotions() if p.namespace not in self._namespaces]
+
+    async def _should_ignore_task(self) -> bool:
+        self._ctx_cookies_is_available = False
+
+        # 判断浏览器是否已缓存账号令牌信息
+        await self.page.goto(URL_CLAIM, wait_until="domcontentloaded")
+
+        # == 令牌过期 == #
+        status = await self.page.locator("//egs-navigation").get_attribute("isloggedin")
+        if status == "false":
+            logger.error("❌ context cookies is not available")
+            return False
+
+        # == 令牌有效 == #
+
+        # 浏览器的身份信息仍然有效
+        self._ctx_cookies_is_available = True
+
+        # 加载正交的优惠商品数据
+        await self._check_orders()
+
+        # 促销列表为空，说明免费游戏都已收集，任务结束
+        if not self._promotions:
+            return True
+
+        # 账号信息有效，但还存在没有领完的游戏
+        return False
+
+    async def collect_epic_games(self):
+        if await self._should_ignore_task():
+            logger.success("✅ All week-free games are already in the library")
+            return
+
+        # 刷新浏览器身份信息
+        if not self._ctx_cookies_is_available:
+            return
+
+        # 加载正交的优惠商品数据
+        if not self._promotions:
+            await self._check_orders()
+
+        if not self._promotions:
+            logger.success("✅ All week-free games are already in the library")
+            return
+
+        game_promotions = []
+        bundle_promotions = []
+        for p in self._promotions:
+            logger.debug(f"✅ Discover promotion《{p.title}》 url={p.url}")
+            if "/bundles/" in p.url:
+                bundle_promotions.append(p)
+            else:
+                game_promotions.append(p)
+
+        # 收集优惠游戏
+        if game_promotions:
+            try:
+                await self.epic_games.collect_weekly_games(game_promotions)
+            except Exception as e:
+                logger.exception(e)
+
+        # 收集游戏捆绑内容
+        if bundle_promotions:
+            logger.debug("Skip the game bundled content")
+
+        logger.debug("✅ Workflow ends")
 
 
 class EpicGames:
 
-    def __init__(self, page: Page, epic_settings: EpicSettings, solver_config: AgentConfig):
+    def __init__(self, page: Page, epic_settings: EpicSettings):
         self.page = page
-        self.settings = epic_settings
-        self.solver_config = solver_config
+        self.epic_settings = epic_settings
 
         self._promotions: List[PromotionGame] = []
 
     @staticmethod
     async def _agree_license(page: Page):
+        logger.debug("Agree license")
         with suppress(TimeoutError):
             await page.click("//label[@for='agree']", timeout=4000)
             accept = page.locator("//button//span[text()='Accept']")
@@ -62,6 +217,8 @@ class EpicGames:
 
     @staticmethod
     async def _active_purchase_container(page: Page):
+        logger.debug("Move to webPurchaseContainer iframe")
+
         wpc = page.frame_locator("//iframe[@class='']")
         payment_btn = wpc.locator("//div[@class='payment-order-confirm']")
         with suppress(Exception):
@@ -73,6 +230,8 @@ class EpicGames:
 
     @staticmethod
     async def _uk_confirm_order(wpc: FrameLocator):
+        logger.debug("UK confirm order")
+
         # <-- Handle UK confirm-order
         with suppress(TimeoutError):
             accept = wpc.locator(
@@ -175,34 +334,6 @@ class EpicGames:
             logger.warning("Failed to empty shopping cart", err=err)
             return False
 
-    async def _authorize(self, page: Page, retry_times: int = 3):
-        if not retry_times:
-            return
-
-        point_url = "https://www.epicgames.com/account/personal?lang=en-US&productName=egs&sessionInvalidated=true"
-        await page.goto(point_url, wait_until="networkidle")
-        logger.debug(f"Login with Email - {page.url}")
-
-        agent = AgentV(page=page, agent_config=self.solver_config)
-
-        # {{< SIGN IN PAGE >}}
-        await page.type("#email", self.settings.EPIC_EMAIL, delay=30)
-        await page.type("#password", self.settings.EPIC_PASSWORD.get_secret_value(), delay=30)
-
-        try:
-            # Active hCaptcha checkbox
-            await page.click("#sign-in")
-            # Active hCaptcha challenge
-            await agent.wait_for_challenge()
-            # Wait for the page to redirect
-        except Exception as err:
-            logger.warning(f"Failed to solve captcha - {err}")
-            await page.reload()
-            return await self._authorize(page, retry_times=retry_times - 1)
-
-        await page.wait_for_url(point_url)
-        return True
-
     async def _purchase_free_game(self):
         # == Cart Page == #
         await self.page.goto(URL_CART, wait_until="domcontentloaded")
@@ -211,7 +342,7 @@ class EpicGames:
         await self._empty_cart(self.page)
 
         # {{< Insert hCaptcha Challenger >}}
-        agent = AgentV(page=self.page, agent_config=self.solver_config)
+        agent = AgentV(page=self.page, agent_config=self.epic_settings)
 
         # --> Check out cart
         await self.page.click("//button//span[text()='Check Out']")
@@ -233,12 +364,6 @@ class EpicGames:
             logger.warning(f"Failed to solve captcha - {err}")
             await self.page.reload()
             return await self._purchase_free_game()
-
-    async def authorize(self, page: Page):
-        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
-        if "true" == await page.locator("//egs-navigation").get_attribute("isloggedin"):
-            return True
-        return await self._authorize(page)
 
     @retry(retry=retry_if_exception_type(TimeoutError), stop=stop_after_attempt(2), reraise=True)
     async def collect_weekly_games(self, promotions: List[PromotionGame]):

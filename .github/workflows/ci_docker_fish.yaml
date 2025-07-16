@@ -1,46 +1,65 @@
-name: ci
+name: Docker Build and Release
 
+# 触发器：仅当一个新的 Release 被发布时运行
 on:
-  workflow_dispatch:
-#  push:
-#    branches:
-#      - main
-#    paths-ignore:
-#      - ".github/**"
-#      - "README.md"
-#      - "LICENSE"
-#      - ".gitignore"
-#      - ".deepsource.toml"
+  release:
+    types: [published]
+
 env:
-  IMAGE_TAG: ${{ secrets.DOCKERHUB_USERNAME }}/awesome-epic:fish
+  REGISTRY: ghcr.io
+  # ${{ github.repository }} 会自动解析为 "owner/repo-name"
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  docker:
+  build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # packages: write 是推送到 GitHub Container Registry (ghcr.io) 所需的权限
+      packages: write
+
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Scaffold Init
-        run: cd src && echo '{}' > config.json
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      -
-        name: Login to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          platforms: linux/amd64 # linux/arm64
-          push: true
-          tags: ${{ env.IMAGE_TAG }}
+    - name: Checkout repository
+      # 此步骤会检出与发布的 Release 相关联的那个 Git 标签的代码
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          # 从 Git 标签中提取 SemVer 版本号 (e.g., v1.2.3 -> 1.2.3, 1.2, 1)
+          # 这是 Release 流程的核心
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+
+          # 添加一个基于 commit SHA 的短标签，用于精确追踪
+          type=sha,format=short
+
+          # 仅当发布的 Release 不是预发布版本 (pre-release) 时，才添加 "latest" 标签
+          type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile
+        # 由于此工作流只在 Release 时运行，我们总是希望推送镜像
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64

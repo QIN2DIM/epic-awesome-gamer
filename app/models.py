@@ -6,31 +6,19 @@
 
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class OrderItem(BaseModel):
     description: str
-    quantity: int
-    amount: str
-    price: int
     offerId: str
     namespace: str
-
-
-class OrderPromotion(BaseModel):
-    type: str
-    amount: int
-    index: int
-    priceString: str
-    title: str
 
 
 class Order(BaseModel):
     orderType: str
     orderId: str
-    items: List[OrderItem]
-    promotions: List[OrderPromotion]
+    items: List[OrderItem] = Field(default_factory=list)
 
 
 class CompletedOrder(BaseModel):

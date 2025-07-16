@@ -2,7 +2,8 @@
 name = "epic-awesome-gamer"
 version = "0.4.1"
 dependencies = [
-    "hcaptcha-challenger[camoufox]>=0.17.1",
+    "apscheduler>=3.11.0",
+    "hcaptcha-challenger[camoufox]>=0.18.9",
     "pydantic-settings>=2.8.1",
 ]
 requires-python = ">=3.12"
@@ -35,48 +36,15 @@ Repository = "https://github.com/QIN2DIM/epic-awesome-gamer.git"
 Issues = "https://github.com/QIN2DIM/epic-awesome-gamer/issues"
 Changelog = "https://github.com/QIN2DIM/epic-awesome-gamer/blob/master/CHANGELOG.md"
 
-[project.scripts]
-epic = "epic_awesome_gamer.cli.main:main"
-
-
-# https://packaging.python.org/en/latest/key_projects/#hatch
-# https://hatch.pypa.io/latest/config/build/#build-system
-[build-system]
-requires = ["hatchling", "uv-dynamic-versioning"]
-build-backend = "hatchling.build"
-
-# https://hatch.pypa.io/latest/config/build/#explicit-selection
-[tool.hatch.build.targets.sdist]
-only-include = ["src/epic_awesome_gamer"]
-exclude = [
-    'tests/',
-    'docker/',
-    'examples/'
-]
-
-# https://hatch.pypa.io/latest/config/build/#packages
-[tool.hatch.build.targets.wheel]
-packages = ["src/epic_awesome_gamer"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests", "examples"]
-asyncio_mode = "auto"
-filterwarnings = "ignore::DeprecationWarning"
-
 [tool.black]
 line-length = 100
-target-version = ["py310", "py311", "py312"]
+target-version = ["py310", "py311", "py312", "py313"]
 skip-string-normalization = true
 
-[tool.hatch.version]
-source = "uv-dynamic-versioning"
-
-[tool.uv-dynamic-versioning]
-vcs = "git"
-style = "pep440"
-bump = true
 
 [dependency-groups]
 dev = [
+    "black>=25.1.0",
     "pytest>=8.3.5",
+    "ruff>=0.12.3",
 ]
