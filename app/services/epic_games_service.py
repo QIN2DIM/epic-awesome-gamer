@@ -2,7 +2,7 @@
 # Time       : 2022/1/16 0:25
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
-# Description:
+# Description: 游戏商城控制句柄
 from contextlib import suppress
 from typing import List
 

@@ -16,6 +16,7 @@ PROJECT_ROOT = Path(__file__).parent
 LOG_DIR = PROJECT_ROOT.joinpath("logs")
 DATA_DIR = PROJECT_ROOT.joinpath("data")
 CACHE_DIR = PROJECT_ROOT.joinpath(".cache")
+USER_DATA_DIR = PROJECT_ROOT.joinpath("user_data")
 
 
 class EpicSettings(AgentConfig):

@@ -2,16 +2,17 @@
 # Time       : 2023/8/16 5:14
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
-# Description:
+# Description: 智能体控制句柄
 import json
 from typing import List
 
 from loguru import logger
 from playwright.async_api import Page
 
-from app import get_promotions, EpicGames, EpicSettings
-from epic_games import URL_CLAIM
+from helper import get_promotions
 from models import PromotionGame, OrderItem, Order
+from services.epic_games_service import EpicGames, URL_CLAIM
+from settings import EpicSettings
 
 
 class EpicAgent:

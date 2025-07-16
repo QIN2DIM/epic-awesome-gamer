@@ -104,8 +104,8 @@ def collect(
     from camoufox.async_api import AsyncCamoufox
     from playwright.async_api import Page
 
-    from app import EpicSettings
-    from epic_agent import EpicAgent
+    from settings import EpicSettings
+    from services.epic_agent_service import EpicAgent
 
     if all_games:
         typer.echo("🙌 Not implemented yet.")
