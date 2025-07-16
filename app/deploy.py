@@ -29,11 +29,15 @@ init_log(
 @logger.catch
 async def run_job_job_with_scheduler(scheduler: AsyncIOScheduler):
     """运行 Epic Games 免费游戏收集任务并显示下次运行时间"""
+
+    headless = "virtual" if "linux" in sys.platform else False
+
     async with AsyncCamoufox(
         persistent_context=True,
         user_data_dir=USER_DATA_DIR,
         screen=Screen(max_width=1920, max_height=1080, min_height=1000, min_width=1440),
-        humanize=0.2,
+        humanize=0.3,
+        headless=headless,
     ) as browser:
         page = await browser.new_page()
         await jobs.authorize(page)
