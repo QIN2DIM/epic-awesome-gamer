@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     volumes:
-      - "./volumes/caches/:/app/app/.cache"
+      - "./volumes/user_data/:/app/app/user_data"
       - "./volumes/logs/:/app/app/logs"
     entrypoint: [ "/usr/bin/tini", "--" ]
     command: xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py

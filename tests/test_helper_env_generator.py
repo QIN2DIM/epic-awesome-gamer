@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from settings import EpicSettings
-from helper import generate_env_example_merged
+from env_generator import generate_env_example_merged
 
 
 def test_env_generator():
