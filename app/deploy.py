@@ -16,7 +16,7 @@ from camoufox import AsyncCamoufox
 from loguru import logger
 
 import jobs
-from settings import LOG_DIR, USER_DATA_DIR
+from settings import LOG_DIR, USER_DATA_DIR, EpicSettings
 from utils import init_log
 
 init_log(
@@ -26,7 +26,8 @@ init_log(
 )
 
 
-async def run_job_job_with_scheduler(scheduler):
+@logger.catch
+async def run_job_job_with_scheduler(scheduler: AsyncIOScheduler):
     """运行 Epic Games 免费游戏收集任务并显示下次运行时间"""
     async with AsyncCamoufox(
         persistent_context=True,
@@ -35,7 +36,10 @@ async def run_job_job_with_scheduler(scheduler):
         humanize=0.2,
     ) as browser:
         page = await browser.new_page()
-        await jobs.collect_games(page)
+        await jobs.authorize(page)
+
+        game_page = await browser.new_page()
+        await jobs.collect_games(game_page)
 
     # 获取下次运行时间
     job = scheduler.get_job('epic_games_job')
@@ -50,23 +54,21 @@ async def main():
     """主函数 - 初始化并启动定时任务调度器"""
     logger.info("正在启动定时任务...")
 
-    # 创建异步调度器
+    settings = EpicSettings()
+
     scheduler = AsyncIOScheduler(timezone='Asia/Shanghai')
 
-    # 创建包装函数，用于在任务完成后显示下次运行时间
     async def scheduled_epic_games_job():
         await run_job_job_with_scheduler(scheduler)
 
-    # 添加定时任务：每小时运行1次
     scheduler.add_job(
         scheduled_epic_games_job,
-        trigger=CronTrigger(minute=0, timezone='Asia/Shanghai'),
+        trigger=CronTrigger.from_crontab(settings.CRON_SCHEDULE, timezone='Asia/Shanghai'),
         id='epic_games_job',
         name='Epic Games 免费游戏收集任务',
         replace_existing=True,
     )
 
-    # 启动调度器
     scheduler.start()
 
     # 获取任务的下次运行时间
@@ -81,7 +83,6 @@ async def main():
     logger.info("首次运行 Epic Games 免费游戏收集任务")
     await run_job_job_with_scheduler(scheduler)
 
-    # 设置优雅关闭
     def shutdown_handler(signum, frame):
         logger.info("接收到关闭信号，正在停止调度器...")
         scheduler.shutdown()
@@ -91,7 +92,6 @@ async def main():
     signal.signal(signal.SIGTERM, shutdown_handler)
 
     try:
-        # 保持程序运行
         while True:
             await asyncio.sleep(5)
     except KeyboardInterrupt:

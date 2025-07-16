@@ -30,6 +30,11 @@ class EpicSettings(AgentConfig):
         description=" Epic 游戏密码，需要关闭多步验证",
     )
 
+    CRON_SCHEDULE: str = Field(
+        default="1 */5 * * *",
+        description="用于定义任务运行间隔的 Crontab 表达式，默认每五小时运行一次。调试站点 https://crontab.guru/",
+    )
+
     DISABLE_BEZIER_TRAJECTORY: bool = Field(
         default=True, description="是否启用贝塞尔曲线轨迹模拟，默认关闭，直接使用 Camoufox 的特性"
     )
