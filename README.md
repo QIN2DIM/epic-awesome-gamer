@@ -83,11 +83,11 @@ docker compose up -d
 
 以下是项目运行所必需的环境变量，请确保每一项都已正确配置，否则程序将无法启动。
 
-| 环境变量         | 是否必须 | 说明                                                         |
+| 环境变量         | required | 说明                                                         |
 | ---------------- | -------- | ------------------------------------------------------------ |
-| `EPIC_EMAIL`     | **是**   | 你的 Epic 游戏账号。<br>⚠️ **注意**：请预先禁用该账户的二步验证（2FA）。 |
-| `EPIC_PASSWORD`  | **是**   | 你的 Epic 游戏密码。<br>⚠️ **注意**：同上，请确保已禁用二步验证。 |
-| `GEMINI_API_KEY` | **是**   | 用于接入 Google Gemini Pro Vision 多模态大模型，以应对登录过程中可能出现的**人机验证（hCaptcha）**。<br>你可以从 [Google AI Studio](https://aistudio.google.com/apikey) 免费获取，其提供的免费额度足以支撑日常使用。 |
+| `EPIC_EMAIL`     | **YES**  | 你的 Epic 游戏账号。<br>⚠️ **注意**：请预先禁用该账户的二步验证（2FA）。 |
+| `EPIC_PASSWORD`  | **YES**  | 你的 Epic 游戏密码。<br>⚠️ **注意**：同上，请确保已禁用二步验证。 |
+| `GEMINI_API_KEY` | **YES**  | 用于接入 Google Gemini Pro Vision 多模态大模型，以应对登录过程中可能出现的**人机验证（hCaptcha）**。<br>你可以从 [Google AI Studio](https://aistudio.google.com/apikey) 免费获取，其提供的免费额度足以支撑日常使用。 |
 
 > 💡 **提示**：其他环境变量主要用于微调 hCaptcha Challenger 的内部行为，通常情况下，你无需关心或修改它们，保持默认即可。
 
