@@ -129,6 +129,7 @@ class EpicAgent:
         # == 令牌过期 == #
         status = await self.page.locator("//egs-navigation").get_attribute("isloggedin")
         if status == "false":
+            logger.error("❌ context cookies is not available")
             return False
 
         # == 令牌有效 == #
@@ -153,7 +154,6 @@ class EpicAgent:
 
         # 刷新浏览器身份信息
         if not self._ctx_cookies_is_available:
-            logger.error("❌ context cookies is not available")
             return
 
         # 加载正交的优惠商品数据

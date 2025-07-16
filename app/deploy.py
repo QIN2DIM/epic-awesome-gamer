@@ -29,7 +29,7 @@ async def invoke():
         humanize=0.2,
     ) as browser:
         page = browser.pages[-1] if browser.pages else await browser.new_page()
-        await jobs.add_games_to_cart(page)
+        await jobs.collect_games(page)
 
 
 async def main():
