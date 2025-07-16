@@ -15,6 +15,9 @@ from pydantic_settings import SettingsConfigDict
 PROJECT_ROOT = Path(__file__).parent
 LOG_DIR = PROJECT_ROOT.joinpath("logs")
 USER_DATA_DIR = PROJECT_ROOT.joinpath("user_data")
+RUNTIME_DIR = PROJECT_ROOT.joinpath("runtime")
+SCREENSHOTS_DIR = RUNTIME_DIR.joinpath("screenshots")
+VIDEOS_DIR = RUNTIME_DIR.joinpath("videos")
 
 
 class EpicSettings(AgentConfig):

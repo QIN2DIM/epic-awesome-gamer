@@ -38,6 +38,7 @@ async def run_job_job_with_scheduler(scheduler: AsyncIOScheduler):
         screen=Screen(max_width=1920, max_height=1080, min_height=1000, min_width=1440),
         humanize=0.3,
         headless=headless,
+        timeout=60000,
     ) as browser:
         page = await browser.new_page()
         await jobs.authorize(page)

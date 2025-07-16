@@ -7,13 +7,14 @@
 """
 import asyncio
 import json
+import time
 from contextlib import suppress
 
 from hcaptcha_challenger.agent import AgentV
 from loguru import logger
 from playwright.async_api import expect, TimeoutError, Page, Response
 
-from settings import EpicSettings
+from settings import EpicSettings, SCREENSHOTS_DIR
 
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
 
@@ -116,13 +117,16 @@ class EpicAuthorization:
             return True
         except Exception as err:
             logger.critical(f"Failed to solve captcha - {err}")
+            sr = SCREENSHOTS_DIR.joinpath("authorization")
+            sr.mkdir(parents=True, exist_ok=True)
+            await self.page.screenshot(path=sr.joinpath(f"login-{int(time.time())}.png"))
             return None
 
     async def invoke(self):
         self.page.on("response", self._on_response_anything)
 
         for _ in range(3):
-            await self.page.goto(URL_CLAIM, wait_until="load")
+            await self.page.goto(URL_CLAIM, wait_until="domcontentloaded")
 
             if "true" == await self.page.locator("//egs-navigation").get_attribute("isloggedin"):
                 logger.success("Epic Games is already logged in")
