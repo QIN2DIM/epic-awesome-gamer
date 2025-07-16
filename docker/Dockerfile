@@ -1,18 +1,29 @@
 FROM mcr.microsoft.com/playwright:v1.52.0-noble
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+USER root
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt update && apt install -y xvfb tini
+SHELL ["/bin/bash", "-c"]
 
-ENV UV_COMPILE_BYTECODE=1
-ENV UV_LINK_MODE=copy
+ENV DISPLAY=:99 \
+    UV_LINK_MODE=copy
 
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# Install dependencies
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-cache --all-extras
 
-# Install Python dependencies using uv
-RUN uv venv && uv pip install -U epic-awesome-gamer
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+    xvfb \
+    tini \
+    wget \
+    curl && \
+    rm -rf /var/lib/apt/lists/*
 
-# Fetch data using camoufox
 RUN uv run camoufox fetch
+
+ADD . /app

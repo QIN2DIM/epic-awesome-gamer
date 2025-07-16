@@ -1,0 +1,77 @@
+# Git相关
+.git
+.gitignore
+
+# Python相关
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+.env.*
+.envrc
+
+# IDE相关
+.idea/
+.vscode/
+.vs/
+
+# 缓存和临时文件
+.cache/
+.pytest_cache/
+.coverage
+.ruff_cache/
+.mypy_cache/
+.tox/
+.nox/
+
+# 开发工具
+.python-version
+.editorconfig
+
+# 日志文件
+*.log
+logs/
+app/logs/
+
+# 构建产物
+dist/
+build/
+*.egg-info/
+.pybuilder/
+target/
+
+# 文档
+#README.md
+#LICENSE
+#*.md
+
+# 测试相关
+.hypothesis/
+htmlcov/
+cover/
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+
+# 临时文件
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Docker相关
+docker/
+examples/
+.dockerignore
+README.md
+app/**/*.md
+.github/
+tests/
+.devcontainer/
+tmp/
+app/tmp/

@@ -21,7 +21,7 @@
 
 ## Guides
 
-[ [`简体中文`](https://echosec.notion.site/Epic-7c74f1e29117420dbac5551e4b031f82?pvs=4) ] [ [`English`](https://echosec.notion.site/Epic-Awesome-Gamer-ba870cdf64c149e69f417448b1eb83c5?pvs=4) ]
+[ [`简体中文`](https://echosec.notion.site/Epic-7c74f1e29117420dbac5551e4b031f82?pvs=4) ] 
 
 ## Features
 
@@ -33,3 +33,8 @@
 | Rolling Upgrade      | 🚧   |
 | Epicgames DLC | 🚧 |
 | 2FA OTP support | 🚧 |
+
+## Documentation
+
+### 部署方式
+
