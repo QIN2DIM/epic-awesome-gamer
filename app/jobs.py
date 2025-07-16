@@ -9,7 +9,7 @@ from typing import List
 
 from playwright.async_api import Page
 
-from services.epic_agent_service import EpicAgent
+from services.epic_games_service import EpicAgent
 from services.epic_authorization_service import EpicAuthorization
 
 from settings import EpicSettings

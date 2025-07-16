@@ -7,12 +7,6 @@
 """
 import asyncio
 import json
-
-# -*- coding: utf-8 -*-
-# Time       : 2022/1/16 0:25
-# Author     : QIN2DIM
-# GitHub     : https://github.com/QIN2DIM
-# Description: 游戏商城控制句柄
 from contextlib import suppress
 
 from hcaptcha_challenger.agent import AgentV
@@ -21,9 +15,7 @@ from playwright.async_api import expect, TimeoutError, Page, Response
 
 from settings import EpicSettings
 
-# fmt:off
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
-# fmt:on
 
 
 class EpicAuthorization:
