@@ -2,7 +2,7 @@
 name = "epic-awesome-gamer"
 version = "0.4.1"
 dependencies = [
-    "hcaptcha-challenger[camoufox]>=0.17.1",
+    "hcaptcha-challenger[camoufox]>=0.18.9",
     "pydantic-settings>=2.8.1",
 ]
 requires-python = ">=3.12"
@@ -78,5 +78,7 @@ bump = true
 
 [dependency-groups]
 dev = [
+    "black>=25.1.0",
     "pytest>=8.3.5",
+    "ruff>=0.12.3",
 ]

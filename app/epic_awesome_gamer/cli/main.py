@@ -1,13 +1,10 @@
-import os
-import sys
 import asyncio
+import sys
 from pathlib import Path
-
-import typer
 from typing import Optional
 
+import typer
 from pydantic import SecretStr
-from hcaptcha_challenger.models import SCoTModelType
 
 # Create top-level application
 app = typer.Typer(
@@ -106,10 +103,9 @@ def collect(
     from browserforge.fingerprints import Screen
     from camoufox.async_api import AsyncCamoufox
     from playwright.async_api import Page
-    from hcaptcha_challenger.agent import AgentConfig
 
     from epic_awesome_gamer import EpicSettings
-    from epic_awesome_gamer.collector import EpicAgent
+    from epic_awesome_gamer.epic_agent import EpicAgent
 
     if all_games:
         typer.echo("🙌 Not implemented yet.")
@@ -117,25 +113,22 @@ def collect(
 
     async def startup_epic_awesome_gamer(page: Page):
         epic_settings = EpicSettings()
-        solver_config = AgentConfig(DISABLE_BEZIER_TRAJECTORY=True)
 
         # 如果提供了命令行参数，覆盖环境变量设置
         if epic_email:
             epic_settings.EPIC_EMAIL = epic_email
         if epic_password:
             epic_settings.EPIC_PASSWORD = SecretStr(epic_password)
-        if gemini_api_key:
-            solver_config.GEMINI_API_KEY = SecretStr(gemini_api_key)
 
-        agent = EpicAgent(page, epic_settings, solver_config)
+        agent = EpicAgent(page, epic_settings)
         await agent.collect_epic_games()
 
     async def run_collector():
         async with AsyncCamoufox(
             persistent_context=True,
             user_data_dir=str(user_data_dir.resolve()),
-            screen=Screen(max_width=1920, max_height=1080),
-            humanize=0.5,
+            screen=Screen(max_width=1920, max_height=1080, min_height=1000, min_width=1440),
+            humanize=0.2,
         ) as browser:
             page = browser.pages[-1] if browser.pages else await browser.new_page()
             await startup_epic_awesome_gamer(page)

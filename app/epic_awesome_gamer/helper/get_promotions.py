@@ -12,7 +12,7 @@ from typing import List
 import httpx
 from loguru import logger
 
-from epic_awesome_gamer.types import PromotionGame
+from epic_awesome_gamer.models import PromotionGame
 
 URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions"
 URL_PRODUCT_PAGE = "https://store.epicgames.com/en-US/p/"

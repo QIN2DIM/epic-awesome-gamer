@@ -1,8 +1,12 @@
 services:
-  app:
-    image: awesome-epic:llm
+  epic-awesome-gamer:
+    image: ghcr.io/qin2dim/epic-awesome-gamer:latest
+    restart: always
+    container_name: epic-awesome-gamer
     env_file:
       - .env
     volumes:
-      - ./volumes/.cache/:/app/tmp/.cache
-    command: uv run xvfb-run --server-args='-screen 0 1920x1080x24' epic collect
+      - "./volumes/caches/:/app/app/.cache"
+      - "./volumes/logs/:/app/app/logs"
+    entrypoint: [ "/usr/bin/tini", "--" ]
+    command: xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run epic --help

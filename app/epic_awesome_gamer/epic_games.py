@@ -3,19 +3,16 @@
 # Author     : QIN2DIM
 # GitHub     : https://github.com/QIN2DIM
 # Description:
-import os
 from contextlib import suppress
-from pathlib import Path
 from typing import List
 
-from hcaptcha_challenger.agent import AgentConfig, AgentV
+from hcaptcha_challenger.agent import AgentV
 from loguru import logger
 from playwright.async_api import expect, TimeoutError, Page, FrameLocator
-from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from tenacity import *
+from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
-from epic_awesome_gamer.types import PromotionGame
+from epic_awesome_gamer.models import PromotionGame
+from epic_awesome_gamer.settings import EpicSettings
 
 # fmt:off
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
@@ -25,30 +22,11 @@ URL_CART_SUCCESS = "https://store.epicgames.com/en-US/cart/success"
 # fmt:on
 
 
-class EpicSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore")
-
-    cache_dir: Path = Path("tmp/.cache")
-
-    EPIC_EMAIL: str = Field(
-        default_factory=lambda: os.getenv("EPIC_EMAIL"),
-        description="Epic 游戏账号，需要关闭多步验证",
-    )
-    EPIC_PASSWORD: SecretStr = Field(
-        default_factory=lambda: os.getenv("EPIC_PASSWORD"),
-        description=" Epic 游戏密码，需要关闭多步验证",
-    )
-    # APPRISE_SERVERS: str | None = Field(
-    #     default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"
-    # )
-
-
 class EpicGames:
 
-    def __init__(self, page: Page, epic_settings: EpicSettings, solver_config: AgentConfig):
+    def __init__(self, page: Page, epic_settings: EpicSettings):
         self.page = page
-        self.settings = epic_settings
-        self.solver_config = solver_config
+        self.epic_settings = epic_settings
 
         self._promotions: List[PromotionGame] = []
 
@@ -183,11 +161,11 @@ class EpicGames:
         await page.goto(point_url, wait_until="networkidle")
         logger.debug(f"Login with Email - {page.url}")
 
-        agent = AgentV(page=page, agent_config=self.solver_config)
+        agent = AgentV(page=page, agent_config=self.epic_settings)
 
         # {{< SIGN IN PAGE >}}
-        await page.type("#email", self.settings.EPIC_EMAIL, delay=30)
-        await page.type("#password", self.settings.EPIC_PASSWORD.get_secret_value(), delay=30)
+        await page.type("#email", self.epic_settings.EPIC_EMAIL, delay=30)
+        await page.type("#password", self.epic_settings.EPIC_PASSWORD.get_secret_value(), delay=30)
 
         try:
             # Active hCaptcha checkbox
@@ -211,7 +189,7 @@ class EpicGames:
         await self._empty_cart(self.page)
 
         # {{< Insert hCaptcha Challenger >}}
-        agent = AgentV(page=self.page, agent_config=self.solver_config)
+        agent = AgentV(page=self.page, agent_config=self.epic_settings)
 
         # --> Check out cart
         await self.page.click("//button//span[text()='Check Out']")

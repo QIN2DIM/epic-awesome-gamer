@@ -5,7 +5,7 @@ from camoufox.async_api import AsyncCamoufox
 from playwright.async_api import Page
 
 from epic_awesome_gamer import EpicSettings
-from epic_awesome_gamer.collector import EpicAgent
+from epic_awesome_gamer.epic_agent import EpicAgent
 
 
 async def startup_epic_awesome_gamer(page: Page):
@@ -27,8 +27,8 @@ async def main():
     async with AsyncCamoufox(
         persistent_context=True,
         user_data_dir="tmp/.cache/user_data",
-        screen=Screen(max_width=1920, max_height=1080),
-        humanize=0.5,
+        screen=Screen(max_width=1920, max_height=1080, min_height=1000, min_width=1440),
+        humanize=0.2,
     ) as browser:
         page = browser.pages[-1] if browser.pages else await browser.new_page()
         await startup_epic_awesome_gamer(page)
