@@ -32,6 +32,7 @@ class EpicGames:
 
     @staticmethod
     async def _agree_license(page: Page):
+        logger.debug("Agree license")
         with suppress(TimeoutError):
             await page.click("//label[@for='agree']", timeout=4000)
             accept = page.locator("//button//span[text()='Accept']")
@@ -40,6 +41,8 @@ class EpicGames:
 
     @staticmethod
     async def _active_purchase_container(page: Page):
+        logger.debug("Move to webPurchaseContainer iframe")
+
         wpc = page.frame_locator("//iframe[@class='']")
         payment_btn = wpc.locator("//div[@class='payment-order-confirm']")
         with suppress(Exception):
@@ -51,6 +54,8 @@ class EpicGames:
 
     @staticmethod
     async def _uk_confirm_order(wpc: FrameLocator):
+        logger.debug("UK confirm order")
+
         # <-- Handle UK confirm-order
         with suppress(TimeoutError):
             accept = wpc.locator(
@@ -153,34 +158,6 @@ class EpicGames:
             logger.warning("Failed to empty shopping cart", err=err)
             return False
 
-    async def _authorize(self, page: Page, retry_times: int = 3):
-        if not retry_times:
-            return
-
-        point_url = "https://www.epicgames.com/account/personal?lang=en-US&productName=egs&sessionInvalidated=true"
-        await page.goto(point_url, wait_until="networkidle")
-        logger.debug(f"Login with Email - {page.url}")
-
-        agent = AgentV(page=page, agent_config=self.epic_settings)
-
-        # {{< SIGN IN PAGE >}}
-        await page.type("#email", self.epic_settings.EPIC_EMAIL, delay=30)
-        await page.type("#password", self.epic_settings.EPIC_PASSWORD.get_secret_value(), delay=30)
-
-        try:
-            # Active hCaptcha checkbox
-            await page.click("#sign-in")
-            # Active hCaptcha challenge
-            await agent.wait_for_challenge()
-            # Wait for the page to redirect
-        except Exception as err:
-            logger.warning(f"Failed to solve captcha - {err}")
-            await page.reload()
-            return await self._authorize(page, retry_times=retry_times - 1)
-
-        await page.wait_for_url(point_url)
-        return True
-
     async def _purchase_free_game(self):
         # == Cart Page == #
         await self.page.goto(URL_CART, wait_until="domcontentloaded")
@@ -211,12 +188,6 @@ class EpicGames:
             logger.warning(f"Failed to solve captcha - {err}")
             await self.page.reload()
             return await self._purchase_free_game()
-
-    async def authorize(self, page: Page):
-        await page.goto(URL_CLAIM, wait_until="domcontentloaded")
-        if "true" == await page.locator("//egs-navigation").get_attribute("isloggedin"):
-            return True
-        return await self._authorize(page)
 
     @retry(retry=retry_if_exception_type(TimeoutError), stop=stop_after_attempt(2), reraise=True)
     async def collect_weekly_games(self, promotions: List[PromotionGame]):

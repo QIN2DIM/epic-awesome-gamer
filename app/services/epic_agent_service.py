@@ -87,7 +87,6 @@ class EpicAgent:
 
         # 促销列表为空，说明免费游戏都已收集，任务结束
         if not self._promotions:
-            logger.success("✅ All week-free games are already in the library")
             return True
 
         # 账号信息有效，但还存在没有领完的游戏
@@ -95,14 +94,13 @@ class EpicAgent:
 
     async def collect_epic_games(self):
         if await self._should_ignore_task():
+            logger.success("✅ All week-free games are already in the library")
             return
 
         # 刷新浏览器身份信息
         if not self._ctx_cookies_is_available:
-            logger.info("Try to flush cookie")
-            if not await self.epic_games.authorize(self.page):
-                logger.error("❌ Failed to flush token")
-                return
+            logger.error("❌ context cookies is not available")
+            return
 
         # 加载正交的优惠商品数据
         if not self._promotions:

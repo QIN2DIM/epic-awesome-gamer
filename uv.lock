@@ -331,7 +331,7 @@ wheels = [
 [[package]]
 name = "epic-awesome-gamer"
 version = "0.4.1"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "apscheduler" },
     { name = "hcaptcha-challenger", extra = ["camoufox"] },
