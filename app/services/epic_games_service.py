@@ -270,7 +270,7 @@ class EpicGames:
             purchase_btn = page.locator("//aside//button[@data-testid='purchase-cta-button']")
             purchase_status = await purchase_btn.text_content()
             if "Buy Now" in purchase_status or "Get" not in purchase_status:
-                logger.debug(f"❌ Not available for purchase - {url=}")
+                logger.debug(f"⚠️ Not available for purchase - {url=}")
                 continue
 
             # 将免费游戏添加至购物车

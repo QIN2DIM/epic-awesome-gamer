@@ -12,7 +12,7 @@ from contextlib import suppress
 
 from hcaptcha_challenger.agent import AgentV
 from loguru import logger
-from playwright.async_api import expect, TimeoutError, Page, Response
+from playwright.async_api import expect, Page, Response
 
 from settings import EpicSettings, SCREENSHOTS_DIR
 
@@ -35,25 +35,21 @@ class EpicAuthorization:
         self._is_refresh_csrf_signal = asyncio.Queue()
 
     async def _on_response_anything(self, r: Response):
-        if r.request.method != "POST":
+        if r.request.method != "POST" or "talon" in r.url:
             return
 
-        try:
+        with suppress(Exception):
             result = await r.json()
             result_json = json.dumps(result, indent=2, ensure_ascii=False)
 
             if "/id/api/login" in r.url and result.get("errorCode"):
-                logger.error(f"{r.url} - {result_json}")
+                logger.error(f"{r.request.method} {r.url} - {result_json}")
             elif "/id/api/analytics" in r.url and result.get("accountId"):
                 self._is_login_success_signal.put_nowait(result)
             elif "/account/v2/refresh-csrf" in r.url and result.get("success", False) is True:
                 self._is_refresh_csrf_signal.put_nowait(result)
-            else:
-                logger.debug(f"{r.url} - {result_json}")
-
-        except Exception:
-            pass
-            # logger.warning(f"Failed to parse response - {err}")
+            # else:
+            #     logger.debug(f"{r.request.method} {r.url} - {result_json}")
 
     async def _handle_right_account_validation(self):
         """
@@ -71,7 +67,7 @@ class EpicAuthorization:
             await self.page.wait_for_timeout(500)
             action_chains = btn_ids.copy()
             for action in action_chains:
-                with suppress(TimeoutError):
+                with suppress(Exception):
                     reminder_btn = self.page.locator(action)
                     await expect(reminder_btn).to_be_visible(timeout=1000)
                     await reminder_btn.click(timeout=1000)
@@ -81,27 +77,27 @@ class EpicAuthorization:
         # 尽可能早地初始化机器人
         agent = AgentV(page=self.page, agent_config=self.epic_settings)
 
-        point_url = "https://www.epicgames.com/account/personal?lang=en-US&productName=egs&sessionInvalidated=true"
-        await self.page.goto(point_url, wait_until="networkidle")
-        logger.debug(f"Login with Email - {self.page.url}")
-
         # {{< SIGN IN PAGE >}}
 
-        # 1. 使用电子邮件地址登录
-        email_input = self.page.locator("#email")
-        await email_input.clear()
-        await email_input.type(self.epic_settings.EPIC_EMAIL)
-
-        # 2. 点击继续按钮
-        await self.page.click("#continue")
-
-        # 3. 输入密码
-        password_input = self.page.locator("#password")
-        await password_input.clear()
-        await password_input.type(self.epic_settings.EPIC_PASSWORD.get_secret_value())
-
-        # 4. 点击登录按钮，触发人机挑战值守监听器
         try:
+            point_url = "https://www.epicgames.com/account/personal?lang=en-US&productName=egs&sessionInvalidated=true"
+            await self.page.goto(point_url, wait_until="networkidle")
+            logger.debug(f"Login with Email - {self.page.url}")
+
+            # 1. 使用电子邮件地址登录
+            email_input = self.page.locator("#email")
+            await email_input.clear()
+            await email_input.type(self.epic_settings.EPIC_EMAIL)
+
+            # 2. 点击继续按钮
+            await self.page.click("#continue")
+
+            # 3. 输入密码
+            password_input = self.page.locator("#password")
+            await password_input.clear()
+            await password_input.type(self.epic_settings.EPIC_PASSWORD.get_secret_value())
+
+            # 4. 点击登录按钮，触发人机挑战值守监听器
             # Active hCaptcha checkbox
             await self.page.click("#sign-in")
 

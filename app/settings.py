@@ -15,9 +15,11 @@ from pydantic_settings import SettingsConfigDict
 PROJECT_ROOT = Path(__file__).parent
 LOG_DIR = PROJECT_ROOT.joinpath("logs")
 USER_DATA_DIR = PROJECT_ROOT.joinpath("user_data")
+
 RUNTIME_DIR = PROJECT_ROOT.joinpath("runtime")
 SCREENSHOTS_DIR = RUNTIME_DIR.joinpath("screenshots")
-VIDEOS_DIR = RUNTIME_DIR.joinpath("videos")
+RECORD_DIR = RUNTIME_DIR.joinpath("record")
+HCAPTCHA_DIR = RUNTIME_DIR.joinpath("hcaptcha")
 
 
 class EpicSettings(AgentConfig):
@@ -41,6 +43,10 @@ class EpicSettings(AgentConfig):
     DISABLE_BEZIER_TRAJECTORY: bool = Field(
         default=True, description="是否启用贝塞尔曲线轨迹模拟，默认关闭，直接使用 Camoufox 的特性"
     )
+
+    cache_dir: Path = HCAPTCHA_DIR.joinpath(".cache")
+    challenge_dir: Path = HCAPTCHA_DIR.joinpath(".challenge")
+    captcha_response_dir: Path = HCAPTCHA_DIR.joinpath(".captcha")
 
     # APPRISE_SERVERS: str | None = Field(
     #     default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"
