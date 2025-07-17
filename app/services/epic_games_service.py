@@ -160,7 +160,7 @@ class EpicAgent:
 
     async def collect_epic_games(self):
         if await self._should_ignore_task():
-            logger.success("✅ All week-free games are already in the library")
+            logger.success("All week-free games are already in the library")
             return
 
         # 刷新浏览器身份信息
@@ -172,13 +172,14 @@ class EpicAgent:
             await self._check_orders()
 
         if not self._promotions:
-            logger.success("✅ All week-free games are already in the library")
+            logger.success("All week-free games are already in the library")
             return
 
         game_promotions = []
         bundle_promotions = []
         for p in self._promotions:
-            logger.debug(f"✅ Discover promotion《{p.title}》 url={p.url}")
+            pj = json.dumps(p.model_dump(mode='json'), indent=2, ensure_ascii=False)
+            logger.debug(f"Discover promotion {pj}")
             if "/bundles/" in p.url:
                 bundle_promotions.append(p)
             else:
@@ -195,7 +196,7 @@ class EpicAgent:
         if bundle_promotions:
             logger.debug("Skip the game bundled content")
 
-        logger.debug("✅ Workflow ends")
+        logger.debug("All tasks in the workflow have been completed")
 
 
 class EpicGames:
@@ -263,14 +264,15 @@ class EpicGames:
                 texts += btn_text_content
 
             if "In Library" in texts:
-                logger.success(f"✅ Already in the library - {url=}")
+                logger.success(f"Already in the library - {url=}")
                 continue
 
             # 检查是否为免费游戏
             purchase_btn = page.locator("//aside//button[@data-testid='purchase-cta-button']")
             purchase_status = await purchase_btn.text_content()
             if "Buy Now" in purchase_status or "Get" not in purchase_status:
-                logger.debug(f"❌ Not available for purchase - {url=}")
+                uj = json.dumps({"url": urls}, ensure_ascii=False, indent=2)
+                logger.warning(f"Not available for purchase {uj}")
                 continue
 
             # 将免费游戏添加至购物车
@@ -370,7 +372,7 @@ class EpicGames:
         # --> Make sure promotion is not in the library before executing
         urls = [p.url for p in promotions]
         if not await self.add_promotion_to_cart(self.page, urls):
-            logger.success("✅ All week-free games are already in the library")
+            logger.success("All week-free games are already in the library")
             return
 
         await self._purchase_free_game()
