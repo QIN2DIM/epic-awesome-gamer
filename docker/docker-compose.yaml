@@ -12,8 +12,6 @@ services:
     volumes:
       # Mount a Docker socket to allow Ofelia to control other containers on the host machine
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    depends_on:
-      - epic-awesome-gamer
 
   # 2. Worker
   # The service itself is not started automatically, it is simply called by the scheduler as a "task template".
