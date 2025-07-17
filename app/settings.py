@@ -41,14 +41,12 @@ class EpicSettings(AgentConfig):
     )
 
     DISABLE_BEZIER_TRAJECTORY: bool = Field(
-        default=True, description="是否启用贝塞尔曲线轨迹模拟，默认关闭，直接使用 Camoufox 的特性"
+        default=True, description="是否关闭贝塞尔曲线轨迹模拟，默认关闭，直接使用 Camoufox 的特性"
     )
 
     cache_dir: Path = HCAPTCHA_DIR.joinpath(".cache")
     challenge_dir: Path = HCAPTCHA_DIR.joinpath(".challenge")
     captcha_response_dir: Path = HCAPTCHA_DIR.joinpath(".captcha")
-
-    IS_SINGLE_TRIGGER: bool = Field(default=False, description="是否单次触发，默认为 False")
 
     # APPRISE_SERVERS: str | None = Field(
     #     default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"

@@ -1,26 +1,24 @@
 services:
-  # 1. 任务调度器 (Ofelia)
-  # 这个服务是唯一会随 `docker compose up -d` 启动的常驻服务。
-  # 它的职责是根据 epic-awesome-gamer 服务上定义的标签来定时运行它。
+  # 1. Task Scheduler (Ofelia)
+  # This service is the only resident service that is started with `docker compose up -d`.
+  # Its job is to run the epic-awesome-gamer service at regular intervals based on the tags defined on it.
   scheduler:
     image: mcuadros/ofelia:latest
     container_name: ofelia-scheduler
     restart: always
     command: daemon --docker
     volumes:
-      # 挂载 Docker socket，让 Ofelia 能够控制宿主机上的其他容器
+      # Mount a Docker socket to allow Ofelia to control other containers on the host machine
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - epic-awesome-gamer
 
-  # 2. 任务执行器 (Worker)
-  # 这个服务本身不会自动启动，它仅仅是作为一个“任务模板”被 scheduler 调用。
+  # 2. Worker
+  # The service itself is not started automatically, it is simply called by the scheduler as a "task template".
   epic-awesome-gamer:
     image: ghcr.io/qin2dim/epic-awesome-gamer:latest
-    # 【关键】设置为 "no"，这样 `docker compose up -d` 不会启动它。
-    # 它只会在被 scheduler 调用时才会创建和运行。
     restart: "no"
-    container_name: epic-awesome-gamer # Ofelia 运行时会创建带随机后缀的容器，如 epic-awesome-gamer_run_...
+    container_name: epic-awesome-gamer
     env_file:
       - .env
     volumes:
@@ -30,17 +28,18 @@ services:
     entrypoint: [ "/usr/bin/tini", "--" ]
     command: xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py
 
-    # 【关键】资源优化配置，给予容器更多资源
-    mem_limit: 4g     # 限制最大内存为 4GB，防止 C++ 内存泄漏
-    # 根据你的宿主机配置，可以取消注释并调整这些值
-    shm_size: '2gb'   # 【重要】为 Playwright/Chrome 分配足够的共享内存，防止崩溃或变慢
+    # Limit maximum memory to 4GB to prevent C++ memory leaks
+    mem_limit: 4g
 
-    # 【关键】Ofelia 的调度配置，通过 labels 定义
+    # Allocate enough shared memory for Playwright/Chrome to prevent crashes or slowdowns
+    shm_size: '2gb'
+
+    # Ofelia's scheduling configuration, defined by labels
     labels:
       ofelia.enabled: "true"
 
-      # 定义一个名为 'run-epic-gamer' 的定时任务
-      # 使用 `run` 命令，这意味着 Ofelia 会执行 `docker run` 来创建一个新容器来运行此任务
+      # Define a timed task called 'run-epic-gamer'
+      # Use the `run` command, which means Ofelia will run `docker run` to create a new container to run this task
       ofelia.job-run.epic-gamer.schedule: "${CRON_SCHEDULE:-1 */5 * * *}"
       ofelia.job-run.epic-gamer.image: "ghcr.io/qin2dim/epic-awesome-gamer:latest"
       ofelia.job-run.epic-gamer.command: "xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py"
@@ -52,3 +51,7 @@ services:
       ofelia.job-run.epic-gamer.rm: "true"                            # 任务结束后自动删除容器
       ofelia.job-run.epic-gamer.env.from: "epic-awesome-gamer"        # 从 epic-awesome-gamer 服务继承环境变量
       ofelia.job-run.epic-gamer.volume.from: "epic-awesome-gamer"     # 从 epic-awesome-gamer 服务继承数据卷挂载
+
+      # Override the default configuration
+      ofelia.job-run.epic-gamer.env: |
+        IS_SINGLE_TRIGGER=true
