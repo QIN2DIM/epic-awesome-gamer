@@ -54,3 +54,4 @@ class EpicSettings(AgentConfig):
 
 
 settings = EpicSettings()
+settings.ignore_request_questions = ["Please drag the crossing to complete the lines"]
