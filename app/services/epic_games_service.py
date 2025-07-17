@@ -178,7 +178,7 @@ class EpicAgent:
         game_promotions = []
         bundle_promotions = []
         for p in self._promotions:
-            pj = json.dumps(p.model_dump(mode='json'), indent=2, ensure_ascii=False)
+            pj = json.dumps({"title": p.title, "url": p.url}, indent=2, ensure_ascii=False)
             logger.debug(f"Discover promotion {pj}")
             if "/bundles/" in p.url:
                 bundle_promotions.append(p)
@@ -271,8 +271,7 @@ class EpicGames:
             purchase_btn = page.locator("//aside//button[@data-testid='purchase-cta-button']")
             purchase_status = await purchase_btn.text_content()
             if "Buy Now" in purchase_status or "Get" not in purchase_status:
-                uj = json.dumps({"url": urls}, ensure_ascii=False, indent=2)
-                logger.warning(f"Not available for purchase {uj}")
+                logger.warning(f"Not available for purchase - {url=}")
                 continue
 
             # 将免费游戏添加至购物车
