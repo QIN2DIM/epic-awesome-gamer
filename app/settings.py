@@ -48,6 +48,8 @@ class EpicSettings(AgentConfig):
     challenge_dir: Path = HCAPTCHA_DIR.joinpath(".challenge")
     captcha_response_dir: Path = HCAPTCHA_DIR.joinpath(".captcha")
 
+    IS_SINGLE_TRIGGER: bool = Field(default=False, description="是否单次触发，默认为 False")
+
     # APPRISE_SERVERS: str | None = Field(
     #     default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"
     # )

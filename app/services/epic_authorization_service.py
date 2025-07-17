@@ -78,11 +78,11 @@ class EpicAuthorization:
         agent = AgentV(page=self.page, agent_config=self.epic_settings)
 
         # {{< SIGN IN PAGE >}}
+        logger.debug("Login with Email")
 
         try:
             point_url = "https://www.epicgames.com/account/personal?lang=en-US&productName=egs&sessionInvalidated=true"
             await self.page.goto(point_url, wait_until="networkidle")
-            logger.debug(f"Login with Email - {self.page.url}")
 
             # 1. 使用电子邮件地址登录
             email_input = self.page.locator("#email")

@@ -8,6 +8,7 @@
 import asyncio
 import signal
 import sys
+from contextlib import suppress
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -48,15 +49,18 @@ async def run_job_job_with_scheduler(scheduler: AsyncIOScheduler):
         game_page = await browser.new_page()
         await jobs.collect_games(game_page)
 
-        await browser.close()
+        with suppress(Exception):
+            for p in browser.pages:
+                await p.close()
+
+        with suppress(Exception):
+            await browser.close()
 
     # 获取下次运行时间
     job = scheduler.get_job('epic_games_job')
     if job and job.next_run_time:
         next_run_time = job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
         logger.info(f"下次运行时间: {next_run_time}")
-    else:
-        logger.info("无法获取下次运行时间")
 
 
 async def main():
@@ -91,6 +95,12 @@ async def main():
     # 立即运行一次任务
     logger.info("首次运行 Epic Games 免费游戏收集任务")
     await run_job_job_with_scheduler(scheduler)
+
+    # 检查是否为单次触发模式
+    if settings.IS_SINGLE_TRIGGER:
+        logger.success("单次触发模式：任务执行完毕，正在关闭调度器...")
+        scheduler.shutdown()
+        return
 
     def shutdown_handler(signum, frame):
         logger.info("接收到关闭信号，正在停止调度器...")
