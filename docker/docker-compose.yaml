@@ -1,3 +1,5 @@
+name: epic-awesome-gamer
+
 services:
   # 1. Task Scheduler (Ofelia)
   # This service is the only resident service that is started with `docker compose up -d`.
