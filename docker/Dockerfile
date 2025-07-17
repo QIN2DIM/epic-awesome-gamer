@@ -24,6 +24,4 @@ RUN apt-get update -y && \
     curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN uv run camoufox fetch
-
 ADD . /app
