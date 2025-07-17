@@ -51,3 +51,7 @@ class EpicSettings(AgentConfig):
     # APPRISE_SERVERS: str | None = Field(
     #     default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"
     # )
+
+
+settings = EpicSettings()
+settings.ignore_request_questions = ["Please drag the crossing to complete the lines"]

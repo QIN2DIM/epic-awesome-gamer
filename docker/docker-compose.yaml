@@ -13,6 +13,23 @@ services:
       # Mount a Docker socket to allow Ofelia to control other containers on the host machine
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
+    # Ofelia's scheduling configuration, defined by labels
+    labels:
+      ofelia.enabled: "true"
+
+      # Define a timed task called 'run-epic-gamer'
+      # Use the `run` command, which means Ofelia will run `docker run` to create a new container to run this task
+      ofelia.job-run.epic-gamer.schedule: "${CRON_SCHEDULE:-1 */5 * * *}"
+      ofelia.job-run.epic-gamer.image: "ghcr.io/qin2dim/epic-awesome-gamer:latest"
+      ofelia.job-run.epic-gamer.command: "xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py"
+
+      ofelia.job-run.epic-gamer.pull: "true"                          # 每次运行前强制拉取最新镜像
+      ofelia.job-run.epic-gamer.timeout: "10m"                        # 设置 10 分钟超时，超时后 Ofelia 会强力杀死容器
+      ofelia.job-run.epic-gamer.no-overlap: "true"                    # 如果上一个任务还没跑完，不启动新的任务
+      ofelia.job-run.epic-gamer.save-logs: "true"                     # 保存任务容器的日志，路径在Ofelia容器内
+      ofelia.job-run.epic-gamer.env.from: "epic-awesome-gamer"        # 从 epic-awesome-gamer 服务继承环境变量
+      ofelia.job-run.epic-gamer.volume.from: "epic-awesome-gamer"     # 从 epic-awesome-gamer 服务继承数据卷挂载
+
   # 2. Worker
   # The service itself is not started automatically, it is simply called by the scheduler as a "task template".
   epic-awesome-gamer:
@@ -35,21 +52,3 @@ services:
 
     # Allocate enough shared memory for Playwright/Chrome to prevent crashes or slowdowns
     shm_size: '2gb'
-
-    # Ofelia's scheduling configuration, defined by labels
-    labels:
-      ofelia.enabled: "true"
-
-      # Define a timed task called 'run-epic-gamer'
-      # Use the `run` command, which means Ofelia will run `docker run` to create a new container to run this task
-      ofelia.job-run.epic-gamer.schedule: "${CRON_SCHEDULE:-1 */5 * * *}"
-      ofelia.job-run.epic-gamer.image: "ghcr.io/qin2dim/epic-awesome-gamer:latest"
-      ofelia.job-run.epic-gamer.command: "xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py"
-
-      ofelia.job-run.epic-gamer.pull: "true"                          # 每次运行前强制拉取最新镜像
-      ofelia.job-run.epic-gamer.timeout: "10m"                        # 设置 10 分钟超时，超时后 Ofelia 会强力杀死容器
-      ofelia.job-run.epic-gamer.no-overlap: "true"                    # 如果上一个任务还没跑完，不启动新的任务
-      ofelia.job-run.epic-gamer.save-logs: "true"                     # 保存任务容器的日志，路径在Ofelia容器内
-      ofelia.job-run.epic-gamer.rm: "true"                            # 任务结束后自动删除容器
-      ofelia.job-run.epic-gamer.env.from: "epic-awesome-gamer"        # 从 epic-awesome-gamer 服务继承环境变量
-      ofelia.job-run.epic-gamer.volume.from: "epic-awesome-gamer"     # 从 epic-awesome-gamer 服务继承数据卷挂载

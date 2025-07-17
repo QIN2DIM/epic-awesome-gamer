@@ -14,22 +14,15 @@ from hcaptcha_challenger.agent import AgentV
 from loguru import logger
 from playwright.async_api import expect, Page, Response
 
-from settings import EpicSettings, SCREENSHOTS_DIR
+from settings import SCREENSHOTS_DIR, settings
 
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
 
 
 class EpicAuthorization:
 
-    def __init__(self, page: Page, epic_settings: EpicSettings):
-        """
-
-        Args:
-            page: 启动 New Page 来做授权任务
-            epic_settings: 账号信息及人机挑战配置
-        """
+    def __init__(self, page: Page):
         self.page = page
-        self.epic_settings = epic_settings
 
         self._is_login_success_signal = asyncio.Queue()
         self._is_refresh_csrf_signal = asyncio.Queue()
@@ -75,7 +68,7 @@ class EpicAuthorization:
 
     async def _login(self) -> bool | None:
         # 尽可能早地初始化机器人
-        agent = AgentV(page=self.page, agent_config=self.epic_settings)
+        agent = AgentV(page=self.page, agent_config=settings)
 
         # {{< SIGN IN PAGE >}}
         logger.debug("Login with Email")
@@ -87,7 +80,7 @@ class EpicAuthorization:
             # 1. 使用电子邮件地址登录
             email_input = self.page.locator("#email")
             await email_input.clear()
-            await email_input.type(self.epic_settings.EPIC_EMAIL)
+            await email_input.type(settings.EPIC_EMAIL)
 
             # 2. 点击继续按钮
             await self.page.click("#continue")
@@ -95,7 +88,7 @@ class EpicAuthorization:
             # 3. 输入密码
             password_input = self.page.locator("#password")
             await password_input.clear()
-            await password_input.type(self.epic_settings.EPIC_PASSWORD.get_secret_value())
+            await password_input.type(settings.EPIC_PASSWORD.get_secret_value())
 
             # 4. 点击登录按钮，触发人机挑战值守监听器
             # Active hCaptcha checkbox
@@ -112,7 +105,7 @@ class EpicAuthorization:
             logger.success("Right account validation success")
             return True
         except Exception as err:
-            logger.critical(f"Failed to solve captcha - {err}")
+            logger.warning(f"{err}")
             sr = SCREENSHOTS_DIR.joinpath("authorization")
             sr.mkdir(parents=True, exist_ok=True)
             await self.page.screenshot(path=sr.joinpath(f"login-{int(time.time())}.png"))
