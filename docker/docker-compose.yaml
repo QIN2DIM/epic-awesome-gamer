@@ -53,7 +53,3 @@ services:
       ofelia.job-run.epic-gamer.rm: "true"                            # 任务结束后自动删除容器
       ofelia.job-run.epic-gamer.env.from: "epic-awesome-gamer"        # 从 epic-awesome-gamer 服务继承环境变量
       ofelia.job-run.epic-gamer.volume.from: "epic-awesome-gamer"     # 从 epic-awesome-gamer 服务继承数据卷挂载
-
-      # Override the default configuration
-      ofelia.job-run.epic-gamer.env: |
-        IS_SINGLE_TRIGGER=true
