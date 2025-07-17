@@ -51,3 +51,6 @@ class EpicSettings(AgentConfig):
     # APPRISE_SERVERS: str | None = Field(
     #     default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"
     # )
+
+
+settings = EpicSettings()

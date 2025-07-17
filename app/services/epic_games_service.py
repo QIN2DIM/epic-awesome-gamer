@@ -18,7 +18,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
 from models import OrderItem, Order
 from models import PromotionGame
-from settings import EpicSettings
+from settings import settings
 
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
 URL_LOGIN = (
@@ -82,12 +82,10 @@ def get_promotions() -> List[PromotionGame]:
 
 class EpicAgent:
 
-    def __init__(self, page: Page, epic_settings: EpicSettings | None = None):
+    def __init__(self, page: Page):
         self.page = page
 
-        self.epic_settings = epic_settings or EpicSettings()
-
-        self.epic_games = EpicGames(self.page, epic_settings=self.epic_settings)
+        self.epic_games = EpicGames(self.page)
 
         self._promotions: List[PromotionGame] = []
         self._ctx_cookies_is_available: bool = False
@@ -179,7 +177,7 @@ class EpicAgent:
         bundle_promotions = []
         for p in self._promotions:
             pj = json.dumps({"title": p.title, "url": p.url}, indent=2, ensure_ascii=False)
-            logger.debug(f"Discover promotion {pj}")
+            logger.debug(f"Discover promotion \n{pj}")
             if "/bundles/" in p.url:
                 bundle_promotions.append(p)
             else:
@@ -201,9 +199,8 @@ class EpicAgent:
 
 class EpicGames:
 
-    def __init__(self, page: Page, epic_settings: EpicSettings):
+    def __init__(self, page: Page):
         self.page = page
-        self.epic_settings = epic_settings
 
         self._promotions: List[PromotionGame] = []
 
@@ -343,7 +340,7 @@ class EpicGames:
         await self._empty_cart(self.page)
 
         # {{< Insert hCaptcha Challenger >}}
-        agent = AgentV(page=self.page, agent_config=self.epic_settings)
+        agent = AgentV(page=self.page, agent_config=settings)
 
         # --> Check out cart
         await self.page.click("//button//span[text()='Check Out']")

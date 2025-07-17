@@ -27,6 +27,7 @@ init_log(
 
 @logger.catch
 async def main():
+
     headless = "virtual" if "linux" in sys.platform else False
 
     async with AsyncCamoufox(

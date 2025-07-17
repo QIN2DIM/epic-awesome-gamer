@@ -25,8 +25,7 @@ async def add_games_to_cart(page: Page, urls: List[str] | None = None):
     Returns:
 
     """
-    epic_settings = EpicSettings()
-    agent = EpicAgent(page, epic_settings)
+    agent = EpicAgent(page)
 
     urls = urls or [
         "https://store.epicgames.com/en-US/p/bloompunk-2fd3fd",
@@ -48,12 +47,10 @@ async def collect_games(page: Page):
     Returns:
 
     """
-    epic_settings = EpicSettings()
-    agent = EpicAgent(page, epic_settings)
+    agent = EpicAgent(page)
     await agent.collect_epic_games()
 
 
 async def authorize(page: Page):
-    epic_settings = EpicSettings()
-    agent = EpicAuthorization(page, epic_settings)
+    agent = EpicAuthorization(page)
     await agent.invoke()
