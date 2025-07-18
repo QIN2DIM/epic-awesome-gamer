@@ -4,8 +4,6 @@ services:
   epic-awesome-gamer:
     image: ghcr.io/qin2dim/epic-awesome-gamer:latest
     restart: "no"
-    profiles:
-      - worker
     container_name: epic-awesome-gamer
     env_file:
       - .env
