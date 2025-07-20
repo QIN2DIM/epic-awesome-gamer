@@ -2,15 +2,16 @@ name: epic-awesome-gamer
 
 services:
   epic-awesome-gamer:
+#    build:
+#      context: ..
+#      dockerfile: docker/Dockerfile
     image: ghcr.io/qin2dim/epic-awesome-gamer:latest
     restart: "no"
     container_name: epic-awesome-gamer
     env_file:
       - .env
     volumes:
-      - "./volumes/user_data/:/app/app/user_data"
-      - "./volumes/logs/:/app/app/logs"
-      - "./volumes/runtime/:/app/app/runtime"
+      - "./volumes/:/app/app/volumes/"
     entrypoint: [ "/usr/bin/tini", "--" ]
     command: xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py
 
