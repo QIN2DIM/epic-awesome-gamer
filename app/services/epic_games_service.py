@@ -18,7 +18,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
 from models import OrderItem, Order
 from models import PromotionGame
-from settings import settings
+from settings import settings, RUNTIME_DIR
 
 URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
 URL_LOGIN = (
@@ -59,6 +59,11 @@ def get_promotions() -> List[PromotionGame]:
         logger.error("Failed to get promotions", err=err)
         return []
 
+    with suppress(Exception):
+        cache_key = RUNTIME_DIR.joinpath("promotions.json")
+        cache_key.parent.mkdir(parents=True, exist_ok=True)
+        cache_key.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+
     # Get store promotion data and <this week free> games
     for e in data["data"]["Catalog"]["searchStore"]["elements"]:
 
@@ -68,12 +73,11 @@ def get_promotions() -> List[PromotionGame]:
 
         # package free games
         try:
-            query = e["catalogNs"]["mappings"][0]["pageSlug"]
-            e["url"] = f"{URL_PRODUCT_PAGE}{query}"
+            e["url"] = f"{URL_PRODUCT_PAGE.rstrip('/')}/{e['urlSlug']}"
         except TypeError:
-            e["url"] = f"{URL_PRODUCT_BUNDLES}{e['productSlug']}"
+            e["url"] = f"{URL_PRODUCT_BUNDLES.rstrip('/')}/{e['productSlug']}"
         except IndexError:
-            e["url"] = f"{URL_PRODUCT_PAGE}{e['productSlug']}"
+            e["url"] = f"{URL_PRODUCT_PAGE.rstrip('/')}/{e['productSlug']}"
 
         promotions.append(PromotionGame(**e))
 

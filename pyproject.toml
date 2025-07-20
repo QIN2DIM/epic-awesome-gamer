@@ -3,8 +3,9 @@ name = "epic-awesome-gamer"
 version = "0.4.1"
 dependencies = [
     "apscheduler>=3.11.0",
-    "hcaptcha-challenger[camoufox]>=0.18.9",
     "pydantic-settings>=2.8.1",
+    "celery[redis]>=5.4.0",
+    "hcaptcha-challenger[camoufox]>=0.18.10",
 ]
 requires-python = ">=3.12"
 authors = [
@@ -45,6 +46,7 @@ skip-string-normalization = true
 [dependency-groups]
 dev = [
     "black>=25.1.0",
+    "celery-types>=0.23.0",
     "pytest>=8.3.5",
     "ruff>=0.12.3",
 ]

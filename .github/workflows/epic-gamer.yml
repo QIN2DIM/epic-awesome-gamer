@@ -1,0 +1,243 @@
+name: Epic Awesome Gamer
+
+on:
+  # 手动触发
+#   workflow_dispatch:
+
+  # 定时触发 - 每天15:55 (UTC)运行一次
+#  schedule:
+#    - cron: '55 15 * * *'
+
+jobs:
+  epic-gamer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20  # 增加超时时间以应对镜像拉取
+
+    steps:
+      # 检查是否为私有仓库
+      - name: Check repository visibility
+        run: |
+          if [[ "${{ github.event.repository.private }}" != "true" ]]; then
+            echo "⚠️ This workflow must be run in a private repository for security reasons."
+            echo "Please fork this repository and make it private before running this workflow."
+            exit 0
+          fi
+          echo "✅ Running in private repository"
+
+      # 设置 Docker Buildx（用于缓存优化）
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 检出代码 - 只检出当前分支，避免复杂的分支操作
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # 只获取最新提交，加快检出速度
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 切换到 data-persistence 分支
+      - name: Switch to data-persistence branch
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # 获取远程分支信息
+          git fetch origin --prune
+          
+          # 检查远程分支是否存在并切换
+          if git ls-remote --exit-code --heads origin data-persistence >/dev/null 2>&1; then
+            echo "Switching to existing data-persistence branch..."
+            git checkout -B data-persistence origin/data-persistence
+          else
+            echo "Creating new data-persistence branch..."
+            git checkout -b data-persistence
+            
+            # 创建初始目录结构
+            mkdir -p volumes/{user_data,logs,runtime}
+            touch volumes/user_data/.gitkeep
+            touch volumes/logs/.gitkeep  
+            touch volumes/runtime/.gitkeep
+            
+            git add volumes/
+            git commit -m "Initialize persistence directories" || echo "Nothing to commit"
+            git push -u origin data-persistence
+          fi
+
+      # 准备持久化目录和权限
+      - name: Prepare volumes with correct permissions
+        run: |
+          # 创建目录结构
+          mkdir -p ${{ github.workspace }}/volumes/{user_data,logs,runtime}
+          
+          # 设置正确的权限（解决权限被拒绝问题）
+          sudo chown -R $(id -u):$(id -g) ${{ github.workspace }}/volumes
+          chmod -R 755 ${{ github.workspace }}/volumes
+          
+          # 为了确保容器内的权限正确，设置更宽松的权限
+          chmod -R 777 ${{ github.workspace }}/volumes
+          
+          echo "Volume directories prepared with permissions:"
+          ls -la ${{ github.workspace }}/volumes/
+          find ${{ github.workspace }}/volumes -type d -exec ls -ld {} \;
+
+      # Docker 镜像缓存优化
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
+      # 预拉取和缓存 Docker 镜像
+      - name: Pull and cache Docker image
+        run: |
+          echo "Pulling Epic Awesome Gamer image..."
+          
+          # 尝试从缓存加载镜像
+          if docker load -i /tmp/epic-gamer-image.tar 2>/dev/null; then
+            echo "Loaded image from cache"
+          else
+            echo "Pulling fresh image..."
+            docker pull ghcr.io/qin2dim/epic-awesome-gamer:latest
+            
+            # 保存镜像到缓存
+            mkdir -p /tmp
+            docker save ghcr.io/qin2dim/epic-awesome-gamer:latest -o /tmp/epic-gamer-image.tar
+          fi
+          
+          # 显示镜像信息
+          docker images | grep epic-awesome-gamer
+
+      # 运行容器（完全对应 docker-compose 配置）
+      - name: Run Epic Awesome Gamer
+        run: |
+          echo "Starting Epic Awesome Gamer container..."
+          echo "Container configuration:"
+          echo "  Memory limit: 4g"
+          echo "  Shared memory: 2gb"
+          echo "  Volumes mounted: user_data, logs, runtime"
+          
+          # 运行容器，配置与 docker-compose.yaml 完全一致
+          docker run \
+            --rm \
+            --name epic-awesome-gamer \
+            --memory="4g" \
+            --memory-swap="4g" \
+            --shm-size="2gb" \
+            -e EPIC_EMAIL="${{ secrets.EPIC_EMAIL }}" \
+            -e EPIC_PASSWORD="${{ secrets.EPIC_PASSWORD }}" \
+            -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
+            -v "${{ github.workspace }}/volumes/user_data:/app/app/user_data" \
+            -v "${{ github.workspace }}/volumes/logs:/app/app/logs" \
+            -v "${{ github.workspace }}/volumes/runtime:/app/app/runtime" \
+            --entrypoint "/usr/bin/tini" \
+            ghcr.io/qin2dim/epic-awesome-gamer:latest \
+            -- xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py
+          
+          echo "Container execution completed"
+
+      # 检查生成的文件
+      - name: Check generated files
+        if: always()
+        run: |
+          echo "Checking volumes content after container run:"
+          find ${{ github.workspace }}/volumes -type f -name "*" -exec ls -la {} \; || echo "No files found"
+          
+          echo "Disk usage:"
+          du -sh ${{ github.workspace }}/volumes/* 2>/dev/null || echo "No volume data"
+
+      # 修复文件权限问题并提交
+      - name: Fix permissions and commit persistence data
+        if: always()
+        run: |
+          # 确保我们在正确的分支上
+          git checkout data-persistence
+          
+          # 修复可能的权限问题
+          sudo chown -R $(id -u):$(id -g) ${{ github.workspace }}/volumes || true
+          
+          # 显示当前状态
+          echo "Current git status:"
+          git status
+          
+          echo "Files in volumes:"
+          find volumes -type f -name "*" 2>/dev/null || echo "No files in volumes"
+          
+          # 添加所有更改
+          git add volumes/ || true
+          
+          # 检查是否有更改需要提交
+          if git diff --staged --quiet; then
+            echo "✅ No changes to commit - volumes may be empty or unchanged"
+          else
+            # 生成详细的提交信息
+            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            CHANGED_FILES=$(git diff --staged --name-only | wc -l)
+            
+            echo "📝 Committing $CHANGED_FILES changed files..."
+            
+            git commit -m "🔄 Update persistence data - $TIMESTAMP" \
+              -m "📊 Workflow run: ${{ github.run_id }}" \
+              -m "🚀 Triggered by: ${{ github.event_name }}" \
+              -m "📁 Files changed: $CHANGED_FILES" || {
+              echo "⚠️ Commit failed, but continuing..."
+            }
+            
+            # 推送更改，添加重试机制
+            echo "📤 Pushing changes to remote..."
+            for i in {1..3}; do
+              if git push origin data-persistence; then
+                echo "✅ Successfully pushed changes (attempt $i)"
+                break
+              else
+                echo "❌ Push attempt $i failed, retrying in 5 seconds..."
+                sleep 5
+                if [[ $i -eq 3 ]]; then
+                  echo "⚠️ All push attempts failed"
+                fi
+              fi
+            done
+          fi
+
+      # 缓存镜像以供下次使用
+      - name: Cache Docker image
+        if: always()
+        run: |
+          # 保存镜像缓存
+          if [[ -f /tmp/epic-gamer-image.tar ]]; then
+            echo "Image cache already exists"
+          else
+            echo "Creating image cache for next run..."
+            docker save ghcr.io/qin2dim/epic-awesome-gamer:latest -o /tmp/epic-gamer-image.tar
+          fi
+
+      # 上传日志作为 Artifacts（备份用途）
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: epic-gamer-logs-${{ github.run_id }}
+          path: volumes/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # 上传运行时数据作为 Artifacts（备份用途）
+      - name: Upload runtime data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: epic-gamer-runtime-${{ github.run_id }}
+          path: volumes/runtime/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # 上传用户数据作为 Artifacts（备份用途）
+      - name: Upload user data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: epic-gamer-userdata-${{ github.run_id }}
+          path: volumes/user_data/
+          retention-days: 7
+          if-no-files-found: ignore

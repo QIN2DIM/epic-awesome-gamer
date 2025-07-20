@@ -136,4 +136,4 @@ tests/.env.example
 tmp/
 docker/volumes
 user_data
-app/runtime
+app/volumes
