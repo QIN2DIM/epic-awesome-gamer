@@ -101,7 +101,7 @@ async def deploy():
     This function runs the collection process immediately and optionally
     sets up a scheduled task for automatic recurring execution.
     """
-    headless = "virtual" if sys.platform == "linux" else False
+    headless = True
 
     # Log current configuration for debugging
     sj = settings.model_dump(mode="json")
