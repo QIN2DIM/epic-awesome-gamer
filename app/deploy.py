@@ -13,6 +13,7 @@ using browser automation and scheduling capabilities.
 import asyncio
 import json
 import signal
+import sys
 from contextlib import suppress
 from datetime import datetime
 
@@ -100,7 +101,7 @@ async def deploy():
     This function runs the collection process immediately and optionally
     sets up a scheduled task for automatic recurring execution.
     """
-    headless = True
+    headless = "virtual" if sys.platform == "linux" else False
 
     # Log current configuration for debugging
     sj = settings.model_dump(mode="json")
