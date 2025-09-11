@@ -5,8 +5,8 @@ on:
   workflow_dispatch:
 
   # Scheduled trigger - run once daily at 15:55 (UTC)
-#  schedule:
-#    - cron: '55 15 * * *'
+  schedule:
+    - cron: '55 15 * * *'
 
 jobs:
   epic-gamer:
