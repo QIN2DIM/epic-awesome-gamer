@@ -52,20 +52,20 @@
 name: Epic Awesome Gamer
 
 on:
-  # 手动触发
+  # Manual trigger
   workflow_dispatch:
-  
-  # 定时触发 - 每天15:55 (UTC)运行一次
-  schedule:
-    - cron: '55 15 * * *'
+
+  # Scheduled trigger - run once daily at 15:55 (UTC)
+#  schedule:
+#    - cron: '55 15 * * *'
 
 jobs:
   epic-gamer:
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # 15分钟超时限制
-    
+    timeout-minutes: 20
+
     steps:
-      # 检查是否为私有仓库
+      # Check if repository is private
       - name: Check repository visibility
         run: |
           if [[ "${{ github.event.repository.private }}" != "true" ]]; then
@@ -74,112 +74,156 @@ jobs:
             exit 0
           fi
           echo "✅ Running in private repository"
-      
-      # 检出代码
+
+      # Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整历史，便于分支操作
-          
-      # 创建或切换到 data-persistence 分支
-      - name: Setup data-persistence branch
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Switch to data-persistence branch
+      - name: Switch to data-persistence branch
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
-          # 检查远程分支是否存在
-          if git ls-remote --heads origin data-persistence | grep -q data-persistence; then
-            echo "data-persistence branch exists, checking out..."
-            git checkout data-persistence
+          git fetch origin --prune
+          
+          if git ls-remote --exit-code --heads origin data-persistence >/dev/null 2>&1; then
+            echo "Switching to existing data-persistence branch..."
+            git checkout -B data-persistence origin/data-persistence
           else
             echo "Creating new data-persistence branch..."
             git checkout -b data-persistence
-            
-            # 创建必要的目录结构
-            mkdir -p volumes/user_data
-            mkdir -p volumes/logs
-            mkdir -p volumes/runtime
-            
-            # 创建 .gitkeep 文件以保持目录结构
-            touch volumes/user_data/.gitkeep
-            touch volumes/logs/.gitkeep
-            touch volumes/runtime/.gitkeep
-            
-            # 提交初始结构
-            git add volumes/
-            git commit -m "Initialize persistence directories" || echo "No changes to commit"
             git push -u origin data-persistence
           fi
-      
-      # 准备持久化目录
-      - name: Prepare volumes
+
+      # Clone epic-awesome-gamer source code
+      - name: Clone epic-awesome-gamer repository
         run: |
-          # 确保目录存在且有正确的权限
-          mkdir -p ${{ github.workspace }}/volumes/user_data
-          mkdir -p ${{ github.workspace }}/volumes/logs
-          mkdir -p ${{ github.workspace }}/volumes/runtime
-          chmod -R 777 ${{ github.workspace }}/volumes
-          
-      # 运行容器
+          echo "Cloning epic-awesome-gamer source code..."
+          git clone https://github.com/QIN2DIM/epic-awesome-gamer.git epic-gamer-src
+          echo "✅ Source code cloned successfully"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: '0.8.0'
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "./epic-gamer-src/pyproject.toml"
+
+      # Install dependencies
+      - name: Install dependencies
+        working-directory: ./epic-gamer-src
+        run: uv sync
+
+      # Install system dependencies for browser automation
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      # Install Playwright browsers with retry logic
+      - name: Install Playwright browsers
+        working-directory: ./epic-gamer-src
+        run: |
+          for i in {1..3}; do
+            if uv run camoufox fetch; then
+              echo "✅ Camoufox fetch successful (attempt $i)"
+              break
+            else
+              echo "❌ Camoufox fetch attempt $i failed"
+              if [[ $i -lt 3 ]]; then
+                echo "⏳ Waiting 5 seconds before retry..."
+                sleep 5
+              else
+                echo "⚠️ All camoufox fetch attempts failed"
+                exit 1
+              fi
+            fi
+          done
+
+      # Run Epic Awesome Gamer
       - name: Run Epic Awesome Gamer
+        working-directory: ./epic-gamer-src
+        env:
+          EPIC_EMAIL: ${{ secrets.EPIC_EMAIL }}
+          EPIC_PASSWORD: ${{ secrets.EPIC_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ENABLE_APSCHEDULER: false
         run: |
-          docker run \
-            --rm \
-            --name epic-awesome-gamer \
-            --memory="4g" \
-            --memory-swap="4g" \
-            --shm-size="2gb" \
-            -e EPIC_EMAIL="${{ secrets.EPIC_EMAIL }}" \
-            -e EPIC_PASSWORD="${{ secrets.EPIC_PASSWORD }}" \
-            -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            -v "${{ github.workspace }}/volumes/user_data:/app/app/user_data" \
-            -v "${{ github.workspace }}/volumes/logs:/app/app/logs" \
-            -v "${{ github.workspace }}/volumes/runtime:/app/app/runtime" \
-            --entrypoint "/usr/bin/tini" \
-            ghcr.io/qin2dim/epic-awesome-gamer:latest \
-            -- xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py
-      
-      # 提交持久化数据更新
-      - name: Commit and push persistence data
-        if: always()  # 即使任务失败也要保存数据
+          echo "Starting Epic Awesome Gamer..."
+          xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py
+          echo "Execution completed"
+
+      # Copy generated volumes to current repository
+      - name: Copy generated volumes to current repository
+        if: always()
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          
-          # 添加所有更改（包括日志）
-          git add volumes/ || true
-          
-          # 检查是否有更改
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
+          echo "Copying generated volumes from source to current repository..."
+          mkdir -p app/volumes
+          if [ -d "epic-gamer-src/app/volumes" ]; then
+            cp -r epic-gamer-src/app/volumes/* app/volumes/ 2>/dev/null || echo "No volumes content to copy"
+            echo "✅ Volumes copied successfully"
           else
-            # 生成提交信息
-            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-            git commit -m "Update persistence data - $TIMESTAMP" \
-              -m "Workflow run: ${{ github.run_id }}" \
-              -m "Triggered by: ${{ github.event_name }}"
-            
-            # 推送更改
-            git push origin data-persistence
+            echo "⚠️ No volumes directory found in source"
           fi
-          
-      # 上传日志作为 Artifacts（备份用途）
-      - name: Upload logs
+
+      # Check generated files
+      - name: Check generated files
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: epic-gamer-logs-${{ github.run_id }}
-          path: volumes/logs/
-          retention-days: 7
-          
-      # 上传运行时数据作为 Artifacts（备份用途）
-      - name: Upload runtime data
+        run: |
+          echo "Checking app volumes content after execution:"
+          find app/volumes -type f -name "*" -exec ls -la {} \; 2>/dev/null || echo "No files found in app/volumes"
+
+      # Commit and push app/volumes data
+      - name: Commit and push app volumes data
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: epic-gamer-runtime-${{ github.run_id }}
-          path: volumes/runtime/
-          retention-days: 7
+        run: |
+          git checkout data-persistence
+          
+          echo "Current git status:"
+          git status
+          
+          echo "Files in app/volumes:"
+          find app/volumes -type f -name "*" 2>/dev/null || echo "No files in app/volumes"
+          
+          git add app/volumes/ || true
+          
+          if git diff --staged --quiet; then
+            echo "✅ No changes to commit - volumes may be empty or unchanged"
+          else
+            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            CHANGED_FILES=$(git diff --staged --name-only | wc -l)
+          
+            echo "📝 Committing $CHANGED_FILES changed files..."
+          
+            git commit -m "🔄 Update persistence data - $TIMESTAMP" \
+              -m "📊 Workflow run: ${{ github.run_id }}" \
+              -m "🚀 Triggered by: ${{ github.event_name }}" \
+              -m "📁 Files changed: $CHANGED_FILES" || {
+              echo "⚠️ Commit failed, but continuing..."
+            }
+          
+            echo "📤 Pushing changes to remote..."
+            for i in {1..3}; do
+              if git push origin data-persistence; then
+                echo "✅ Successfully pushed changes (attempt $i)"
+                break
+              else
+                echo "❌ Push attempt $i failed, retrying in 5 seconds..."
+                sleep 5
+                if [[ $i -eq 3 ]]; then
+                  echo "⚠️ All push attempts failed"
+                fi
+              fi
+            done
+          fi
 ```
 
 </details>
