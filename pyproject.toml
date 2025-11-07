@@ -7,7 +7,7 @@ dependencies = [
     "celery[redis]>=5.4.0",
     "hcaptcha-challenger[camoufox]>=0.18.10",
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.12,<=3.13"
 authors = [
     { name = "QIN2DIM", email = "yaoqinse@gmail.com" }
 ]
