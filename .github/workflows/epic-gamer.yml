@@ -1,10 +1,7 @@
 name: Epic Awesome Gamer
 
 on:
-  # Manual trigger
   workflow_dispatch:
-
-  # Scheduled trigger - run once daily at 15:55 (UTC)
   schedule:
     - cron: '31 20 * * *'
 
@@ -16,7 +13,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Restore volumes cache
+      - name: Cache data
         uses: actions/cache@v4
         with:
           path: app/volumes
