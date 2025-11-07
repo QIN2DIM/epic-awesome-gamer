@@ -5,55 +5,24 @@ on:
   workflow_dispatch:
 
   # Scheduled trigger - run once daily at 15:55 (UTC)
-#  schedule:
-#    - cron: '55 15 * * *'
+  schedule:
+    - cron: '31 20 * * *'
 
 jobs:
   epic-gamer:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     steps:
-      # Check if repository is private
-      - name: Check repository visibility
-        run: |
-          if [[ "${{ github.event.repository.private }}" != "true" ]]; then
-            echo "⚠️ This workflow must be run in a private repository for security reasons."
-            echo "Please fork this repository and make it private before running this workflow."
-            exit 0
-          fi
-          echo "✅ Running in private repository"
-
-      # Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Restore volumes cache
+        uses: actions/cache@v4
         with:
-          fetch-depth: 1
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Switch to data-persistence branch
-      - name: Switch to data-persistence branch
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          
-          git fetch origin --prune
-          
-          if git ls-remote --exit-code --heads origin data-persistence >/dev/null 2>&1; then
-            echo "Switching to existing data-persistence branch..."
-            git checkout -B data-persistence origin/data-persistence
-          else
-            echo "Creating new data-persistence branch..."
-            git checkout -b data-persistence
-            git push -u origin data-persistence
-          fi
-
-      # Clone epic-awesome-gamer source code
-      - name: Clone epic-awesome-gamer repository
-        run: |
-          echo "Cloning epic-awesome-gamer source code..."
-          git clone https://github.com/QIN2DIM/epic-awesome-gamer.git epic-gamer-src
-          echo "✅ Source code cloned successfully"
+          path: app/volumes
+          key: data-${{ github.run_id }}
+          restore-keys: |
+            data-
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -64,21 +33,16 @@ jobs:
       - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
-          python-version-file: "./epic-gamer-src/pyproject.toml"
+          python-version-file: "./pyproject.toml"
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libxml2-dev libxslt-dev
+          uv sync
 
-      # Install dependencies
-      - name: Install dependencies
-        working-directory: ./epic-gamer-src
-        run: uv sync
-
-      # Install Playwright browsers with retry logic
       - name: Install Playwright browsers
-        working-directory: ./epic-gamer-src
+        working-directory: ./
         run: |
           for i in {1..3}; do
             if uv run camoufox fetch; then
@@ -96,9 +60,8 @@ jobs:
             fi
           done
 
-      # Run Epic Awesome Gamer
       - name: Run Epic Awesome Gamer
-        working-directory: ./epic-gamer-src
+        working-directory: ./
         env:
           EPIC_EMAIL: ${{ secrets.EPIC_EMAIL }}
           EPIC_PASSWORD: ${{ secrets.EPIC_PASSWORD }}
@@ -108,67 +71,3 @@ jobs:
           echo "Starting Epic Awesome Gamer..."
           xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py
           echo "Execution completed"
-
-      # Copy generated volumes to current repository
-      - name: Copy generated volumes to current repository
-        if: always()
-        run: |
-          echo "Copying generated volumes from source to current repository..."
-          mkdir -p app/volumes
-          if [ -d "epic-gamer-src/app/volumes" ]; then
-            cp -r epic-gamer-src/app/volumes/* app/volumes/ 2>/dev/null || echo "No volumes content to copy"
-            echo "✅ Volumes copied successfully"
-          else
-            echo "⚠️ No volumes directory found in source"
-          fi
-
-      # Check generated files
-      - name: Check generated files
-        if: always()
-        run: |
-          echo "Checking app volumes content after execution:"
-          find app/volumes -type f -name "*" -exec ls -la {} \; 2>/dev/null || echo "No files found in app/volumes"
-
-      # Commit and push app/volumes data
-      - name: Commit and push app volumes data
-        if: always()
-        run: |
-          git checkout data-persistence
-          
-          echo "Current git status:"
-          git status
-          
-          echo "Files in app/volumes:"
-          find app/volumes -type f -name "*" 2>/dev/null || echo "No files in app/volumes"
-          
-          git add app/volumes/ || true
-          
-          if git diff --staged --quiet; then
-            echo "✅ No changes to commit - volumes may be empty or unchanged"
-          else
-            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-            CHANGED_FILES=$(git diff --staged --name-only | wc -l)
-          
-            echo "📝 Committing $CHANGED_FILES changed files..."
-          
-            git commit -m "🔄 Update persistence data - $TIMESTAMP" \
-              -m "📊 Workflow run: ${{ github.run_id }}" \
-              -m "🚀 Triggered by: ${{ github.event_name }}" \
-              -m "📁 Files changed: $CHANGED_FILES" || {
-              echo "⚠️ Commit failed, but continuing..."
-            }
-          
-            echo "📤 Pushing changes to remote..."
-            for i in {1..3}; do
-              if git push origin data-persistence; then
-                echo "✅ Successfully pushed changes (attempt $i)"
-                break
-              else
-                echo "❌ Push attempt $i failed, retrying in 5 seconds..."
-                sleep 5
-                if [[ $i -eq 3 ]]; then
-                  echo "⚠️ All push attempts failed"
-                fi
-              fi
-            done
-          fi
