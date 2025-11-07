@@ -52,133 +52,78 @@
 name: Epic Awesome Gamer
 
 on:
-  # 手动触发
   workflow_dispatch:
-  
-  # 定时触发 - 每天15:55 (UTC)运行一次
   schedule:
-    - cron: '55 15 * * *'
+    - cron: '31 20 * * *'
 
 jobs:
   epic-gamer:
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # 15分钟超时限制
-    
+    timeout-minutes: 20
     steps:
-      # 检查是否为私有仓库
-      - name: Check repository visibility
-        run: |
-          if [[ "${{ github.event.repository.private }}" != "true" ]]; then
-            echo "⚠️ This workflow must be run in a private repository for security reasons."
-            echo "Please fork this repository and make it private before running this workflow."
-            exit 0
-          fi
-          echo "✅ Running in private repository"
-      
-      # 检出代码
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Cache data
+        uses: actions/cache@v4
         with:
-          fetch-depth: 0  # 获取完整历史，便于分支操作
-          
-      # 创建或切换到 data-persistence 分支
-      - name: Setup data-persistence branch
+          path: app/volumes/user_data
+          key: data-${{ github.run_id }}
+          restore-keys: |
+            data-
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: '0.8.0'
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "./pyproject.toml"
+
+      - name: Install dependencies
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          
-          # 检查远程分支是否存在
-          if git ls-remote --heads origin data-persistence | grep -q data-persistence; then
-            echo "data-persistence branch exists, checking out..."
-            git checkout data-persistence
-          else
-            echo "Creating new data-persistence branch..."
-            git checkout -b data-persistence
-            
-            # 创建必要的目录结构
-            mkdir -p volumes/user_data
-            mkdir -p volumes/logs
-            mkdir -p volumes/runtime
-            
-            # 创建 .gitkeep 文件以保持目录结构
-            touch volumes/user_data/.gitkeep
-            touch volumes/logs/.gitkeep
-            touch volumes/runtime/.gitkeep
-            
-            # 提交初始结构
-            git add volumes/
-            git commit -m "Initialize persistence directories" || echo "No changes to commit"
-            git push -u origin data-persistence
-          fi
-      
-      # 准备持久化目录
-      - name: Prepare volumes
+          sudo apt-get update
+          sudo apt-get install -y xvfb libxml2-dev libxslt-dev
+          uv sync
+
+      - name: Install Playwright browsers
         run: |
-          # 确保目录存在且有正确的权限
-          mkdir -p ${{ github.workspace }}/volumes/user_data
-          mkdir -p ${{ github.workspace }}/volumes/logs
-          mkdir -p ${{ github.workspace }}/volumes/runtime
-          chmod -R 777 ${{ github.workspace }}/volumes
-          
-      # 运行容器
+          for i in {1..3}; do
+            if uv run camoufox fetch; then
+              echo "✅ Camoufox fetch successful (attempt $i)"
+              break
+            else
+              echo "❌ Camoufox fetch attempt $i failed"
+              if [[ $i -lt 3 ]]; then
+                echo "⏳ Waiting 5 seconds before retry..."
+                sleep 5
+              else
+                echo "⚠️ All camoufox fetch attempts failed"
+                exit 1
+              fi
+            fi
+          done
+
       - name: Run Epic Awesome Gamer
+        env:
+          EPIC_EMAIL: ${{ secrets.EPIC_EMAIL }}
+          EPIC_PASSWORD: ${{ secrets.EPIC_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ENABLE_APSCHEDULER: false
         run: |
-          docker run \
-            --rm \
-            --name epic-awesome-gamer \
-            --memory="4g" \
-            --memory-swap="4g" \
-            --shm-size="2gb" \
-            -e EPIC_EMAIL="${{ secrets.EPIC_EMAIL }}" \
-            -e EPIC_PASSWORD="${{ secrets.EPIC_PASSWORD }}" \
-            -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            -v "${{ github.workspace }}/volumes/user_data:/app/app/user_data" \
-            -v "${{ github.workspace }}/volumes/logs:/app/app/logs" \
-            -v "${{ github.workspace }}/volumes/runtime:/app/app/runtime" \
-            --entrypoint "/usr/bin/tini" \
-            ghcr.io/qin2dim/epic-awesome-gamer:latest \
-            -- xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py
-      
-      # 提交持久化数据更新
-      - name: Commit and push persistence data
-        if: always()  # 即使任务失败也要保存数据
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          
-          # 添加所有更改（包括日志）
-          git add volumes/ || true
-          
-          # 检查是否有更改
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            # 生成提交信息
-            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-            git commit -m "Update persistence data - $TIMESTAMP" \
-              -m "Workflow run: ${{ github.run_id }}" \
-              -m "Triggered by: ${{ github.event_name }}"
-            
-            # 推送更改
-            git push origin data-persistence
-          fi
-          
-      # 上传日志作为 Artifacts（备份用途）
+          echo "Starting Epic Awesome Gamer..."
+          xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py
+          echo "Execution completed"
+
       - name: Upload logs
-        if: always()
+        if: ${{ github.event.repository.private }}
         uses: actions/upload-artifact@v4
         with:
-          name: epic-gamer-logs-${{ github.run_id }}
-          path: volumes/logs/
-          retention-days: 7
-          
-      # 上传运行时数据作为 Artifacts（备份用途）
-      - name: Upload runtime data
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: epic-gamer-runtime-${{ github.run_id }}
-          path: volumes/runtime/
+          name: logs-${{ github.run_id }}
+          path: app/volumes/
           retention-days: 7
 ```
 
