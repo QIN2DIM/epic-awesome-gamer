@@ -66,3 +66,11 @@ jobs:
           echo "Starting Epic Awesome Gamer..."
           xvfb-run --auto-servernum --server-num=1 --server-args='-screen 0, 1920x1080x24' uv run app/deploy.py
           echo "Execution completed"
+
+      - name: Upload logs
+        if: ${{ github.event.repository.private }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.run_id }}
+          path: app/volumes/
+          retention-days: 7
