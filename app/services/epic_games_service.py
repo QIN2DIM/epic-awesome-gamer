@@ -20,17 +20,17 @@ from models import OrderItem, Order
 from models import PromotionGame
 from settings import settings, RUNTIME_DIR
 
-URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
+URL_CLAIM = "https://store.epicgames.com/zh-CN/free-games"
 URL_LOGIN = (
-    f"https://www.epicgames.com/id/login?lang=en-US&noHostRedirect=true&redirectUrl={URL_CLAIM}"
+    f"https://www.epicgames.com/id/login?lang=zh-CN&noHostRedirect=true&redirectUrl={URL_CLAIM}"
 )
-URL_CART = "https://store.epicgames.com/en-US/cart"
-URL_CART_SUCCESS = "https://store.epicgames.com/en-US/cart/success"
+URL_CART = "https://store.epicgames.com/zh-CN/cart"
+URL_CART_SUCCESS = "https://store.epicgames.com/zh-CN/cart/success"
 
 
 URL_PROMOTIONS = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions"
-URL_PRODUCT_PAGE = "https://store.epicgames.com/en-US/p/"
-URL_PRODUCT_BUNDLES = "https://store.epicgames.com/en-US/bundles/"
+URL_PRODUCT_PAGE = "https://store.epicgames.com/zh-CN/p/"
+URL_PRODUCT_BUNDLES = "https://store.epicgames.com/zh-CN/bundles/"
 
 
 def get_promotions() -> List[PromotionGame]:
@@ -300,8 +300,8 @@ class EpicGames:
 
     async def _empty_cart(self, page: Page, wait_rerender: int = 30) -> bool | None:
         """
-        URL_CART = "https://store.epicgames.com/en-US/cart"
-        URL_WISHLIST = "https://store.epicgames.com/en-US/wishlist"
+        URL_CART = "https://store.epicgames.com/zh-CN/cart"
+        URL_WISHLIST = "https://store.epicgames.com/zh-CN/wishlist"
         //span[text()='Your Cart is empty.']
 
         Args:
