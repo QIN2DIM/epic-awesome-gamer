@@ -20,7 +20,7 @@ from models import OrderItem, Order
 from models import PromotionGame
 from settings import settings, RUNTIME_DIR
 
-URL_CLAIM = "https://store.epicgames.com/en-US/free-games"
+URL_CLAIM = "https://store.epicgames.com/zh-CN/free-games"
 URL_LOGIN = (
     f"https://www.epicgames.com/id/login?lang=en-US&noHostRedirect=true&redirectUrl={URL_CLAIM}"
 )
