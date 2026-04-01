@@ -9,7 +9,8 @@ import os
 from pathlib import Path
 
 from hcaptcha_challenger.agent import AgentConfig
-from pydantic import Field, SecretStr
+from loguru import logger
+from pydantic import Field, PrivateAttr, SecretStr
 from pydantic_settings import SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).parent
@@ -26,6 +27,9 @@ HCAPTCHA_DIR = VOLUMES_DIR.joinpath("hcaptcha")
 
 class EpicSettings(AgentConfig):
     model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore")
+
+    _gemini_api_keys: list[str] = PrivateAttr(default_factory=list)
+    _gemini_api_key_index: int = PrivateAttr(default=0)
 
     EPIC_EMAIL: str = Field(
         default_factory=lambda: os.getenv("EPIC_EMAIL"),
@@ -74,6 +78,30 @@ class EpicSettings(AgentConfig):
     # APPRISE_SERVERS: str | None = Field(
     #     default="", description="System notification by Apprise\nhttps://github.com/caronc/apprise"
     # )
+
+    def model_post_init(self, __context):
+        super_post_init = getattr(super(), "model_post_init", None)
+        if callable(super_post_init):
+            super_post_init(__context)
+
+        raw_keys = os.getenv("GEMINI_API_KEY", "")
+        self._gemini_api_keys = [key.strip() for key in raw_keys.split(",") if key.strip()]
+
+    def __getattribute__(self, name: str):
+        if name == "GEMINI_API_KEY":
+            private_attrs = object.__getattribute__(self, "__pydantic_private__")
+            gemini_api_keys = private_attrs.get("_gemini_api_keys", [])
+            if gemini_api_keys:
+                index = private_attrs.get("_gemini_api_key_index", 0)
+                key = gemini_api_keys[index % len(gemini_api_keys)]
+                private_attrs["_gemini_api_key_index"] = (index + 1) % len(gemini_api_keys)
+                logger.debug(
+                    f"Using GEMINI_API_KEY #{(index % len(gemini_api_keys)) + 1}/{len(gemini_api_keys)} "
+                    f"(suffix=***{key[-4:]})"
+                )
+                return key
+
+        return super().__getattribute__(name)
 
     @property
     def user_data_dir(self) -> Path:

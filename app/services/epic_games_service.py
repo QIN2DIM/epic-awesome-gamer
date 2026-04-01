@@ -272,25 +272,16 @@ class EpicGames:
                 logger.success(f"Already in the library - {url=}")
                 continue
 
-            # 检查是否为免费游戏
-            purchase_btn = page.locator("//aside//button[@data-testid='purchase-cta-button']")
-            purchase_status = await purchase_btn.text_content()
-            if "Buy Now" in purchase_status or "Get" not in purchase_status:
-                logger.warning(f"Not available for purchase - {url=}")
-                continue
+            add_to_cart_btn = page.locator(
+                "//aside//button[@data-testid='add-to-cart-cta-button-pdp-sidebar']"
+            )
 
-            # 将免费游戏添加至购物车
-            add_to_cart_btn = page.locator("//aside//button[@data-testid='add-to-cart-cta-button']")
             try:
-                text = await add_to_cart_btn.text_content()
-                if text == "View In Cart":
-                    logger.debug(f"🙌 Already in the shopping cart - {url=}")
-                    has_pending_free_promotion = True
-                elif text == "Add To Cart":
-                    await add_to_cart_btn.click()
-                    logger.debug(f"🙌 Add to the shopping cart - {url=}")
-                    await expect(add_to_cart_btn).to_have_text("View In Cart")
-                    has_pending_free_promotion = True
+                await expect(add_to_cart_btn).to_be_visible(timeout=10000)
+                await expect(add_to_cart_btn).to_be_enabled(timeout=10000)
+                await add_to_cart_btn.click()
+                logger.debug(f"🙌 Add to the shopping cart - {url=}")
+                has_pending_free_promotion = True
 
             except Exception as err:
                 logger.warning(f"Failed to add promotion to cart - {err}")
@@ -351,7 +342,19 @@ class EpicGames:
         agent = AgentV(page=self.page, agent_config=settings)
 
         # --> Check out cart
-        await self.page.click("//button//span[text()='Check Out']")
+        cart_buttons = self.page.locator("//button")
+        cart_button_count = await cart_buttons.count()
+        button_texts = []
+        for i in range(cart_button_count):
+            text = (await cart_buttons.nth(i).inner_text() or "").strip()
+            if text:
+                button_texts.append(text)
+        logger.debug(f"Cart buttons: {button_texts}")
+
+        checkout_btn = self.page.locator("//button[.//span[normalize-space()='Check Out']]")
+        await expect(checkout_btn).to_be_visible(timeout=30000)
+        await expect(checkout_btn).to_be_enabled(timeout=30000)
+        await checkout_btn.click()
 
         # <-- Handle Any LICENSE
         await self._agree_license(self.page)

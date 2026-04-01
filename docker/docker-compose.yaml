@@ -2,14 +2,24 @@ name: epic-awesome-gamer
 
 services:
   epic-awesome-gamer:
-#    build:
-#      context: ..
-#      dockerfile: docker/Dockerfile
-    image: ghcr.io/qin2dim/epic-awesome-gamer:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        HTTP_PROXY: "http://192.168.8.188:7890"
+        HTTPS_PROXY: "http://192.168.8.188:7890"
+        ALL_PROXY: ""
+        NO_PROXY: "127.0.0.1,localhost"
+    # image: ghcr.io/qin2dim/epic-awesome-gamer:latest
     restart: "no"
     container_name: epic-awesome-gamer
     env_file:
       - .env
+    environment:
+      HTTP_PROXY: "http://192.168.8.188:7890"
+      HTTPS_PROXY: "http://192.168.8.188:7890"
+      ALL_PROXY: ""
+      NO_PROXY: "127.0.0.1,localhost"
     volumes:
       - "./volumes/:/app/app/volumes/"
     entrypoint: [ "/usr/bin/tini", "--" ]

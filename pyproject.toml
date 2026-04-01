@@ -5,7 +5,7 @@ dependencies = [
     "apscheduler>=3.11.0",
     "pydantic-settings>=2.8.1",
     "celery[redis]>=5.4.0",
-    "hcaptcha-challenger[camoufox]>=0.18.10",
+    "hcaptcha-challenger[camoufox]>=0.19.0",
 ]
 requires-python = ">=3.12,<=3.13"
 authors = [

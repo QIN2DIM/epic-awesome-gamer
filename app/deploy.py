@@ -20,7 +20,7 @@ from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from browserforge.fingerprints import Screen
-from camoufox import AsyncCamoufox
+from camoufox import AsyncCamoufox, DefaultAddons
 from loguru import logger
 from playwright.async_api import ViewportSize
 from pytz import timezone
@@ -62,6 +62,7 @@ async def execute_browser_tasks(headless: bool = True):
         screen=Screen(max_width=1920, max_height=1080, min_height=1080, min_width=1920),
         record_video_dir=RECORD_DIR,
         record_video_size=ViewportSize(width=1920, height=1080),
+        exclude_addons=[DefaultAddons.UBO],
         humanize=0.2,
         headless=headless,
     ) as browser:
