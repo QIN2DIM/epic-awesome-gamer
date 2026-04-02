@@ -13,6 +13,7 @@ services:
     # image: ghcr.io/qin2dim/epic-awesome-gamer:latest
     restart: "no"
     container_name: epic-awesome-gamer
+    network_mode: "host"
     env_file:
       - .env
     environment:

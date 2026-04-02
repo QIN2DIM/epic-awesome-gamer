@@ -99,7 +99,7 @@ class EpicSettings(AgentConfig):
                     f"Using GEMINI_API_KEY #{(index % len(gemini_api_keys)) + 1}/{len(gemini_api_keys)} "
                     f"(suffix=***{key[-4:]})"
                 )
-                return key
+                return SecretStr(key)
 
         return super().__getattribute__(name)
 
