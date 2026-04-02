@@ -7,8 +7,17 @@ WORKDIR /app
 
 SHELL ["/bin/bash", "-c"]
 
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG ALL_PROXY
+ARG NO_PROXY
+
 ENV DISPLAY=:99 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    ALL_PROXY=${ALL_PROXY} \
+    NO_PROXY=${NO_PROXY}
 
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
