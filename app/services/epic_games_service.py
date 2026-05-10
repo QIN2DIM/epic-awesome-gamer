@@ -73,11 +73,15 @@ def get_promotions() -> List[PromotionGame]:
 
         # package free games
         try:
-            e["url"] = f"{URL_PRODUCT_PAGE.rstrip('/')}/{e['urlSlug']}"
-        except TypeError:
-            e["url"] = f"{URL_PRODUCT_BUNDLES.rstrip('/')}/{e['productSlug']}"
-        except IndexError:
-            e["url"] = f"{URL_PRODUCT_PAGE.rstrip('/')}/{e['productSlug']}"
+            e["url"] = f"{URL_PRODUCT_PAGE.rstrip('/')}/{e['offerMappings'][0]['pageSlug']}"
+        except (KeyError, IndexError):
+            if e.get("productSlug"):
+                e["url"] = f"{URL_PRODUCT_BUNDLES.rstrip('/')}/{e['productSlug']}"
+            else:
+                logger.info(f"Failed to get URL: {e}")
+                continue
+
+        logger.info(e["url"])
 
         promotions.append(PromotionGame(**e))
 
